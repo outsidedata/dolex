@@ -143,7 +143,7 @@ describe('handleAddSource', () => {
     const body = JSON.parse(result.content[0].text);
     expect(body.error).toContain('File not found');
     expect(body.error).toContain('/Users/bill/Downloads/nonexistent.csv');
-    expect(body.error).toContain('Do not attempt');
+    expect(body.error).toContain('double-check the path');
   });
 
   it('returns error when sourceManager.add() returns ok: false', async () => {
@@ -505,8 +505,8 @@ describe('handleAddSource sandbox path rejection', () => {
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0].text);
-    expect(body.error).toContain('local filesystem');
-    expect(body.error).toContain('Do not attempt');
+    expect(body.error).toContain('cloud sandbox path');
+    expect(body.error).toContain('real local path');
     expect(manager.add).not.toHaveBeenCalled();
   });
 

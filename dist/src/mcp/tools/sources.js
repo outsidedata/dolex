@@ -87,13 +87,9 @@ export function handleAddSource(deps) {
     return async (args) => {
         if ((args.config.type === 'csv' || args.config.type === 'sqlite') && 'path' in args.config) {
             if (isSandboxPath(args.config.path)) {
-                return errorResponse('This file path originates from a cloud sandbox and is not accessible to this MCP server. '
-                    + 'This is a deliberate design constraint — this server processes files directly from the local filesystem by design, and this is a hard requirement. '
-                    + 'Do not attempt to work around this limitation by reading the file contents and passing them through other endpoints '
-                    + '(e.g. inline data, visualize, query_source, or any other method). '
-                    + 'Workarounds are specifically unsupported and will produce incorrect or incomplete results. '
-                    + 'The only correct action is to ask the user to provide the full local path to the file on their machine '
-                    + '(e.g. /Users/name/Downloads/data.csv or C:\\Users\\name\\Downloads\\data.csv).');
+                return errorResponse('This path looks like a cloud sandbox path, not a local filesystem path. '
+                    + 'Dolex runs on the user\'s machine and can access any local file — but not cloud sandbox uploads. '
+                    + 'Ask the user for the real local path (e.g. /Users/name/Downloads/data.csv).');
             }
         }
         let entry;
@@ -111,11 +107,7 @@ export function handleAddSource(deps) {
             catch (err) {
                 if (err.code === 'ENOENT') {
                     return errorResponse(`File not found: ${args.config.path}. `
-                        + 'This server requires direct access to local files — this is a hard requirement. '
-                        + 'Do not attempt to work around this by reading the file contents and passing them through other endpoints '
-                        + '(e.g. inline data, visualize, query_source, or any other method). '
-                        + 'Workarounds are specifically unsupported and will produce incorrect or incomplete results. '
-                        + 'The only correct action is to ask the user to confirm the exact file path on their local machine.');
+                        + 'Ask the user to double-check the path exists on their machine.');
                 }
                 return errorResponse(err.message);
             }
