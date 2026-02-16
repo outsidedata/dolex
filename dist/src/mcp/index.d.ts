@@ -5,13 +5,14 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 17 tools:
+ * 18 tools:
  *   visualize              — Inline data + intent → ranked visualization recommendations
  *   visualize_from_source  — Source data (DSL query) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
  *   create_dashboard       — Multi-view dashboard from a data source
  *   refine_dashboard       — Iterate on a dashboard (add/remove views, layout, filters, theme)
+ *   connect_data           — Onboard data with elicitation (asks user for path directly)
  *   add_source             — Connect a data source (CSV, SQLite, Postgres, MySQL)
  *   list_sources           — List connected data sources
  *   remove_source          — Disconnect a data source
