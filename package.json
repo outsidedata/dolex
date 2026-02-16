@@ -1,0 +1,115 @@
+{
+  "name": "dolex",
+  "version": "0.1.0",
+  "description": "Visualization intelligence for AI — 43 handcrafted chart patterns with React components, MCP server, and self-contained HTML builders",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "visualization",
+    "charts",
+    "d3",
+    "react",
+    "mcp",
+    "ai",
+    "data-visualization",
+    "bump-chart",
+    "sankey",
+    "beeswarm",
+    "waffle-chart",
+    "slope-chart",
+    "choropleth",
+    "pattern-library"
+  ],
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./react": {
+      "types": "./dist/src/renderers/react/index.d.ts",
+      "import": "./dist/src/renderers/react/index.js"
+    },
+    "./html": {
+      "types": "./dist/src/renderers/html/index.d.ts",
+      "import": "./dist/src/renderers/html/index.js"
+    },
+    "./theme": {
+      "types": "./dist/src/theme/index.d.ts",
+      "import": "./dist/src/theme/index.js"
+    },
+    "./utils": {
+      "types": "./dist/src/utils/index.d.ts",
+      "import": "./dist/src/utils/index.js"
+    },
+    "./patterns": {
+      "types": "./dist/src/patterns/index.d.ts",
+      "import": "./dist/src/patterns/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "src",
+    "data/geo",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:bundles": "tsx scripts/build-render-bundles.ts",
+    "build": "npm run build:bundles && tsc",
+    "dev": "tsx watch src/mcp/index.ts",
+    "start": "node dist/mcp/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "mcp:stdio": "tsx src/mcp/index.ts",
+    "preflight": "bash scripts/publish-preflight.sh",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "zod": "^3.25.56"
+  },
+  "optionalDependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "better-sqlite3": "^11.10.0",
+    "mysql2": "^3.14.0",
+    "papaparse": "^5.5.3",
+    "pg": "^8.16.2",
+    "playwright": "^1.58.2",
+    "topojson-client": "^3.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/billautomata/dolex.git"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/papaparse": "^5.3.16",
+    "@types/pg": "^8.11.0",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
+    "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.27.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tsx": "^4.19.4",
+    "typescript": "^5",
+    "vitest": "^3.2.2"
+  }
+}

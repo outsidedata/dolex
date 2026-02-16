@@ -1,0 +1,5 @@
+export { renderChoropleth } from './choropleth.js';
+export { renderProportionalSymbol } from './proportional-symbol.js';
+export { detectGeoScope, applyGeoScope, buildGeoSpecConfig } from './geo-scope.js';
+export { getGeoConfig, getAllGeoRegions, getSubdivisionRegions, getCountryRegions } from './geo-registry.js';
+//# sourceMappingURL=index.js.map

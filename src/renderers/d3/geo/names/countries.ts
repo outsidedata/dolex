@@ -1,0 +1,245 @@
+import { normalizeGeoName } from './normalize.js';
+
+const COUNTRY_LOOKUP: Record<string, string> = {};
+
+const CANONICAL_NAMES: Record<string, string> = {};
+
+function add(alpha2: string, canonicalName: string, ...aliases: string[]) {
+  const code = alpha2.toUpperCase();
+  CANONICAL_NAMES[code] = canonicalName;
+  COUNTRY_LOOKUP[normalizeGeoName(canonicalName)] = code;
+  for (const alias of aliases) {
+    COUNTRY_LOOKUP[normalizeGeoName(alias)] = code;
+  }
+}
+
+// ─── NORTH AMERICA ───────────────────────────────────────────────────────────
+
+add('US', 'United States', 'USA', 'US', 'United States of America', 'America');
+add('CA', 'Canada', 'CA', 'CAN');
+add('MX', 'Mexico', 'MX', 'MEX', 'United Mexican States');
+add('GT', 'Guatemala', 'GT', 'GTM');
+add('BZ', 'Belize', 'BZ', 'BLZ');
+add('HN', 'Honduras', 'HN', 'HND');
+add('SV', 'El Salvador', 'SV', 'SLV');
+add('NI', 'Nicaragua', 'NI', 'NIC');
+add('CR', 'Costa Rica', 'CR', 'CRI');
+add('PA', 'Panama', 'PA', 'PAN');
+add('CU', 'Cuba', 'CU', 'CUB');
+add('JM', 'Jamaica', 'JM', 'JAM');
+add('HT', 'Haiti', 'HT', 'HTI');
+add('DO', 'Dominican Republic', 'DO', 'DOM');
+add('TT', 'Trinidad and Tobago', 'TT', 'TTO');
+add('BB', 'Barbados', 'BB', 'BRB');
+add('BS', 'Bahamas', 'BS', 'BHS', 'The Bahamas');
+add('GD', 'Grenada', 'GD', 'GRD');
+add('AG', 'Antigua and Barbuda', 'AG', 'ATG');
+add('DM', 'Dominica', 'DM', 'DMA');
+add('KN', 'Saint Kitts and Nevis', 'KN', 'KNA', 'St. Kitts and Nevis', 'St Kitts and Nevis');
+add('LC', 'Saint Lucia', 'LC', 'LCA', 'St. Lucia', 'St Lucia');
+add('VC', 'Saint Vincent and the Grenadines', 'VC', 'VCT', 'St. Vincent and the Grenadines', 'St Vincent');
+
+// ─── SOUTH AMERICA ───────────────────────────────────────────────────────────
+
+add('BR', 'Brazil', 'BR', 'BRA');
+add('AR', 'Argentina', 'AR', 'ARG');
+add('CO', 'Colombia', 'CO', 'COL');
+add('VE', 'Venezuela', 'VE', 'VEN', 'Bolivarian Republic of Venezuela');
+add('PE', 'Peru', 'PE', 'PER');
+add('CL', 'Chile', 'CL', 'CHL');
+add('EC', 'Ecuador', 'EC', 'ECU');
+add('BO', 'Bolivia', 'BO', 'BOL', 'Plurinational State of Bolivia');
+add('PY', 'Paraguay', 'PY', 'PRY');
+add('UY', 'Uruguay', 'UY', 'URY');
+add('GY', 'Guyana', 'GY', 'GUY');
+add('SR', 'Suriname', 'SR', 'SUR');
+
+// ─── EUROPE ──────────────────────────────────────────────────────────────────
+
+add('GB', 'United Kingdom', 'UK', 'GB', 'GBR', 'Great Britain', 'Britain', 'England');
+add('FR', 'France', 'FR', 'FRA', 'French Republic');
+add('DE', 'Germany', 'DE', 'DEU', 'Federal Republic of Germany');
+add('IT', 'Italy', 'IT', 'ITA', 'Italian Republic');
+add('ES', 'Spain', 'ES', 'ESP', 'Kingdom of Spain');
+add('PT', 'Portugal', 'PT', 'PRT');
+add('NL', 'Netherlands', 'NL', 'NLD', 'Holland');
+add('BE', 'Belgium', 'BE', 'BEL');
+add('LU', 'Luxembourg', 'LU', 'LUX');
+add('IE', 'Ireland', 'IE', 'IRL', 'Republic of Ireland');
+add('AT', 'Austria', 'AT', 'AUT');
+add('CH', 'Switzerland', 'CH', 'CHE', 'Swiss Confederation');
+add('SE', 'Sweden', 'SE', 'SWE');
+add('NO', 'Norway', 'NO', 'NOR');
+add('DK', 'Denmark', 'DK', 'DNK');
+add('FI', 'Finland', 'FI', 'FIN');
+add('IS', 'Iceland', 'IS', 'ISL');
+add('PL', 'Poland', 'PL', 'POL');
+add('CZ', 'Czech Republic', 'CZ', 'CZE', 'Czechia');
+add('SK', 'Slovakia', 'SK', 'SVK', 'Slovak Republic');
+add('HU', 'Hungary', 'HU', 'HUN');
+add('RO', 'Romania', 'RO', 'ROU');
+add('BG', 'Bulgaria', 'BG', 'BGR');
+add('HR', 'Croatia', 'HR', 'HRV');
+add('SI', 'Slovenia', 'SI', 'SVN');
+add('RS', 'Serbia', 'RS', 'SRB');
+add('BA', 'Bosnia and Herzegovina', 'BA', 'BIH', 'Bosnia');
+add('ME', 'Montenegro', 'ME', 'MNE');
+add('MK', 'North Macedonia', 'MK', 'MKD', 'Macedonia', 'FYROM', 'Republic of North Macedonia');
+add('AL', 'Albania', 'AL', 'ALB');
+add('GR', 'Greece', 'GR', 'GRC', 'Hellenic Republic');
+add('CY', 'Cyprus', 'CY', 'CYP');
+add('MT', 'Malta', 'MT', 'MLT');
+add('EE', 'Estonia', 'EE', 'EST');
+add('LV', 'Latvia', 'LV', 'LVA');
+add('LT', 'Lithuania', 'LT', 'LTU');
+add('UA', 'Ukraine', 'UA', 'UKR');
+add('BY', 'Belarus', 'BY', 'BLR');
+add('MD', 'Moldova', 'MD', 'MDA', 'Republic of Moldova');
+add('AD', 'Andorra', 'AD', 'AND');
+add('MC', 'Monaco', 'MC', 'MCO');
+add('SM', 'San Marino', 'SM', 'SMR');
+add('VA', 'Vatican City', 'VA', 'VAT', 'Holy See');
+add('LI', 'Liechtenstein', 'LI', 'LIE');
+add('XK', 'Kosovo', 'XK', 'XKX');
+
+// ─── ASIA ────────────────────────────────────────────────────────────────────
+
+add('CN', 'China', 'CN', 'CHN', "People's Republic of China");
+add('JP', 'Japan', 'JP', 'JPN');
+add('KR', 'South Korea', 'KR', 'KOR', 'Republic of Korea', 'Korea');
+add('KP', 'North Korea', 'KP', 'PRK', "Democratic People's Republic of Korea", 'DPRK');
+add('IN', 'India', 'IN', 'IND', 'Republic of India');
+add('PK', 'Pakistan', 'PK', 'PAK');
+add('BD', 'Bangladesh', 'BD', 'BGD');
+add('LK', 'Sri Lanka', 'LK', 'LKA', 'Ceylon');
+add('NP', 'Nepal', 'NP', 'NPL');
+add('BT', 'Bhutan', 'BT', 'BTN');
+add('MV', 'Maldives', 'MV', 'MDV');
+add('MM', 'Myanmar', 'MM', 'MMR', 'Burma');
+add('TH', 'Thailand', 'TH', 'THA');
+add('VN', 'Vietnam', 'VN', 'VNM', 'Viet Nam');
+add('LA', 'Laos', 'LA', 'LAO', "Lao People's Democratic Republic");
+add('KH', 'Cambodia', 'KH', 'KHM');
+add('MY', 'Malaysia', 'MY', 'MYS');
+add('SG', 'Singapore', 'SG', 'SGP');
+add('ID', 'Indonesia', 'ID', 'IDN');
+add('PH', 'Philippines', 'PH', 'PHL');
+add('BN', 'Brunei', 'BN', 'BRN', 'Brunei Darussalam');
+add('TL', 'Timor-Leste', 'TL', 'TLS', 'East Timor');
+add('MN', 'Mongolia', 'MN', 'MNG');
+add('KZ', 'Kazakhstan', 'KZ', 'KAZ');
+add('UZ', 'Uzbekistan', 'UZ', 'UZB');
+add('TM', 'Turkmenistan', 'TM', 'TKM');
+add('TJ', 'Tajikistan', 'TJ', 'TJK');
+add('KG', 'Kyrgyzstan', 'KG', 'KGZ');
+add('AF', 'Afghanistan', 'AF', 'AFG');
+add('IR', 'Iran', 'IR', 'IRN', 'Islamic Republic of Iran', 'Persia');
+add('IQ', 'Iraq', 'IQ', 'IRQ');
+add('SA', 'Saudi Arabia', 'SA', 'SAU', 'Kingdom of Saudi Arabia');
+add('AE', 'United Arab Emirates', 'AE', 'ARE', 'UAE');
+add('QA', 'Qatar', 'QA', 'QAT');
+add('BH', 'Bahrain', 'BH', 'BHR');
+add('KW', 'Kuwait', 'KW', 'KWT');
+add('OM', 'Oman', 'OM', 'OMN');
+add('YE', 'Yemen', 'YE', 'YEM');
+add('JO', 'Jordan', 'JO', 'JOR');
+add('LB', 'Lebanon', 'LB', 'LBN');
+add('SY', 'Syria', 'SY', 'SYR', 'Syrian Arab Republic');
+add('IL', 'Israel', 'IL', 'ISR');
+add('PS', 'Palestine', 'PS', 'PSE', 'State of Palestine', 'Palestinian Territories');
+add('TR', 'Turkey', 'TR', 'TUR', 'Turkiye');
+add('GE', 'Georgia', 'GE', 'GEO');
+add('AM', 'Armenia', 'AM', 'ARM');
+add('AZ', 'Azerbaijan', 'AZ', 'AZE');
+
+// ─── AFRICA ──────────────────────────────────────────────────────────────────
+
+add('NG', 'Nigeria', 'NG', 'NGA');
+add('ET', 'Ethiopia', 'ET', 'ETH');
+add('EG', 'Egypt', 'EG', 'EGY');
+add('ZA', 'South Africa', 'ZA', 'ZAF');
+add('KE', 'Kenya', 'KE', 'KEN');
+add('TZ', 'Tanzania', 'TZ', 'TZA', 'United Republic of Tanzania');
+add('UG', 'Uganda', 'UG', 'UGA');
+add('DZ', 'Algeria', 'DZ', 'DZA');
+add('SD', 'Sudan', 'SD', 'SDN');
+add('MA', 'Morocco', 'MA', 'MAR');
+add('AO', 'Angola', 'AO', 'AGO');
+add('GH', 'Ghana', 'GH', 'GHA');
+add('MZ', 'Mozambique', 'MZ', 'MOZ');
+add('MG', 'Madagascar', 'MG', 'MDG');
+add('CM', 'Cameroon', 'CM', 'CMR');
+add('CI', "Cote d'Ivoire", 'CI', 'CIV', 'Ivory Coast');
+add('NE', 'Niger', 'NE', 'NER');
+add('BF', 'Burkina Faso', 'BF', 'BFA');
+add('ML', 'Mali', 'ML', 'MLI');
+add('MW', 'Malawi', 'MW', 'MWI');
+add('ZM', 'Zambia', 'ZM', 'ZMB');
+add('ZW', 'Zimbabwe', 'ZW', 'ZWE');
+add('TD', 'Chad', 'TD', 'TCD');
+add('SN', 'Senegal', 'SN', 'SEN');
+add('SO', 'Somalia', 'SO', 'SOM');
+add('SS', 'South Sudan', 'SS', 'SSD');
+add('RW', 'Rwanda', 'RW', 'RWA');
+add('GN', 'Guinea', 'GN', 'GIN');
+add('BJ', 'Benin', 'BJ', 'BEN');
+add('TN', 'Tunisia', 'TN', 'TUN');
+add('BI', 'Burundi', 'BI', 'BDI');
+add('TG', 'Togo', 'TG', 'TGO');
+add('SL', 'Sierra Leone', 'SL', 'SLE');
+add('LY', 'Libya', 'LY', 'LBY');
+add('LR', 'Liberia', 'LR', 'LBR');
+add('CF', 'Central African Republic', 'CF', 'CAF');
+add('MR', 'Mauritania', 'MR', 'MRT');
+add('ER', 'Eritrea', 'ER', 'ERI');
+add('GM', 'Gambia', 'GM', 'GMB', 'The Gambia');
+add('BW', 'Botswana', 'BW', 'BWA');
+add('NA', 'Namibia', 'NA', 'NAM');
+add('GA', 'Gabon', 'GA', 'GAB');
+add('LS', 'Lesotho', 'LS', 'LSO');
+add('GW', 'Guinea-Bissau', 'GW', 'GNB');
+add('GQ', 'Equatorial Guinea', 'GQ', 'GNQ');
+add('MU', 'Mauritius', 'MU', 'MUS');
+add('SZ', 'Eswatini', 'SZ', 'SWZ', 'Swaziland');
+add('DJ', 'Djibouti', 'DJ', 'DJI');
+add('KM', 'Comoros', 'KM', 'COM');
+add('CV', 'Cabo Verde', 'CV', 'CPV', 'Cape Verde');
+add('ST', 'Sao Tome and Principe', 'ST', 'STP');
+add('SC', 'Seychelles', 'SC', 'SYC');
+add('CG', 'Republic of the Congo', 'CG', 'COG', 'Congo Republic', 'Congo-Brazzaville', 'Congo');
+add('CD', 'Democratic Republic of the Congo', 'CD', 'COD', 'DR Congo', 'DRC', 'Congo-Kinshasa');
+
+// ─── OCEANIA ─────────────────────────────────────────────────────────────────
+
+add('AU', 'Australia', 'AU', 'AUS');
+add('NZ', 'New Zealand', 'NZ', 'NZL');
+add('PG', 'Papua New Guinea', 'PG', 'PNG');
+add('FJ', 'Fiji', 'FJ', 'FJI');
+add('SB', 'Solomon Islands', 'SB', 'SLB');
+add('VU', 'Vanuatu', 'VU', 'VUT');
+add('WS', 'Samoa', 'WS', 'WSM');
+add('KI', 'Kiribati', 'KI', 'KIR');
+add('FM', 'Micronesia', 'FM', 'FSM', 'Federated States of Micronesia');
+add('TO', 'Tonga', 'TO', 'TON');
+add('MH', 'Marshall Islands', 'MH', 'MHL');
+add('PW', 'Palau', 'PW', 'PLW');
+add('NR', 'Nauru', 'NR', 'NRU');
+add('TV', 'Tuvalu', 'TV', 'TUV');
+
+// ─── RUSSIA / TRANSCONTINENTAL ───────────────────────────────────────────────
+
+add('RU', 'Russia', 'RU', 'RUS', 'Russian Federation');
+
+// ─── EXPORTS ─────────────────────────────────────────────────────────────────
+
+export function resolveCountryName(input: string): string | undefined {
+  return COUNTRY_LOOKUP[normalizeGeoName(input)];
+}
+
+export function getAllCountryNames(): string[] {
+  return Object.values(CANONICAL_NAMES);
+}
+
+export function getCountryAlpha2Codes(): string[] {
+  return Object.keys(CANONICAL_NAMES);
+}

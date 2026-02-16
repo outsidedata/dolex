@@ -1,0 +1,1 @@
+{"version":3,"file":"proportional-symbol.js","sourceRoot":"","sources":["../../../../../src/renderers/html/builders/proportional-symbol.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,mBAAmB,EAAE,MAAM,gBAAgB,CAAC;AACrD,OAAO,EAAE,wBAAwB,EAAE,MAAM,0BAA0B,CAAC;AAEpE,MAAM,UAAU,2BAA2B,CAAC,IAAuB;IACjE,OAAO,mBAAmB,CAAC,IAAI,EAAE,wBAAwB,CAAC,CAAC;AAC7D,CAAC"}

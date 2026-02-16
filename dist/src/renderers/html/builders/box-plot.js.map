@@ -1,0 +1,1 @@
+{"version":3,"file":"box-plot.js","sourceRoot":"","sources":["../../../../../src/renderers/html/builders/box-plot.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,mBAAmB,EAAE,MAAM,gBAAgB,CAAC;AACrD,OAAO,EAAE,aAAa,EAAE,MAAM,0BAA0B,CAAC;AAEzD,MAAM,UAAU,gBAAgB,CAAC,IAAuB;IACtD,OAAO,mBAAmB,CAAC,IAAI,EAAE,aAAa,CAAC,CAAC;AAClD,CAAC"}

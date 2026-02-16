@@ -1,0 +1,1 @@
+{"version":3,"file":"histogram.js","sourceRoot":"","sources":["../../../../../src/renderers/html/builders/histogram.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,mBAAmB,EAAE,MAAM,gBAAgB,CAAC;AACrD,OAAO,EAAE,eAAe,EAAE,MAAM,0BAA0B,CAAC;AAE3D,MAAM,UAAU,kBAAkB,CAAC,IAAuB;IACxD,OAAO,mBAAmB,CAAC,IAAI,EAAE,eAAe,CAAC,CAAC;AACpD,CAAC"}
