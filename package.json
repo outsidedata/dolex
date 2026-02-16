@@ -1,6 +1,6 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "AI data analyst — 43 handcrafted visualization patterns, query engine with window functions, and auto-analysis planning via MCP",
   "type": "module",
   "license": "MIT",
@@ -100,7 +100,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/billautomata/dolex.git"
+    "url": "https://github.com/outsidedata/dolex.git"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

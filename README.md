@@ -39,6 +39,16 @@ Dolex is an MCP server that gives your AI assistant a complete data analysis too
 
 ## Install
 
+```bash
+npm install -g @outsidedata/dolex
+```
+
+To update:
+
+```bash
+npm update -g @outsidedata/dolex
+```
+
 ### Claude Desktop
 
 Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
@@ -47,8 +57,7 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 {
   "mcpServers": {
     "dolex": {
-      "command": "npx",
-      "args": ["@outsidedata/dolex"]
+      "command": "dolex"
     }
   }
 }
@@ -57,13 +66,13 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 ### Claude Code
 
 ```bash
-claude mcp add dolex -- npx @outsidedata/dolex
+claude mcp add dolex -- dolex
 ```
 
 ### Any MCP Client
 
 ```bash
-npx @outsidedata/dolex
+dolex
 ```
 
 ## The Query Engine
