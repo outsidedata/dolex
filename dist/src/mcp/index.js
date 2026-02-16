@@ -60,20 +60,29 @@ const serverStartTime = Date.now();
 // ─── CREATE SERVER ──────────────────────────────────────────────────────────
 const server = new McpServer({
     name: 'dolex',
-    version: '0.1.7',
+    version: '0.1.9',
 }, {
     instructions: [
         'Dolex is a data analysis and visualization MCP server running on the user\'s LOCAL MACHINE.',
         '',
-        'CRITICAL: You have FULL ACCESS to the user\'s local filesystem through this server.',
-        'When a user provides a file path (e.g. /Users/name/data/sales.csv), ALWAYS pass it directly to add_source.',
-        'NEVER tell users a path won\'t work. NEVER ask users to upload files. NEVER refuse to try a local path.',
-        'Just call add_source with the path and let the result speak for itself.',
+        '## FILE ACCESS — READ THIS FIRST',
         '',
-        'The ONLY paths that fail are cloud sandbox paths (/mnt/user-data/, /home/claude/, /tmp/uploads/).',
-        'Everything else — /Users/*, /home/*, /var/*, /tmp/*, C:\\*, network paths — is directly accessible. Try it.',
+        'This server has FULL ACCESS to the user\'s local filesystem. /Users/*, /home/*, C:\\*, /var/*, /tmp/* — all accessible.',
+        'The ONLY exception is cloud sandbox paths (/mnt/user-data/, /home/claude/).',
         '',
-        'Workflow: add_source → describe_source or analyze_source → query with visualize_from_source → refine.',
+        'WRONG: Checking /mnt/user-data/uploads before calling add_source.',
+        'WRONG: Telling the user "I can\'t access local files" or "that path won\'t work".',
+        'WRONG: Asking the user to upload files or copy data into the chat.',
+        'WRONG: Using the view tool or any other tool to check if a file exists before trying add_source.',
+        'WRONG: Suggesting the user needs to do anything special to give you access.',
+        '',
+        'RIGHT: User gives a path → immediately call add_source with that exact path. No checking, no hedging, no caveats.',
+        '',
+        'If add_source fails, THEN you can discuss the error. But TRY FIRST. Always.',
+        '',
+        '## Workflow',
+        '',
+        'add_source (connect data) → describe_source or analyze_source (understand it) → visualize_from_source (chart it) → refine_visualization (iterate).',
     ].join('\n'),
 });
 // ─── Shared pattern selector callback ────────────────────────────────────────
@@ -116,7 +125,7 @@ registerAppTool(server, 'visualize', {
 // Source-based visualization tool
 registerAppTool(server, 'visualize_from_source', {
     title: 'Visualize from Data Source',
-    description: 'Takes a data source + DSL query + intent and returns visualization recommendations from a handcrafted pattern library of 41 chart types. Use this when data lives in a connected source (CSV, SQLite, Postgres, MySQL) — Dolex queries the data server-side.\n\nRequires a source from `add_source`. Pass `sourceId`, `table`, and a `query` (declarative DSL with select, groupBy, filter, join, orderBy, limit). Set `title` and `subtitle` upfront to avoid a refine round-trip.\n\n**DSL query example**:\n```json\n{\n  "select": ["region", { "field": "revenue", "aggregate": "sum", "as": "total" }],\n  "groupBy": ["region"],\n  "filter": { "field": "year", "equals": 2024 },\n  "orderBy": { "field": "total", "direction": "desc" },\n  "limit": 10\n}\n```\n\n**Filter shorthand**: `{ "field": "x", "equals": "y" }` — also `gt`, `gte`, `lt`, `lte`, `not_equals`. Single filters can be bare objects (no array needed). Canonical form: `{ "field", "op": "=", "value": "y" }`.\n\n**Joins**: Use `join` to combine tables within the same source (inner/left). Use `table.field` dot notation for joined fields. Multi-hop: `{ "table": "orders", "on": { "left": "order_id", "right": "id" } }, { "table": "customers", "on": { "left": "orders.customer_id", "right": "id" } }`.\n\n**Response**: Same as `visualize` — compact JSON with specId, recommended pattern, alternatives, data shape. Chart HTML via structuredContent.\n\nGeographic maps: For choropleth/proportional-symbol patterns, set `geoRegion` to a region code (US, CN, JP, AU, EU, world, etc.) and/or `geoLevel` ("country" or "subdivision"). If omitted, Dolex auto-detects the region from data values.',
+    description: 'Takes a data source + DSL query + intent and returns visualization recommendations from a handcrafted pattern library of 41 chart types. Use this when data lives in a connected source (CSV, SQLite, Postgres, MySQL) — Dolex queries the data server-side. If the user mentions a file path and no source exists yet, call add_source first with the path they gave you.\n\nRequires a source from `add_source`. Pass `sourceId`, `table`, and a `query` (declarative DSL with select, groupBy, filter, join, orderBy, limit). Set `title` and `subtitle` upfront to avoid a refine round-trip.\n\n**DSL query example**:\n```json\n{\n  "select": ["region", { "field": "revenue", "aggregate": "sum", "as": "total" }],\n  "groupBy": ["region"],\n  "filter": { "field": "year", "equals": 2024 },\n  "orderBy": { "field": "total", "direction": "desc" },\n  "limit": 10\n}\n```\n\n**Filter shorthand**: `{ "field": "x", "equals": "y" }` — also `gt`, `gte`, `lt`, `lte`, `not_equals`. Single filters can be bare objects (no array needed). Canonical form: `{ "field", "op": "=", "value": "y" }`.\n\n**Joins**: Use `join` to combine tables within the same source (inner/left). Use `table.field` dot notation for joined fields. Multi-hop: `{ "table": "orders", "on": { "left": "order_id", "right": "id" } }, { "table": "customers", "on": { "left": "orders.customer_id", "right": "id" } }`.\n\n**Response**: Same as `visualize` — compact JSON with specId, recommended pattern, alternatives, data shape. Chart HTML via structuredContent.\n\nGeographic maps: For choropleth/proportional-symbol patterns, set `geoRegion` to a region code (US, CN, JP, AU, EU, world, etc.) and/or `geoLevel` ("country" or "subdivision"). If omitted, Dolex auto-detects the region from data values.',
     inputSchema: visualizeFromSourceInputSchema.shape,
     _meta: {
         ui: {
@@ -147,7 +156,7 @@ registerAppTool(server, 'refine_visualization', {
 // Data source management tools
 server.registerTool('add_source', {
     title: 'Add Data Source',
-    description: 'Connect a data source: CSV file/directory, SQLite database, PostgreSQL, or MySQL connection.\n\nThis MCP server runs on the user\'s local machine and has FULL ACCESS to the local filesystem. When a user gives you a file path, ALWAYS try it — never assume a path won\'t work. Just call add_source and let the result speak for itself. The user\'s files are directly accessible.\n\nThe ONLY paths that do not work are cloud sandbox paths (/mnt/user-data/, /home/claude/, /tmp/uploads/) from drag-and-drop uploads. For those, ask the user for the real local path. For everything else: try it first, explain later.\n\nSources persist across restarts — if a source already exists, it reconnects automatically.\n\nSet `detail: "compact"` to get just column names/types + row counts (saves tokens). Default `"full"` includes stats, top values, and sample rows.',
+    description: 'Connect a data source: CSV file/directory, SQLite database, PostgreSQL, or MySQL connection.\n\nFILESYSTEM ACCESS: This tool can read ANY local file path. When a user says "/Users/bill/data/sales.csv", call this tool immediately with that path. Do NOT check /mnt/user-data/uploads. Do NOT use the view tool first. Do NOT tell the user the path won\'t work. JUST CALL THIS TOOL. If it fails, the error message will tell you why.\n\nSources persist across restarts — if a source already exists, it reconnects automatically.\n\nSet `detail: "compact"` to get just column names/types + row counts (saves tokens). Default `"full"` includes stats, top values, and sample rows.',
     inputSchema: addSourceInputSchema,
 }, handleAddSource({ sourceManager }));
 server.registerTool('list_sources', {
@@ -166,7 +175,7 @@ server.registerTool('describe_source', {
 }, handleDescribeSource({ sourceManager }));
 server.registerTool('analyze_source', {
     title: 'Analyze Data Source',
-    description: 'Examines a connected data source and generates a structured analysis plan with ready-to-execute DSL queries. Returns 4-6 analysis steps covering trends, comparisons, distributions, and relationships — each with a title, question, query, and suggested chart patterns.\n\nUse this after add_source to get an automatic analysis plan. Then execute each step with visualize_from_source.',
+    description: 'Examines a connected data source and generates a structured analysis plan with ready-to-execute DSL queries. Returns 4-6 analysis steps covering trends, comparisons, distributions, and relationships — each with a title, question, query, and suggested chart patterns.\n\nUse this after add_source to get an automatic analysis plan. If the user mentions a file and no source exists, call add_source first with their path. Then execute each step with visualize_from_source.',
     inputSchema: analyzeSourceInputSchema.shape,
 }, handleAnalyzeSource({ sourceManager }));
 server.registerTool('query_source', {
