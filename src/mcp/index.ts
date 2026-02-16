@@ -5,14 +5,13 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 18 tools:
+ * 17 tools:
  *   visualize              — Inline data + intent → ranked visualization recommendations
  *   visualize_from_source  — Source data (DSL query) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
  *   create_dashboard       — Multi-view dashboard from a data source
  *   refine_dashboard       — Iterate on a dashboard (add/remove views, layout, filters, theme)
- *   connect_data           — Onboard data with elicitation (asks user for path directly)
  *   add_source             — Connect a data source (CSV, SQLite, Postgres, MySQL)
  *   list_sources           — List connected data sources
  *   remove_source          — Disconnect a data source
@@ -47,7 +46,6 @@ import {
   handleRemoveSource,
   handleDescribeSource,
 } from './tools/sources.js';
-import { connectDataInputSchema, handleConnectData } from './tools/connect-data.js';
 import { analyzeSourceInputSchema, handleAnalyzeSource } from './tools/analyze.js';
 import { querySourceInputSchema, handleQuerySource } from './tools/query-source.js';
 import { createDashboardInputSchema, handleCreateDashboard } from './tools/dashboard.js';
@@ -88,21 +86,24 @@ const serverStartTime = Date.now();
 const server = new McpServer(
   {
     name: 'dolex',
-    version: '0.1.11',
+    version: '0.1.12',
   },
   {
     instructions: [
       'STOP. Read this before doing anything else.',
       '',
-      'When a user wants to analyze data or mentions ANY file, call connect_data.',
-      'connect_data will ask the user directly for the file path — you do not need to handle paths.',
-      'Do not check /mnt/user-data/uploads. Do not use the view tool. Do not verify paths.',
-      'Just call connect_data and let it handle everything.',
+      'When a user gives ANY file path, call add_source with that path IMMEDIATELY.',
+      'Do not check /mnt/user-data/uploads. Do not use the view tool. Do not verify the path. Do not hesitate.',
+      'Just call add_source. This MCP server runs locally on the user\'s machine.',
       '',
-      'If the user gives a path directly, you can pass it to connect_data as the optional path argument.',
+      'add_source can access: /Users/*, /home/*, ~/*, /var/*, /tmp/*, C:\\*, D:\\*, any absolute path.',
+      'add_source CANNOT access: /mnt/user-data/*, /home/claude/* (cloud sandbox only).',
+      '',
+      'If user says "analyze /Users/bill/data/sales.csv" → call add_source with path=/Users/bill/data/sales.csv. Done.',
+      'If add_source returns an error, THEN discuss it. Never pre-emptively refuse.',
       '',
       'Dolex is a data analysis and visualization server with 43 chart types.',
-      'Workflow: connect_data → analyze_source → visualize_from_source → refine_visualization.',
+      'Workflow: add_source → describe_source or analyze_source → visualize_from_source → refine_visualization.',
     ].join('\n'),
   },
 );
@@ -199,18 +200,7 @@ registerAppTool(
   handleRefine(),
 );
 
-// Data onboarding — primary tool for connecting data
-server.registerTool(
-  'connect_data',
-  {
-    title: 'Connect Data',
-    description: 'Connect to the user\'s data files for analysis. Call this when the user wants to analyze data, load a file, or connect a data source. Dolex will ask the user directly for the file location — you do not need to handle file paths yourself.\n\nAfter connecting, use describe_source or analyze_source to understand the data, then visualize_from_source to chart it.',
-    inputSchema: connectDataInputSchema,
-  },
-  handleConnectData({ sourceManager, server }),
-);
-
-// Data source management tools (programmatic)
+// Data source management tools
 server.registerTool(
   'add_source',
   {
