@@ -86,7 +86,7 @@ const serverStartTime = Date.now();
 const server = new McpServer(
   {
     name: 'dolex',
-    version: '0.1.12',
+    version: '0.1.13',
   },
   {
     instructions: [
