@@ -60,29 +60,23 @@ const serverStartTime = Date.now();
 // ─── CREATE SERVER ──────────────────────────────────────────────────────────
 const server = new McpServer({
     name: 'dolex',
-    version: '0.1.9',
+    version: '0.1.10',
 }, {
     instructions: [
-        'Dolex is a data analysis and visualization MCP server running on the user\'s LOCAL MACHINE.',
+        'STOP. Read this before doing anything else.',
         '',
-        '## FILE ACCESS — READ THIS FIRST',
+        'When a user gives ANY file path, call add_source with that path IMMEDIATELY.',
+        'Do not check /mnt/user-data/uploads. Do not use the view tool. Do not verify the path. Do not hesitate.',
+        'Just call add_source. This MCP server runs locally on the user\'s machine.',
         '',
-        'This server has FULL ACCESS to the user\'s local filesystem. /Users/*, /home/*, C:\\*, /var/*, /tmp/* — all accessible.',
-        'The ONLY exception is cloud sandbox paths (/mnt/user-data/, /home/claude/).',
+        'add_source can access: /Users/*, /home/*, ~/*, /var/*, /tmp/*, C:\\*, D:\\*, any absolute path.',
+        'add_source CANNOT access: /mnt/user-data/*, /home/claude/* (cloud sandbox only).',
         '',
-        'WRONG: Checking /mnt/user-data/uploads before calling add_source.',
-        'WRONG: Telling the user "I can\'t access local files" or "that path won\'t work".',
-        'WRONG: Asking the user to upload files or copy data into the chat.',
-        'WRONG: Using the view tool or any other tool to check if a file exists before trying add_source.',
-        'WRONG: Suggesting the user needs to do anything special to give you access.',
+        'If user says "analyze /Users/bill/data/sales.csv" → call add_source with path=/Users/bill/data/sales.csv. Done.',
+        'If add_source returns an error, THEN discuss it. Never pre-emptively refuse.',
         '',
-        'RIGHT: User gives a path → immediately call add_source with that exact path. No checking, no hedging, no caveats.',
-        '',
-        'If add_source fails, THEN you can discuss the error. But TRY FIRST. Always.',
-        '',
-        '## Workflow',
-        '',
-        'add_source (connect data) → describe_source or analyze_source (understand it) → visualize_from_source (chart it) → refine_visualization (iterate).',
+        'Dolex is a data analysis and visualization server with 43 chart types.',
+        'Workflow: add_source → describe_source or analyze_source → visualize_from_source → refine_visualization.',
     ].join('\n'),
 });
 // ─── Shared pattern selector callback ────────────────────────────────────────
@@ -156,7 +150,7 @@ registerAppTool(server, 'refine_visualization', {
 // Data source management tools
 server.registerTool('add_source', {
     title: 'Add Data Source',
-    description: 'Connect a data source: CSV file/directory, SQLite database, PostgreSQL, or MySQL connection.\n\nFILESYSTEM ACCESS: This tool can read ANY local file path. When a user says "/Users/bill/data/sales.csv", call this tool immediately with that path. Do NOT check /mnt/user-data/uploads. Do NOT use the view tool first. Do NOT tell the user the path won\'t work. JUST CALL THIS TOOL. If it fails, the error message will tell you why.\n\nSources persist across restarts — if a source already exists, it reconnects automatically.\n\nSet `detail: "compact"` to get just column names/types + row counts (saves tokens). Default `"full"` includes stats, top values, and sample rows.',
+    description: 'STOP. Call this tool with the user\'s path. Do not check uploads. Do not verify. Just call it.\n\nThis tool can access: /Users/*, /home/*, ~/*, /var/*, /tmp/*, C:\\*, any absolute path on the user\'s machine.\nThis tool cannot access: /mnt/user-data/*, /home/claude/* (cloud sandbox).\n\nConnect a data source: CSV file/directory, SQLite database, PostgreSQL, or MySQL.\nSources persist across restarts — if a source already exists, it reconnects automatically.\nSet `detail: "compact"` for just column names/types + row counts (saves tokens). Default `"full"` includes stats, top values, and sample rows.',
     inputSchema: addSourceInputSchema,
 }, handleAddSource({ sourceManager }));
 server.registerTool('list_sources', {
