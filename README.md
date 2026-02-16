@@ -18,93 +18,43 @@ Every AI assistant suggests a bar chart. Dolex suggests the *right* chart — bu
 - **Smart Labels** — truncation, abbreviation, collision avoidance, adaptive strategies
 - **Offline Maps** — choropleth and proportional symbol maps with 33 embedded TopoJSON files covering world, continents, US states/counties, and 17 country subdivision maps
 
-## Quick Start
+## Install
 
 ```bash
-npm install dolex
+npm install @outsidedata/dolex
 ```
 
-### Pattern Selection
+## MCP Server Setup
 
-```typescript
-import { selectPattern, registry } from 'dolex';
+### Claude Desktop
 
-// Let Dolex choose the right pattern
-const result = selectPattern(data, columns, 'compare rankings over time');
-console.log(result.recommended.pattern.name); // "Bump Chart"
-console.log(result.recommended.reasoning);
+Add this to your Claude Desktop configuration file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
-// Browse all patterns
-const patterns = registry.getAll(); // 43 patterns
-const comparison = registry.getByCategory('comparison'); // 9 patterns
-```
-
-### React Components
-
-```tsx
-import { BumpChart, Beeswarm, Waffle, Scatter, Line } from 'dolex/react';
-
-function Dashboard({ spec }) {
-  return <BumpChart spec={spec} width={800} height={500} />;
+```json
+{
+  "mcpServers": {
+    "dolex": {
+      "command": "npx",
+      "args": ["@outsidedata/dolex"]
+    }
+  }
 }
 ```
 
-Available components: `Bar`, `DivergingBar`, `SlopeChart`, `BumpChart`, `ConnectedDotPlot`, `Lollipop`, `Bullet`, `GroupedBar`, `Waterfall`, `Histogram`, `Beeswarm`, `StripPlot`, `Violin`, `Ridgeline`, `BoxPlot`, `DensityPlot`, `StackedBar`, `Waffle`, `Treemap`, `Sunburst`, `CirclePack`, `Metric`, `Donut`, `Marimekko`, `Icicle`, `Line`, `Area`, `SmallMultiples`, `SparklineGrid`, `CalendarHeatmap`, `StreamGraph`, `HorizonChart`, `Scatter`, `ConnectedScatter`, `ParallelCoordinates`, `Radar`, `Heatmap`, `Sankey`, `Alluvial`, `Chord`, `Funnel`, `Choropleth`, `ProportionalSymbol`
+Restart Claude Desktop. You'll see Dolex's 17 tools available in the tool picker.
 
-### HTML Builders (MCP Apps / Iframes)
-
-```typescript
-import { buildChartHtml } from 'dolex/html';
-
-const html = buildChartHtml(spec);
-// Complete self-contained HTML document with embedded D3 + data
-// Perfect for iframe srcdoc, MCP Apps, or saving to file
-```
-
-### Theme
-
-```typescript
-import { theme, getTheme } from 'dolex/theme';
-
-const dark = getTheme('dark');
-const bg = dark.colors.background;
-const palette = dark.palettes.categorical;
-const titleStyle = dark.typography.textStyles.chartTitle;
-```
-
-### Smart Labels
-
-```typescript
-import { labelStrategy, truncateLabel, abbreviate } from 'dolex/utils';
-
-// Automatically choose the best labeling strategy
-const strategy = labelStrategy(['January Sales', 'February Sales', ...], 400);
-// Returns { mode: 'abbreviated', labels: ['Jan Sales', 'Feb Sales', ...] }
-
-// Or use individual utilities
-truncateLabel('Very Long Category Name', 80); // "Very Long Ca…"
-abbreviate('Department of Technology'); // "Dept of Tech"
-```
-
-## Pattern Catalog
-
-| Category | Patterns |
-|----------|----------|
-| **Comparison** (9) | Bar, Diverging Bar, Slope Chart, Connected Dot Plot, Bump Chart, Lollipop, Bullet, Grouped Bar, Waterfall |
-| **Distribution** (7) | Histogram, Beeswarm, Violin, Ridgeline, Strip Plot, Box Plot, Density Plot |
-| **Composition** (9) | Stacked Bar, Waffle, Treemap, Sunburst, Circle Pack, Metric, Donut, Marimekko, Icicle |
-| **Time** (7) | Line, Area, Small Multiples, Sparkline Grid, Calendar Heatmap, Stream Graph, Horizon Chart |
-| **Relationship** (5) | Scatter, Connected Scatter, Parallel Coordinates, Radar, Heatmap |
-| **Flow** (4) | Sankey, Alluvial, Chord, Funnel |
-| **Geo** (2) | Choropleth, Proportional Symbol |
-
-## MCP Server
-
-Dolex includes an MCP server for AI assistant integration.
+### Claude Code
 
 ```bash
-# Run via stdio (for Claude Desktop, etc.)
-npx dolex
+claude mcp add dolex -- npx @outsidedata/dolex
+```
+
+### Other MCP Clients
+
+Any MCP-compatible client (ChatGPT, VS Code, Goose, etc.) can connect via stdio:
+
+```bash
+npx @outsidedata/dolex
 ```
 
 ### MCP Tools
@@ -129,16 +79,81 @@ npx dolex
 | `export_html` | Return full self-contained HTML for a visualization |
 | `screenshot` | Render a visualization to PNG via headless Chromium |
 
+## Pattern Catalog
+
+| Category | Patterns |
+|----------|----------|
+| **Comparison** (9) | Bar, Diverging Bar, Slope Chart, Connected Dot Plot, Bump Chart, Lollipop, Bullet, Grouped Bar, Waterfall |
+| **Distribution** (7) | Histogram, Beeswarm, Violin, Ridgeline, Strip Plot, Box Plot, Density Plot |
+| **Composition** (9) | Stacked Bar, Waffle, Treemap, Sunburst, Circle Pack, Metric, Donut, Marimekko, Icicle |
+| **Time** (7) | Line, Area, Small Multiples, Sparkline Grid, Calendar Heatmap, Stream Graph, Horizon Chart |
+| **Relationship** (5) | Scatter, Connected Scatter, Parallel Coordinates, Radar, Heatmap |
+| **Flow** (4) | Sankey, Alluvial, Chord, Funnel |
+| **Geo** (2) | Choropleth, Proportional Symbol |
+
+## Library Usage
+
+### Pattern Selection
+
+```typescript
+import { selectPattern, registry } from '@outsidedata/dolex';
+
+const result = selectPattern(data, columns, 'compare rankings over time');
+console.log(result.recommended.pattern.name); // "Bump Chart"
+console.log(result.recommended.reasoning);
+
+const patterns = registry.getAll(); // 43 patterns
+const comparison = registry.getByCategory('comparison'); // 9 patterns
+```
+
+### React Components
+
+```tsx
+import { BumpChart, Beeswarm, Waffle, Scatter, Line } from '@outsidedata/dolex/react';
+
+function Dashboard({ spec }) {
+  return <BumpChart spec={spec} width={800} height={500} />;
+}
+```
+
+Available components: `Bar`, `DivergingBar`, `SlopeChart`, `BumpChart`, `ConnectedDotPlot`, `Lollipop`, `Bullet`, `GroupedBar`, `Waterfall`, `Histogram`, `Beeswarm`, `StripPlot`, `Violin`, `Ridgeline`, `BoxPlot`, `DensityPlot`, `StackedBar`, `Waffle`, `Treemap`, `Sunburst`, `CirclePack`, `Metric`, `Donut`, `Marimekko`, `Icicle`, `Line`, `Area`, `SmallMultiples`, `SparklineGrid`, `CalendarHeatmap`, `StreamGraph`, `HorizonChart`, `Scatter`, `ConnectedScatter`, `ParallelCoordinates`, `Radar`, `Heatmap`, `Sankey`, `Alluvial`, `Chord`, `Funnel`, `Choropleth`, `ProportionalSymbol`
+
+### HTML Builders (MCP Apps / Iframes)
+
+```typescript
+import { buildChartHtml } from '@outsidedata/dolex/html';
+
+const html = buildChartHtml(spec);
+// Complete self-contained HTML document with embedded D3 + data
+```
+
+### Theme
+
+```typescript
+import { theme, getTheme } from '@outsidedata/dolex/theme';
+
+const dark = getTheme('dark');
+const palette = dark.palettes.categorical;
+```
+
+### Smart Labels
+
+```typescript
+import { labelStrategy, truncateLabel, abbreviate } from '@outsidedata/dolex/utils';
+
+const strategy = labelStrategy(['January Sales', 'February Sales', ...], 400);
+```
+
 ## Exports Map
 
 | Import Path | Contents |
 |-------------|----------|
-| `dolex` | Types, patterns, theme, utilities, HTML builders |
-| `dolex/react` | React components (requires React >=18) |
-| `dolex/html` | Self-contained HTML chart builders |
-| `dolex/theme` | Design system tokens |
-| `dolex/utils` | Smart labels, responsive, export utilities |
-| `dolex/patterns` | Pattern registry and selector |
+| `@outsidedata/dolex` | Types, patterns, theme, utilities, HTML builders |
+| `@outsidedata/dolex/react` | React components (requires React >=18) |
+| `@outsidedata/dolex/html` | Self-contained HTML chart builders |
+| `@outsidedata/dolex/theme` | Design system tokens |
+| `@outsidedata/dolex/utils` | Smart labels, responsive, export utilities |
+| `@outsidedata/dolex/patterns` | Pattern registry and selector |
 
 ## Development
 

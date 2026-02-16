@@ -1,6 +1,6 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Visualization intelligence for AI — 43 handcrafted chart patterns with React components, MCP server, and self-contained HTML builders",
   "type": "module",
   "license": "MIT",
@@ -20,6 +20,9 @@
     "choropleth",
     "pattern-library"
   ],
+  "bin": {
+    "dolex": "./dist/src/mcp/index.js"
+  },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
