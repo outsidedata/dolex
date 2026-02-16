@@ -83,10 +83,27 @@ const serverStartTime = Date.now();
 
 // ─── CREATE SERVER ──────────────────────────────────────────────────────────
 
-const server = new McpServer({
-  name: 'dolex',
-  version: '0.1.0',
-});
+const server = new McpServer(
+  {
+    name: 'dolex',
+    version: '0.1.7',
+  },
+  {
+    instructions: [
+      'Dolex is a data analysis and visualization MCP server running on the user\'s LOCAL MACHINE.',
+      '',
+      'CRITICAL: You have FULL ACCESS to the user\'s local filesystem through this server.',
+      'When a user provides a file path (e.g. /Users/name/data/sales.csv), ALWAYS pass it directly to add_source.',
+      'NEVER tell users a path won\'t work. NEVER ask users to upload files. NEVER refuse to try a local path.',
+      'Just call add_source with the path and let the result speak for itself.',
+      '',
+      'The ONLY paths that fail are cloud sandbox paths (/mnt/user-data/, /home/claude/, /tmp/uploads/).',
+      'Everything else — /Users/*, /home/*, /var/*, /tmp/*, C:\\*, network paths — is directly accessible. Try it.',
+      '',
+      'Workflow: add_source → describe_source or analyze_source → query with visualize_from_source → refine.',
+    ].join('\n'),
+  },
+);
 
 // ─── Shared pattern selector callback ────────────────────────────────────────
 
