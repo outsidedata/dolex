@@ -10,6 +10,12 @@
 import { isDslAggregateField, isDslWindowField } from '../types.js';
 const MAX_LIMIT = 10000;
 /**
+ * Convert dot-notation field to a flat alias: "table.col" → "table_col", plain fields unchanged.
+ */
+export function fieldAlias(field) {
+    return field.includes('.') ? field.replace('.', '_') : field;
+}
+/**
  * Quote a field reference. Handles both plain "field" and "table.field" dot notation.
  */
 function quoteField(field) {
@@ -40,22 +46,37 @@ function compileDslBase(table, query, dialect, options) {
     const parts = [];
     // SELECT — window fields are handled separately in compileDslWithWindows
     const baseFields = query.select.filter((f) => !isDslWindowField(f));
-    const selectClauses = baseFields.map(f => compileSelectField(f, dialect));
-    // If there are time-bucketed groupBy fields, add them to SELECT if not already present
-    const groupByBucketSelects = [];
+    // Build map of bucketed groupBy fields → { expr, alias }
+    const bucketMap = new Map();
     if (query.groupBy) {
         for (const g of query.groupBy) {
             if (typeof g !== 'string' && g.bucket) {
                 const alias = `${g.field.replace('.', '_')}_${g.bucket}`;
                 const bucketExpr = compileBucket(g.field, g.bucket, dialect);
-                const alreadySelected = query.select.some(s => isDslAggregateField(s) && s.field === g.field);
-                if (!alreadySelected) {
-                    groupByBucketSelects.push(`${bucketExpr} AS "${alias}"`);
-                }
+                bucketMap.set(g.field, { expr: bucketExpr, alias });
             }
         }
     }
-    parts.push(`SELECT ${[...groupByBucketSelects, ...selectClauses].join(', ')}`);
+    // Compile select fields, replacing raw fields with their bucket expression
+    const emittedBuckets = new Set();
+    const selectClauses = baseFields.map(f => {
+        if (typeof f === 'string') {
+            const bucket = bucketMap.get(f);
+            if (bucket) {
+                emittedBuckets.add(f);
+                return `${bucket.expr} AS "${bucket.alias}"`;
+            }
+        }
+        return compileSelectField(f, dialect);
+    });
+    // Auto-include any bucketed columns not already emitted via replacement
+    const autoIncludeBuckets = [];
+    for (const [field, bucket] of bucketMap) {
+        if (!emittedBuckets.has(field)) {
+            autoIncludeBuckets.push(`${bucket.expr} AS "${bucket.alias}"`);
+        }
+    }
+    parts.push(`SELECT ${[...autoIncludeBuckets, ...selectClauses].join(', ')}`);
     // FROM
     parts.push(`FROM "${table}"`);
     // JOIN
@@ -113,7 +134,7 @@ function compileDslWithWindows(table, query, dialect, options) {
     outerParts.push(`SELECT _base.*, ${windowExprs.join(', ')}`);
     outerParts.push('FROM _base');
     if (query.orderBy && query.orderBy.length > 0) {
-        const orderClauses = query.orderBy.map(o => `"${o.field}" ${o.direction.toUpperCase()}`);
+        const orderClauses = query.orderBy.map(o => `"${fieldAlias(o.field)}" ${o.direction.toUpperCase()}`);
         outerParts.push(`ORDER BY ${orderClauses.join(', ')}`);
     }
     if (!options?.skipLimit) {
@@ -124,13 +145,13 @@ function compileDslWithWindows(table, query, dialect, options) {
 }
 function compileWindowExpression(w, dialect) {
     const partitionClause = w.partitionBy && w.partitionBy.length > 0
-        ? `PARTITION BY ${w.partitionBy.map(f => `"${f}"`).join(', ')}`
+        ? `PARTITION BY ${w.partitionBy.map(f => `"${fieldAlias(f)}"`).join(', ')}`
         : '';
     const orderClause = w.orderBy && w.orderBy.length > 0
-        ? `ORDER BY ${w.orderBy.map(o => `"${o.field}" ${o.direction.toUpperCase()}`).join(', ')}`
+        ? `ORDER BY ${w.orderBy.map(o => `"${fieldAlias(o.field)}" ${o.direction.toUpperCase()}`).join(', ')}`
         : '';
     const overParts = [partitionClause, orderClause].filter(Boolean).join(' ');
-    const field = w.field ? `"${w.field}"` : '';
+    const field = w.field ? `"${fieldAlias(w.field)}"` : '';
     const offset = w.offset ?? 1;
     const defaultVal = w.default !== undefined ? `, ${escapeValue(w.default)}` : '';
     let expr;
@@ -168,6 +189,9 @@ function compileWindowExpression(w, dialect) {
 }
 function compileSelectField(field, dialect) {
     if (typeof field === 'string') {
+        if (field.includes('.')) {
+            return `${quoteField(field)} AS "${fieldAlias(field)}"`;
+        }
         return quoteField(field);
     }
     const aggFn = compileAggregate(field.aggregate, field.field, dialect, field.percentile);
@@ -275,6 +299,14 @@ function compileGroupBy(field, dialect) {
     }
     return compileBucket(field.field, field.bucket, dialect);
 }
+/**
+ * Wrap a SQLite field reference so bare year-integers (e.g. 2013) are
+ * normalised to ISO date strings before strftime() is called.
+ * Without this, strftime('%Y', 2013) interprets 2013 as a Julian Day and returns "-4707".
+ */
+function ensureDateLiteral(quoted) {
+    return `CASE WHEN typeof(${quoted}) = 'integer' AND ${quoted} BETWEEN 1800 AND 2200 THEN ${quoted} || '-01-01' ELSE ${quoted} END`;
+}
 function compileBucket(field, bucket, dialect) {
     const quoted = quoteField(field);
     if (dialect === 'postgres') {
@@ -290,13 +322,14 @@ function compileBucket(field, bucket, dialect) {
             default: return quoted;
         }
     }
-    // SQLite strftime
+    // SQLite strftime — normalise bare year-integers first
+    const safe = ensureDateLiteral(quoted);
     switch (bucket) {
-        case 'day': return `strftime('%Y-%m-%d', ${quoted})`;
-        case 'week': return `strftime('%Y-W%W', ${quoted})`;
-        case 'month': return `strftime('%Y-%m', ${quoted})`;
-        case 'quarter': return `(strftime('%Y', ${quoted}) || '-Q' || ((CAST(strftime('%m', ${quoted}) AS INTEGER) - 1) / 3 + 1))`;
-        case 'year': return `strftime('%Y', ${quoted})`;
+        case 'year': return `CASE WHEN typeof(${quoted}) = 'integer' AND ${quoted} BETWEEN 1800 AND 2200 THEN CAST(${quoted} AS TEXT) ELSE strftime('%Y', ${quoted}) END`;
+        case 'day': return `strftime('%Y-%m-%d', ${safe})`;
+        case 'week': return `strftime('%Y-W%W', ${safe})`;
+        case 'month': return `strftime('%Y-%m', ${safe})`;
+        case 'quarter': return `(strftime('%Y', ${safe}) || '-Q' || ((CAST(strftime('%m', ${safe}) AS INTEGER) - 1) / 3 + 1))`;
         default: return quoted;
     }
 }

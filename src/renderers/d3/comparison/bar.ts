@@ -32,7 +32,30 @@ export function renderBar(container: HTMLElement, spec: VisualizationSpec): void
   const { config, encoding, data } = spec;
   const isHorizontal = config.orientation === 'horizontal';
 
-  let sortedData = [...data];
+  // Filter out rows with NaN y-values
+  const yFieldName = encoding.y?.field;
+  let sortedData = yFieldName
+    ? [...data].filter((d) => !isNaN(Number(d[yFieldName])))
+    : [...data];
+
+  // Aggregate duplicate categories: if the same x-value appears multiple times, sum y-values
+  if (encoding.x?.field && yFieldName) {
+    const xKey = encoding.x.field;
+    const categorySet = new Set(sortedData.map((d) => d[xKey]));
+    if (categorySet.size < sortedData.length) {
+      const aggregated = new Map<any, Record<string, any>>();
+      for (const row of sortedData) {
+        const key = row[xKey];
+        if (aggregated.has(key)) {
+          const existing = aggregated.get(key)!;
+          existing[yFieldName] = Number(existing[yFieldName]) + Number(row[yFieldName]);
+        } else {
+          aggregated.set(key, { ...row });
+        }
+      }
+      sortedData = [...aggregated.values()];
+    }
+  }
 
   // Sort by value
   if (config.sortBy === 'value' && encoding.y) {

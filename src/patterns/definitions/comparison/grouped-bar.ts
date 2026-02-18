@@ -93,7 +93,7 @@ export const groupedBarPattern: VisualizationPattern = {
   generateSpec: (data, columns, options) => {
     const categoryCol = columns[0];
     const seriesCol = columns.length > 2 ? columns[1] : undefined;
-    const valueCol = columns.length > 2 ? columns[2] : columns.length > 1 ? columns[1] : columns[0];
+    const valueCol = columns.length > 2 ? columns[2] : columns.length > 1 ? columns[1] : undefined;
 
     const spec: VisualizationSpec = {
       pattern: 'grouped-bar',
@@ -101,15 +101,15 @@ export const groupedBarPattern: VisualizationPattern = {
       data,
       encoding: {
         x: { field: categoryCol, type: 'nominal', title: categoryCol },
-        y: { field: valueCol, type: 'quantitative', title: valueCol },
+        y: valueCol ? { field: valueCol, type: 'quantitative', title: valueCol } : undefined,
         color: seriesCol
           ? { field: seriesCol, type: 'nominal', scale: {} }
-          : { field: categoryCol, type: 'nominal', scale: {} },
+          : undefined,
       },
       config: {
         categoryField: categoryCol,
-        seriesField: seriesCol,
-        valueField: valueCol,
+        seriesField: seriesCol ?? null,
+        valueField: valueCol ?? null,
         orientation: options?.orientation ?? 'vertical',
       },
     };

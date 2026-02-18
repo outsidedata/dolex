@@ -357,7 +357,12 @@ function computeBaseOutputNames(query: DslQuery): string[] {
   const names: string[] = [];
   for (const s of query.select) {
     if (typeof s === 'string') {
-      names.push(s.includes('.') ? s.split('.', 2)[1] : s);
+      const unqualified = s.includes('.') ? s.split('.', 2)[1] : s;
+      names.push(unqualified);
+      // Also track dot-notation form so window fields can reference either
+      if (s.includes('.') && !names.includes(s)) {
+        names.push(s);
+      }
     } else if (isDslAggregateField(s)) {
       names.push(s.as);
     }

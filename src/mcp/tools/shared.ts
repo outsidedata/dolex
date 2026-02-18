@@ -67,9 +67,23 @@ export function inferColumns(data: Record<string, any>[]): DataColumn[] {
       values.every(v => /^\d{4}[-/]/.test(String(v)));
     const isId = /^id$|_id$|Id$/i.test(key) && uniqueValues.length > data.length * 0.5;
 
+    const YEAR_NAME_PATTERN = /\byear\b|\bcohort\b|\bfiscal\b|\bfy\b|\bsemester\b|\bvintage\b|\bclass_of\b|\bgraduating\b|\bperiod\b|\bseason\b/i;
+
+    const looksLikeYear = isNumeric &&
+      !isDate &&
+      YEAR_NAME_PATTERN.test(key) &&
+      values.length > 0 &&
+      values.every(v => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 1900 && n <= 2100;
+      }) &&
+      uniqueValues.length <= 50 &&
+      uniqueValues.length > 1 &&
+      (Math.max(...values.map(Number)) - Math.min(...values.map(Number))) < 200;
+
     let type: DataColumn['type'] = 'categorical';
     if (isId) type = 'id';
-    else if (isDate) type = 'date';
+    else if (isDate || looksLikeYear) type = 'date';
     else if (isNumeric) type = 'numeric';
 
     return {
@@ -87,9 +101,11 @@ export function inferColumns(data: Record<string, any>[]): DataColumn[] {
 
 export function applyColorPreferences(
   spec: VisualizationSpec,
-  prefs?: DashboardViewSpec['colorPreferences'],
-): void {
-  if (!prefs) return;
+  prefs?: { palette?: string; highlight?: { values: any[]; color?: string | string[]; mutedColor?: string; mutedOpacity?: number }; colorField?: string },
+  data?: Record<string, any>[],
+): { notes: string[] } {
+  const notes: string[] = [];
+  if (!prefs) return { notes };
   if (!spec.encoding.color) spec.encoding.color = {};
 
   if (prefs.palette) {
@@ -107,6 +123,53 @@ export function applyColorPreferences(
     spec.encoding.color.field = prefs.colorField;
     if (!spec.encoding.color.type) spec.encoding.color.type = 'nominal';
   }
+
+  // Auto-infer color field if palette or highlight was set but no field exists
+  if ((prefs.palette || prefs.highlight) && !spec.encoding.color?.field) {
+    let inferred: string | null = null;
+
+    // Strategy 1: use nominal axis
+    if (spec.encoding.x?.type === 'nominal') inferred = spec.encoding.x.field;
+    else if (spec.encoding.y?.type === 'nominal') inferred = spec.encoding.y.field;
+
+    // Strategy 2: find a suitable categorical column from data
+    if (!inferred && data && data.length > 0) {
+      const keys = Object.keys(data[0]);
+      for (const key of keys) {
+        if (/^id$|_id$|Id$/i.test(key)) continue;
+        const vals = data.map(d => d[key]).filter(v => v != null);
+        const isNum = vals.every(v => typeof v === 'number' || !isNaN(Number(v)));
+        if (isNum) continue;
+        const unique = new Set(vals.map(String));
+        if (unique.size <= 20) {
+          inferred = key;
+          break;
+        }
+      }
+    }
+
+    if (inferred) {
+      spec.encoding.color!.field = inferred;
+      if (!spec.encoding.color!.type) spec.encoding.color!.type = 'nominal';
+      notes.push(`Color field auto-detected as '${inferred}'. Use colorField to override.`);
+    } else if (prefs.palette) {
+      notes.push(`Palette '${prefs.palette}' ignored — no categorical column found with ≤20 unique values. Use colorField to specify.`);
+    }
+  }
+
+  // Validate highlight values against data
+  if (prefs.highlight && spec.encoding.color?.field && data) {
+    const field = spec.encoding.color.field;
+    const dataValues = new Set(data.map(d => String(d[field]).toLowerCase()));
+    const unmatched = prefs.highlight.values.filter(
+      (v: any) => !dataValues.has(String(v).toLowerCase())
+    );
+    if (unmatched.length > 0) {
+      notes.push(`Highlight: ${unmatched.map((v: any) => `'${v}'`).join(', ')} not found in data for field '${field}'.`);
+    }
+  }
+
+  return { notes };
 }
 
 // ─── TIME BUCKET HELPERS ────────────────────────────────────────────────────
@@ -118,7 +181,7 @@ function getTimeBucketedFields(groupBy?: DslGroupByField[]): string[] {
     .map(g => g.field);
 }
 
-function enhanceIntentForTimeBucket(intent: string, groupBy?: DslGroupByField[]): string {
+export function enhanceIntentForTimeBucket(intent: string, groupBy?: DslGroupByField[]): string {
   const bucketedFields = getTimeBucketedFields(groupBy);
   if (bucketedFields.length > 0 && !/time.series|trend|over.time/i.test(intent)) {
     return intent + ' (time series trend)';
@@ -126,7 +189,7 @@ function enhanceIntentForTimeBucket(intent: string, groupBy?: DslGroupByField[])
   return intent;
 }
 
-function applyTimeBucketColumnTypes(columns: DataColumn[], groupBy?: DslGroupByField[]): void {
+export function applyTimeBucketColumnTypes(columns: DataColumn[], groupBy?: DslGroupByField[]): void {
   const bucketedFields = getTimeBucketedFields(groupBy);
   for (const col of columns) {
     if (bucketedFields.some(f => col.name.includes(f) || f.includes(col.name))) {
@@ -206,7 +269,7 @@ export async function executeDashboardViews(
     if (view.config) {
       spec.config = { ...spec.config, ...view.config };
     }
-    applyColorPreferences(spec, view.colorPreferences);
+    applyColorPreferences(spec, view.colorPreferences, data);
 
     viewData.push({ viewId: view.id, data, spec });
     viewReasonings.push({ viewId: view.id, pattern: spec.pattern, reasoning });

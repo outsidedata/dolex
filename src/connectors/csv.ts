@@ -56,6 +56,14 @@ function inferColumnType(
   // Numeric detection: >70% of samples parse as numbers
   const numericSamples = samples.filter((s) => s !== '' && !isNaN(Number(s)));
   if (numericSamples.length > samples.length * 0.7) {
+    // Year detection: all-integer values in 1900–2100 range → treat as date
+    if (numericSamples.length >= 3) {
+      const allYearLike = numericSamples.every((s) => {
+        const n = Number(s);
+        return Number.isInteger(n) && n >= 1900 && n <= 2100;
+      });
+      if (allYearLike) return 'date';
+    }
     return 'numeric';
   }
 
@@ -120,7 +128,11 @@ function loadCsvs(
     );
     const insertMany = db.transaction((batch: Record<string, string>[]) => {
       for (const row of batch) {
-        insert.run(...colNames.map((c) => row[c] ?? null));
+        insert.run(...colNames.map((c) => {
+          const val = row[c];
+          if (val === undefined || val === null || val === '\\N') return null;
+          return val;
+        }));
       }
     });
     insertMany(rows);
@@ -308,6 +320,24 @@ class CsvConnectedSource implements ConnectedSource {
       const stmt = this.db.prepare(sql);
       const rows = stmt.all() as Record<string, any>[];
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+      const typeMap = new Map<string, string>();
+      for (const table of this.schema.tables) {
+        for (const col of table.columns) {
+          typeMap.set(col.name, col.type);
+          typeMap.set(`${table.name}_${col.name}`, col.type);
+        }
+      }
+
+      for (const row of rows) {
+        for (const col of columns) {
+          if (typeMap.get(col) === 'numeric' && typeof row[col] === 'string') {
+            const num = Number(row[col]);
+            if (!isNaN(num)) row[col] = num;
+          }
+        }
+      }
+
       return { columns, rows };
     } catch (err: any) {
       return { columns: [], rows: [{ error: err.message }] };

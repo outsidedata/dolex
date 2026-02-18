@@ -260,8 +260,8 @@ const COLOR_SYSTEM_DOCS = {
         ],
     },
     howToApply: {
-        visualize: 'Pass colorPreferences: { palette?, highlight?, colorField? } in the visualize tool input',
-        refine: 'Pass a natural language refinement like "use warm palette", "highlight Engineering and Science", "mute to 30% opacity", "color by target"',
+        visualize: 'Pass palette, highlight, colorField as top-level params in the visualize tool input',
+        refine: 'Pass structured params: palette, highlight: { values: [...] }, colorField, etc.',
     },
 };
 // ─── HANDLER ────────────────────────────────────────────────────────────────

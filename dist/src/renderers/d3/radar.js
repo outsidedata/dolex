@@ -18,8 +18,10 @@ export function renderRadar(container, spec) {
     const fillOpacity = config.fillOpacity ?? 0.2;
     const strokeWidth = config.strokeWidth ?? 2;
     const dotRadius = config.dotRadius ?? 4;
-    if (dimensions.length === 0)
+    if (dimensions.length < 3) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;font-family:Inter,system-ui,sans-serif;background:#0f1117;border-radius:8px;">Radar chart requires 3+ dimensions (got ${dimensions.length})</div>`;
         return;
+    }
     const hasLegend = data.length > 1;
     // ── Container layout: flex column with chartWrapper + legend ──
     container.innerHTML = '';

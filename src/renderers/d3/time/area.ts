@@ -38,9 +38,9 @@ export function renderArea(container: HTMLElement, spec: VisualizationSpec): voi
     .map((d: any) => ({
       ...d,
       _date: parseDate(d[timeField]),
-      _value: Number(d[valueField]),
+      _value: d[valueField] == null ? null : Number(d[valueField]),
     }))
-    .filter((d: any) => d._date !== null && !isNaN(d._value));
+    .filter((d: any) => d._date !== null);
 
   const colorScale = buildColorScale(encoding.color, data);
 
@@ -75,7 +75,7 @@ export function renderArea(container: HTMLElement, spec: VisualizationSpec): voi
   const tooltip = createTooltip(chartWrapper);
 
   // Check if all values are zero
-  if (parsedData.every((d: any) => d._value === 0)) {
+  if (parsedData.every((d: any) => d._value === 0 || d._value === null)) {
     renderEmptyState(g, dims);
     return;
   }
@@ -127,6 +127,11 @@ export function renderArea(container: HTMLElement, spec: VisualizationSpec): voi
 
 function parseDate(v: any): Date | null {
   if (v instanceof Date) return v;
+  if (v === null || v === undefined || v === '') return null;
+  const num = typeof v === 'number' ? v : Number(v);
+  if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+    return new Date(num, 0, 1);
+  }
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -147,19 +152,24 @@ function drawSingleArea(
   const xExtent = d3.extent(sorted, (d: any) => d._date) as [Date, Date];
   const xScale = d3.scaleTime().domain(xExtent).range([0, dims.innerWidth]);
 
-  const yMin = d3.min(sorted, (d: any) => d._value) as number;
-  const yMax = d3.max(sorted, (d: any) => d._value) as number;
+  const validValues = sorted.filter((d: any) => d._value !== null && !isNaN(d._value));
+  const yMin = d3.min(validValues, (d: any) => d._value) as number;
+  const yMax = d3.max(validValues, (d: any) => d._value) as number;
   const yScale = d3.scaleLinear().domain([Math.min(0, yMin), yMax * 1.05]).range([dims.innerHeight, 0]).nice();
 
   drawAxes(g, xScale, yScale, dims, false, sorted.length);
 
+  const defined = (d: any) => d._value !== null && !isNaN(d._value);
+
   const areaGen = d3.area()
+    .defined(defined)
     .x((d: any) => xScale(d._date))
     .y0(yScale(0))
     .y1((d: any) => yScale(d._value))
     .curve(curve);
 
   const lineGen = d3.line()
+    .defined(defined)
     .x((d: any) => xScale(d._date))
     .y((d: any) => yScale(d._value))
     .curve(curve);
@@ -199,20 +209,25 @@ function drawOverlappingAreas(
   const xExtent = d3.extent(parsedData, (d: any) => d._date) as [Date, Date];
   const xScale = d3.scaleTime().domain(xExtent).range([0, dims.innerWidth]);
 
-  const yMinO = d3.min(parsedData, (d: any) => d._value) as number;
-  const yMax = d3.max(parsedData, (d: any) => d._value) as number;
+  const validValues = parsedData.filter((d: any) => d._value !== null && !isNaN(d._value));
+  const yMinO = d3.min(validValues, (d: any) => d._value) as number;
+  const yMax = d3.max(validValues, (d: any) => d._value) as number;
   const yScale = d3.scaleLinear().domain([Math.min(0, yMinO), yMax * 1.05]).range([dims.innerHeight, 0]).nice();
 
   const uniqueTimes = new Set(parsedData.map((d: any) => d._date!.getTime())).size;
   drawAxes(g, xScale, yScale, dims, false, uniqueTimes);
 
+  const defined = (d: any) => d._value !== null && !isNaN(d._value);
+
   const areaGen = d3.area()
+    .defined(defined)
     .x((d: any) => xScale(d._date))
     .y0(yScale(0))
     .y1((d: any) => yScale(d._value))
     .curve(curve);
 
   const lineGen = d3.line()
+    .defined(defined)
     .x((d: any) => xScale(d._date))
     .y((d: any) => yScale(d._value))
     .curve(curve);

@@ -43,7 +43,15 @@ function dodgeBeeswarm(xPositions, spacing, maxOffset) {
 // ─── BEESWARM ────────────────────────────────────────────────────────────────
 export function renderBeeswarm(container, spec) {
     const { config, encoding, data } = spec;
+    if (!data || data.length === 0) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;font-family:Inter,system-ui,sans-serif;background:#0f1117;border-radius:8px;">No data for beeswarm</div>`;
+        return;
+    }
     const valueField = config.valueField || encoding.x?.field || Object.keys(data[0])[0];
+    if (!valueField) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;font-family:Inter,system-ui,sans-serif;background:#0f1117;border-radius:8px;">Beeswarm requires a numeric value field</div>`;
+        return;
+    }
     const categoryField = config.categoryField || encoding.y?.field || null;
     const baseRadius = config.dotRadius ?? 4;
     const opacity = config.opacity ?? 0.7;

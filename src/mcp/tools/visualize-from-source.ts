@@ -8,14 +8,13 @@
 
 import { z } from 'zod';
 import type { VisualizeInput, VisualizeOutput } from '../../types.js';
-import { dslQuerySchema } from './dsl-schemas.js';
+import { dslQuerySchema, ALL_PALETTE_NAMES } from './dsl-schemas.js';
 import {
-  colorPreferencesSchema,
   columnsSchema,
   dataShapeHintsSchema,
   handleVisualizeCore,
 } from './visualize.js';
-import { errorResponse } from './shared.js';
+import { errorResponse, inferColumns, applyTimeBucketColumnTypes, enhanceIntentForTimeBucket } from './shared.js';
 import { logOperation, extractDslStructure } from './operation-log.js';
 
 export const visualizeFromSourceInputSchema = z.object({
@@ -29,7 +28,15 @@ export const visualizeFromSourceInputSchema = z.object({
   title: z.string().optional().describe('Chart title — set upfront to avoid a refine round-trip'),
   subtitle: z.string().optional().describe('Chart subtitle — set upfront to avoid a refine round-trip'),
   includeDataTable: z.boolean().optional().describe('Whether to add a companion sortable data table with linked highlighting below the chart. Default: true'),
-  colorPreferences: colorPreferencesSchema,
+  palette: z.enum(ALL_PALETTE_NAMES).optional()
+    .describe('Named palette: categorical, blue, green, purple, warm, blueRed, etc.'),
+  highlight: z.object({
+    values: z.array(z.union([z.string(), z.number()])).describe('Values to emphasize'),
+    color: z.union([z.string(), z.array(z.string())]).optional(),
+    mutedColor: z.string().optional(),
+    mutedOpacity: z.number().optional(),
+  }).optional(),
+  colorField: z.string().optional().describe('Which data field to base colors on'),
   maxAlternativeChartTypes: z.number().optional().describe('Max alternative chart type recommendations to return (default: 2, set 0 for none)'),
   geoLevel: z.enum(['country', 'subdivision']).optional()
     .describe('Geographic level: "country" (each row = a nation) or "subdivision" (each row = a state/province). Auto-detected if omitted.'),
@@ -69,7 +76,15 @@ export function handleVisualizeFromSource(
       return errorResponse(result.error);
     }
 
-    return core(result.rows, args, { truncated: result.truncated, totalSourceRows: result.totalRows }, {
+    // Enrich column types and intent with time bucket context (matches dashboard behavior)
+    if (!args.columns && args.query.groupBy) {
+      const columns = inferColumns(result.rows);
+      applyTimeBucketColumnTypes(columns, args.query.groupBy);
+      args = { ...args, columns: columns as any };
+    }
+    const enrichedIntent = enhanceIntentForTimeBucket(args.intent, args.query.groupBy);
+
+    return core(result.rows, { ...args, intent: enrichedIntent }, { truncated: result.truncated, totalSourceRows: result.totalRows }, {
       dslStructure: extractDslStructure(args.query),
       sourceType,
     });

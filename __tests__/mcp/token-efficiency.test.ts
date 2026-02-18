@@ -164,7 +164,7 @@ describe('refine response trimmed', () => {
     };
     const specId = specStore.save(spec, []);
 
-    const result = await handler({ specId, refinement: 'sort descending' });
+    const result = await handler({ specId, sort: { direction: 'desc' } });
     const parsed = JSON.parse(result.content[0].text);
 
     expect(parsed.specId).toBeDefined();

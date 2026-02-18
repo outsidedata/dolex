@@ -6,7 +6,7 @@
  * All functions are pure — no side effects or class dependencies.
  */
 import { isDslAggregateField, isDslWindowField } from '../types.js';
-import { compileDsl } from './dsl-compiler.js';
+import { compileDsl, fieldAlias } from './dsl-compiler.js';
 const MAX_RESULT_LIMIT = 10000;
 // ─── Percentile / Aggregation ────────────────────────────────────────────────
 function computePercentile(sorted, p) {
@@ -89,10 +89,7 @@ function matchesHavingFilter(row, filter) {
 function pad2(n) {
     return String(n).padStart(2, '0');
 }
-function bucketDate(dateStr, bucket) {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime()))
-        return dateStr;
+function bucketDateFromParsed(d, bucket) {
     const year = d.getUTCFullYear();
     const month = d.getUTCMonth() + 1;
     switch (bucket) {
@@ -112,11 +109,20 @@ function bucketDate(dateStr, bucket) {
         case 'year':
             return String(year);
         default:
-            return dateStr;
+            return String(d);
     }
 }
-function stripTablePrefix(field) {
-    return field.includes('.') ? field.split('.', 2)[1] : field;
+function bucketDate(dateStr, bucket) {
+    const numVal = Number(dateStr);
+    if (!isNaN(numVal) && numVal > 1800 && numVal < 2200 && Math.floor(numVal) === numVal) {
+        if (bucket === 'year')
+            return String(numVal);
+        return bucketDateFromParsed(new Date(Date.UTC(numVal, 0, 1)), bucket);
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime()))
+        return dateStr;
+    return bucketDateFromParsed(d, bucket);
 }
 // ─── Window Functions ────────────────────────────────────────────────────────
 function partitionRows(rows, partitionBy) {
@@ -276,10 +282,10 @@ export async function executeJsAggregation(source, table, query, dialect) {
     }
     const groupKeys = groupBySpecs.map(g => {
         if (typeof g === 'string') {
-            const col = stripTablePrefix(g);
+            const col = fieldAlias(g);
             return { name: col, extract: (row) => String(row[col] ?? '') };
         }
-        const col = stripTablePrefix(g.field);
+        const col = fieldAlias(g.field);
         const alias = `${g.field.replace('.', '_')}_${g.bucket}`;
         return { name: alias, extract: (row) => bucketDate(String(row[col] ?? ''), g.bucket) };
     });
@@ -306,13 +312,13 @@ export async function executeJsAggregation(source, table, query, dialect) {
         }
         for (const s of query.select) {
             if (typeof s === 'string') {
-                const col = stripTablePrefix(s);
+                const col = fieldAlias(s);
                 if (!(col in row)) {
                     row[col] = groupRows[0]?.[col];
                 }
             }
             else if (isDslAggregateField(s)) {
-                const col = stripTablePrefix(s.field);
+                const col = fieldAlias(s.field);
                 row[s.as] = jsAggregate(groupRows.map(r => r[col]), s.aggregate, s.percentile);
             }
         }

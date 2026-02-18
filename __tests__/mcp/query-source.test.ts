@@ -98,7 +98,7 @@ describe('query_source MCP tool', () => {
     const body = JSON.parse(result.content[0].text);
     expect(body.rows.length).toBe(2);
     // Electronics: 50+50=100, Clothing: 75
-    expect(body.rows[0].product_category_name).toBe('Electronics');
+    expect(body.rows[0].products_product_category_name).toBe('Electronics');
     expect(body.rows[0].revenue).toBe(100);
 
     await sourceManager.closeAll();

@@ -165,7 +165,7 @@ const dslQueryInnerSchema = z.object({
 });
 export const dslQuerySchema = z.preprocess(normalizeDslQueryInput, dslQueryInnerSchema);
 // ─── DASHBOARD SCHEMAS ──────────────────────────────────────────────────────
-const ALL_PALETTE_NAMES = [
+export const ALL_PALETTE_NAMES = [
     'categorical', 'blue', 'green', 'purple', 'warm',
     'blueRed', 'greenPurple', 'tealOrange', 'redGreen',
     'traffic-light', 'profit-loss', 'temperature',

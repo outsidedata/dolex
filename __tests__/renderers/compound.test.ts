@@ -291,12 +291,12 @@ describe('Compound Refinement', () => {
     const specId = specStore.save(compound, [], new Map());
     const result = await handler({
       specId,
-      refinement: 'remove the table',
+      removeTable: true,
     });
 
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.specId).toBeDefined();
-    expect(parsed.changes).toContain('Removed table, returned atomic chart spec');
+    expect(parsed.changes).toContain('Removed table, returned atomic chart');
   });
 
   it('refine: change layout to columns', async () => {
@@ -308,12 +308,12 @@ describe('Compound Refinement', () => {
     const specId = specStore.save(compound, [], new Map());
     const result = await handler({
       specId,
-      refinement: 'put the table on the right side by side',
+      layout: 'columns',
     });
 
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.specId).toBeDefined();
-    expect(parsed.changes).toContain('Changed layout to side-by-side columns');
+    expect(parsed.changes).toContain('Layout: columns');
   });
 
   it('refine: delegates chart-specific refinements through compound', async () => {
@@ -325,12 +325,12 @@ describe('Compound Refinement', () => {
     const specId = specStore.save(compound, [], new Map());
     const result = await handler({
       specId,
-      refinement: 'sort descending',
+      sort: { direction: 'desc' },
     });
 
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.specId).toBeDefined();
-    expect(parsed.changes).toContain('Applied descending sort');
+    expect(parsed.changes).toContain('Sorted by value desc');
   });
 
   it('refine: change title on compound spec', async () => {
@@ -342,11 +342,11 @@ describe('Compound Refinement', () => {
     const specId = specStore.save(compound, [], new Map());
     const result = await handler({
       specId,
-      refinement: 'title: "Revenue Overview"',
+      title: 'Revenue Overview',
     });
 
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.specId).toBeDefined();
-    expect(parsed.changes).toContain('Changed title to "Revenue Overview"');
+    expect(parsed.changes).toContain('Title: "Revenue Overview"');
   });
 });

@@ -10,6 +10,7 @@
  */
 import { z } from 'zod';
 import { isCompoundSpec } from '../../types.js';
+import { ALL_PALETTE_NAMES } from './dsl-schemas.js';
 import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
 import { shouldCompound, buildCompoundSpec } from '../../renderers/html/compound.js';
 import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
@@ -17,21 +18,6 @@ import { specStore } from '../spec-store.js';
 import { getResult } from './result-cache.js';
 import { errorResponse, inferColumns, applyColorPreferences } from './shared.js';
 import { logOperation } from './operation-log.js';
-const ALL_PALETTE_NAMES = [
-    'categorical', 'blue', 'green', 'purple', 'warm',
-    'blueRed', 'greenPurple', 'tealOrange', 'redGreen',
-    'traffic-light', 'profit-loss', 'temperature',
-];
-export const colorPreferencesSchema = z.object({
-    palette: z.enum(ALL_PALETTE_NAMES).optional().describe('Named palette: categorical, blue, green, purple, warm, blueRed, greenPurple, tealOrange, redGreen, traffic-light, profit-loss, temperature'),
-    highlight: z.object({
-        values: z.array(z.any()).describe('Values to emphasize — all others become muted gray'),
-        color: z.union([z.string(), z.array(z.string())]).optional().describe('Color(s) for highlighted values. Single CSS color or array matching values length.'),
-        mutedColor: z.string().optional().describe('Color for non-highlighted items (default: #6b7280)'),
-        mutedOpacity: z.number().optional().describe('Opacity for muted items (default: 1.0, lower for stronger de-emphasis)'),
-    }).optional(),
-    colorField: z.string().optional().describe('Which data field to base colors on'),
-}).optional().describe('Color preferences applied to the visualization');
 export const columnsSchema = z.array(z.object({
     name: z.string(),
     type: z.enum(['numeric', 'categorical', 'date', 'id', 'text']),
@@ -61,7 +47,15 @@ export const visualizeInputSchema = z.object({
     title: z.string().optional().describe('Chart title — set upfront to avoid a refine round-trip'),
     subtitle: z.string().optional().describe('Chart subtitle — set upfront to avoid a refine round-trip'),
     includeDataTable: z.boolean().optional().describe('Whether to add a companion sortable data table with linked highlighting below the chart. Default: true'),
-    colorPreferences: colorPreferencesSchema,
+    palette: z.enum(ALL_PALETTE_NAMES).optional()
+        .describe('Named palette: categorical, blue, green, purple, warm, blueRed, etc.'),
+    highlight: z.object({
+        values: z.array(z.union([z.string(), z.number()])).describe('Values to emphasize'),
+        color: z.union([z.string(), z.array(z.string())]).optional(),
+        mutedColor: z.string().optional(),
+        mutedOpacity: z.number().optional(),
+    }).optional(),
+    colorField: z.string().optional().describe('Which data field to base colors on'),
     maxAlternativeChartTypes: z.number().optional().describe('Max alternative chart type recommendations to return (default: 2, set 0 for none)'),
     geoLevel: z.enum(['country', 'subdivision']).optional()
         .describe('Geographic level: "country" (each row = a nation) or "subdivision" (each row = a state/province). Auto-detected if omitted.'),
@@ -75,6 +69,7 @@ export const visualizeInputSchema = z.object({
 export function handleVisualizeCore(selectPatterns, toolName = 'visualize') {
     return (data, args, queryMeta, extraMeta) => {
         const start = Date.now();
+        const notes = [];
         const columns = args.columns || inferColumns(data);
         const maxAlternativeChartTypes = args.maxAlternativeChartTypes ?? 2;
         const input = {
@@ -88,8 +83,12 @@ export function handleVisualizeCore(selectPatterns, toolName = 'visualize') {
         };
         const result = selectPatterns(input);
         const alternatives = result.alternatives.slice(0, maxAlternativeChartTypes);
-        if (args.colorPreferences) {
-            applyColorPreferences(result.recommended.spec, args.colorPreferences);
+        const colorPrefs = (args.palette || args.highlight || args.colorField)
+            ? { palette: args.palette, highlight: args.highlight, colorField: args.colorField }
+            : undefined;
+        if (colorPrefs) {
+            const colorResult = applyColorPreferences(result.recommended.spec, colorPrefs, data);
+            notes.push(...colorResult.notes);
         }
         const spec = result.recommended.spec;
         if (args.title)
@@ -111,9 +110,10 @@ export function handleVisualizeCore(selectPatterns, toolName = 'visualize') {
         for (const alt of alternatives) {
             alternativesMap.set(alt.pattern, alt.spec);
         }
-        const specId = specStore.save(finalSpec, columns, alternativesMap);
+        const specId = specStore.save(finalSpec, columns, alternativesMap, data);
         const compactResponse = {
             specId,
+            ...(notes.length > 0 ? { notes } : {}),
             recommended: {
                 pattern: result.recommended.pattern,
                 title: spec.title,

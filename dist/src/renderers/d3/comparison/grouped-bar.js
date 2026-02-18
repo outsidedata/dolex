@@ -7,12 +7,13 @@ export function renderGroupedBar(container, spec) {
     const { config, encoding, data } = spec;
     let isHorizontal = config.orientation === 'horizontal';
     const categoryField = config.categoryField || encoding.x?.field;
-    const seriesField = config.seriesField || encoding.color?.field;
+    const seriesField = config.seriesField || encoding.color?.field || null;
     const valueField = config.valueField || encoding.y?.field;
-    if (!categoryField || !valueField)
+    if (!categoryField)
         return;
     let series;
     let pivoted;
+    let isWideFormat = false;
     if (seriesField) {
         series = [...new Set(data.map((d) => String(d[seriesField])))];
         pivoted = {};
@@ -25,7 +26,8 @@ export function renderGroupedBar(container, spec) {
     }
     else {
         const numericFields = Object.keys(data[0] || {}).filter((k) => k !== categoryField && typeof data[0][k] === 'number');
-        series = numericFields.length > 1 ? numericFields : [valueField];
+        isWideFormat = numericFields.length > 1;
+        series = numericFields.length > 1 ? numericFields : valueField ? [valueField] : numericFields;
         pivoted = {};
         for (const d of data) {
             const cat = String(d[categoryField]);
@@ -79,7 +81,10 @@ export function renderGroupedBar(container, spec) {
     const containerWidth = container.clientWidth || 800;
     const containerHeight = container.clientHeight || 500;
     const showLegend = containerHeight > 250 && containerWidth > 350;
-    const colorScale = buildColorScale(encoding.color, data, seriesField || valueField);
+    let colorScale = buildColorScale(encoding.color, data, seriesField || valueField);
+    if (isWideFormat) {
+        colorScale = d3.scaleOrdinal().domain(series).range(d3.schemeTableau10 || colorScale.range());
+    }
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
     container.style.background = DARK_BG;

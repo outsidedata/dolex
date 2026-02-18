@@ -245,6 +245,7 @@ function buildHierarchy(
   const clampVal = (v: number) => (v > 0 && v < minVisible ? minVisible : v);
 
   if (parentField) {
+    const childField = config.childField || categoryField;
     const parents = [...new Set(data.map((d) => d[parentField]))];
     const hierarchy = {
       name: 'root',
@@ -253,7 +254,7 @@ function buildHierarchy(
         children: data
           .filter((d) => d[parentField] === p)
           .map((d) => ({
-            name: d[categoryField] || d[config.childField] || d[parentField],
+            name: d[childField] || d[categoryField] || d[parentField],
             value: clampVal(Number(d[valueField]) || 0),
             _data: d,
           })),

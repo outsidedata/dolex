@@ -8,7 +8,7 @@
  * - Dashboard-specific helpers (time bucket handling, auto layout)
  * - Dashboard view execution (query + pattern selection + overrides)
  */
-import type { DataColumn, VisualizationSpec, DashboardViewSpec } from '../../types.js';
+import type { DataColumn, DslGroupByField, VisualizationSpec, DashboardViewSpec } from '../../types.js';
 import type { DashboardViewData } from '../../renderers/html/builders/dashboard.js';
 type McpTextContent = {
     type: 'text';
@@ -26,7 +26,20 @@ export declare function errorResponse(message: string): McpResponse;
 export declare function jsonResponse(body: unknown): McpResponse;
 export declare function htmlResponse(body: unknown, html: string): McpResponse;
 export declare function inferColumns(data: Record<string, any>[]): DataColumn[];
-export declare function applyColorPreferences(spec: VisualizationSpec, prefs?: DashboardViewSpec['colorPreferences']): void;
+export declare function applyColorPreferences(spec: VisualizationSpec, prefs?: {
+    palette?: string;
+    highlight?: {
+        values: any[];
+        color?: string | string[];
+        mutedColor?: string;
+        mutedOpacity?: number;
+    };
+    colorField?: string;
+}, data?: Record<string, any>[]): {
+    notes: string[];
+};
+export declare function enhanceIntentForTimeBucket(intent: string, groupBy?: DslGroupByField[]): string;
+export declare function applyTimeBucketColumnTypes(columns: DataColumn[], groupBy?: DslGroupByField[]): void;
 export declare function formatUptime(ms: number): string;
 export declare function autoLayout(viewCount: number): {
     columns: number;

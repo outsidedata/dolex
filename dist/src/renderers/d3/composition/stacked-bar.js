@@ -9,6 +9,10 @@ export function renderStackedBar(container, spec) {
     const seriesField = config.seriesField || encoding.color?.field;
     const valueField = config.valueField || encoding.y?.field;
     const isNormalized = config.normalized || false;
+    if (!categoryField || !seriesField || !valueField || !data || data.length === 0) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;font-family:Inter,system-ui,sans-serif;background:#0f1117;border-radius:8px;">Stacked bar requires category, series, and value fields</div>`;
+        return;
+    }
     // Get unique categories and series
     let categories = [...new Set(data.map((d) => d[categoryField]))];
     const series = [...new Set(data.map((d) => d[seriesField]))];

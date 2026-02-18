@@ -11,6 +11,7 @@ export interface StoredSpec {
     spec: VisualizationSpec | CompoundVisualizationSpec;
     columns: DataColumn[];
     alternatives: Map<string, VisualizationSpec>;
+    originalData?: Record<string, any>[];
     createdAt: number;
 }
 export interface SpecStoreStats {
@@ -24,7 +25,7 @@ export declare class SpecStore {
     private store;
     private generateId;
     private isExpired;
-    save(spec: VisualizationSpec | CompoundVisualizationSpec, columns: DataColumn[], alternatives?: Map<string, VisualizationSpec>): string;
+    save(spec: VisualizationSpec | CompoundVisualizationSpec, columns: DataColumn[], alternatives?: Map<string, VisualizationSpec>, originalData?: Record<string, any>[]): string;
     get(specId: string): StoredSpec | null;
     updateSpec(specId: string, newSpec: VisualizationSpec | CompoundVisualizationSpec): string;
     getAlternative(specId: string, patternId: string): VisualizationSpec | null;

@@ -567,7 +567,7 @@ function formatValue(v) {
 const MAX_EMBED_ROWS = 10_000;
 export function buildHtml(spec, renderFunctionBody) {
     const cappedSpec = capDataRows(spec);
-    const specJson = JSON.stringify(cappedSpec);
+    const specJson = JSON.stringify(cappedSpec).replace(/<\//g, '<\\/');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 export function buildHtmlFromBundle(spec, bundleCode, options) {
     const cappedSpec = capDataRows(spec);
-    const specJson = JSON.stringify(cappedSpec);
+    const specJson = JSON.stringify(cappedSpec).replace(/<\//g, '<\\/');
     const extraScriptTags = (options?.extraScripts || [])
         .map(src => `<script src="${src}"><\/script>`)
         .join('\n');

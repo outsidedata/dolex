@@ -4,7 +4,7 @@
  * Best for correlation matrices, cross-tabulation, frequency matrices,
  * and any 2D categorical × numeric dataset.
  */
-import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, truncateLabel, calculateLeftMargin, calculateBottomMargin, shouldRotateLabels, TEXT_MUTED, } from './shared.js';
+import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, truncateLabel, calculateLeftMargin, calculateBottomMargin, shouldRotateLabels, DARK_BG, TEXT_MUTED, } from './shared.js';
 import { sequential, diverging } from '../../theme/colors.js';
 export function renderHeatmap(container, spec) {
     const { config, encoding, data } = spec;
@@ -43,6 +43,14 @@ export function renderHeatmap(container, spec) {
     const yScale = d3.scaleBand().domain(rows).range([0, dims.innerHeight]).padding(0);
     const values = data.map((d) => Number(d[valueField]));
     const extent = d3.extent(values);
+    if (values.every((v) => isNaN(v))) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.cssText = `display:flex;align-items:center;justify-content:center;height:100%;color:${TEXT_MUTED};font-size:14px;font-family:Inter,system-ui,sans-serif;background:${DARK_BG};border-radius:8px;`;
+        emptyDiv.textContent = 'No numeric column for color encoding';
+        container.innerHTML = '';
+        container.appendChild(emptyDiv);
+        return;
+    }
     let colorScale;
     const palette = encoding.color?.palette;
     if (palette && ['blueRed', 'greenPurple', 'tealOrange', 'redGreen'].includes(palette)) {
@@ -168,11 +176,18 @@ export function renderHeatmap(container, spec) {
             .attr('pointer-events', 'none')
             .text((d) => formatValue(Number(d[valueField])));
     }
+    // Adaptive label thinning: show every Nth label when too many
+    const maxRowLabels = Math.max(1, Math.floor(dims.innerHeight / 14));
+    const rowLabelStep = rows.length > maxRowLabels ? Math.ceil(rows.length / maxRowLabels) : 1;
+    const rowTickValues = rowLabelStep > 1 ? rows.filter((_, i) => i % rowLabelStep === 0) : rows;
+    const maxColLabels = Math.max(1, Math.floor(dims.innerWidth / 30));
+    const colLabelStep = cols.length > maxColLabels ? Math.ceil(cols.length / maxColLabels) : 1;
+    const colTickValues = colLabelStep > 1 ? cols.filter((_, i) => i % colLabelStep === 0) : cols;
     // Y axis (row labels)
     const yAxis = g
         .append('g')
         .attr('class', 'y-axis')
-        .call(d3.axisLeft(yScale).tickSize(0).tickPadding(6));
+        .call(d3.axisLeft(yScale).tickSize(0).tickPadding(6).tickValues(rowTickValues));
     yAxis.select('.domain').remove();
     yAxis
         .selectAll('.tick text')
@@ -187,7 +202,7 @@ export function renderHeatmap(container, spec) {
         .append('g')
         .attr('class', 'x-axis')
         .attr('transform', `translate(0,${dims.innerHeight})`)
-        .call(d3.axisBottom(xScale).tickSize(0).tickPadding(8));
+        .call(d3.axisBottom(xScale).tickSize(0).tickPadding(8).tickValues(colTickValues));
     xAxis.select('.domain').remove();
     xAxis
         .selectAll('.tick text')

@@ -172,10 +172,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -185,6 +181,10 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, {
         select: (string | {
@@ -217,10 +217,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -230,6 +226,10 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }>, {
         select: (string | {
@@ -262,10 +262,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -275,6 +271,10 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, unknown>;
     intent: z.ZodString;
@@ -335,44 +335,24 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
     title: z.ZodOptional<z.ZodString>;
     subtitle: z.ZodOptional<z.ZodString>;
     includeDataTable: z.ZodOptional<z.ZodBoolean>;
-    colorPreferences: z.ZodOptional<z.ZodObject<{
-        palette: z.ZodOptional<z.ZodEnum<["categorical", "blue", "green", "purple", "warm", "blueRed", "greenPurple", "tealOrange", "redGreen", "traffic-light", "profit-loss", "temperature"]>>;
-        highlight: z.ZodOptional<z.ZodObject<{
-            values: z.ZodArray<z.ZodAny, "many">;
-            color: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-            mutedColor: z.ZodOptional<z.ZodString>;
-            mutedOpacity: z.ZodOptional<z.ZodNumber>;
-        }, "strip", z.ZodTypeAny, {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        }, {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        }>>;
-        colorField: z.ZodOptional<z.ZodString>;
+    palette: z.ZodOptional<z.ZodEnum<["categorical", "blue", "green", "purple", "warm", "blueRed", "greenPurple", "tealOrange", "redGreen", "traffic-light", "profit-loss", "temperature"]>>;
+    highlight: z.ZodOptional<z.ZodObject<{
+        values: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodNumber]>, "many">;
+        color: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        mutedColor: z.ZodOptional<z.ZodString>;
+        mutedOpacity: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
-        highlight?: {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        } | undefined;
-        colorField?: string | undefined;
-        palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
     }, {
-        highlight?: {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        } | undefined;
-        colorField?: string | undefined;
-        palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
     }>>;
+    colorField: z.ZodOptional<z.ZodString>;
     maxAlternativeChartTypes: z.ZodOptional<z.ZodNumber>;
     geoLevel: z.ZodOptional<z.ZodEnum<["country", "subdivision"]>>;
     geoRegion: z.ZodOptional<z.ZodString>;
@@ -410,10 +390,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -423,11 +399,13 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     };
     sourceId: string;
-    pattern?: string | undefined;
-    title?: string | undefined;
     columns?: {
         type: "numeric" | "categorical" | "date" | "id" | "text";
         name: string;
@@ -436,17 +414,17 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
         nullCount?: number | undefined;
         totalCount?: number | undefined;
     }[] | undefined;
-    geoRegion?: string | undefined;
-    colorPreferences?: {
-        highlight?: {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        } | undefined;
-        colorField?: string | undefined;
-        palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    pattern?: string | undefined;
+    title?: string | undefined;
+    highlight?: {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
     } | undefined;
+    colorField?: string | undefined;
+    palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    geoRegion?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
         categoricalColumnCount?: number | undefined;
@@ -466,8 +444,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
     table: string;
     intent: string;
     sourceId: string;
-    pattern?: string | undefined;
-    title?: string | undefined;
     columns?: {
         type: "numeric" | "categorical" | "date" | "id" | "text";
         name: string;
@@ -476,17 +452,18 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
         nullCount?: number | undefined;
         totalCount?: number | undefined;
     }[] | undefined;
-    geoRegion?: string | undefined;
-    colorPreferences?: {
-        highlight?: {
-            values: any[];
-            color?: string | string[] | undefined;
-            mutedColor?: string | undefined;
-            mutedOpacity?: number | undefined;
-        } | undefined;
-        colorField?: string | undefined;
-        palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    pattern?: string | undefined;
+    title?: string | undefined;
+    highlight?: {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
     } | undefined;
+    colorField?: string | undefined;
+    palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    geoRegion?: string | undefined;
+    query?: unknown;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
         categoricalColumnCount?: number | undefined;
@@ -502,7 +479,6 @@ export declare const visualizeFromSourceInputSchema: z.ZodObject<{
     includeDataTable?: boolean | undefined;
     maxAlternativeChartTypes?: number | undefined;
     geoLevel?: "country" | "subdivision" | undefined;
-    query?: unknown;
 }>;
 export declare function handleVisualizeFromSource(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps: {
     sourceManager: any;

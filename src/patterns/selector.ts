@@ -89,6 +89,21 @@ export function selectPattern(
     candidates = candidates.filter((p) => !options.excludePatterns!.includes(p.id));
   }
 
+  // Pre-filter by dataRequirements (structural compatibility check).
+  // Skip when forcePattern is set — the user explicitly wants that pattern.
+  if (!options?.forcePattern) {
+    const compatible = registry.getCompatible({
+      rowCount: ctx.dataShape.rowCount,
+      numericColumnCount: ctx.dataShape.numericColumnCount,
+      categoricalColumnCount: ctx.dataShape.categoricalColumnCount,
+      dateColumnCount: ctx.dataShape.dateColumnCount,
+      hasHierarchy: ctx.dataShape.hasHierarchy,
+      hasTimeSeries: ctx.dataShape.hasTimeSeries,
+    });
+    const compatibleIds = new Set(compatible.map((p) => p.id));
+    candidates = candidates.filter((p) => compatibleIds.has(p.id));
+  }
+
   // Score every candidate
   const scored = candidates
     .map((pattern) => scorePattern(pattern, ctx, intentResult))
@@ -208,6 +223,23 @@ function scorePattern(
       condition: `Secondary intent signal for "${pattern.category}" (${intentScore} keyword matches)`,
       weight: secondaryBoost,
     });
+  }
+
+  // Pattern name matching: if the user's intent mentions a pattern by name, boost it strongly
+  if (ctx.intent) {
+    const intentLower = ctx.intent.toLowerCase();
+    const idAsWords = pattern.id.replace(/-/g, ' ');
+    const nameLower = pattern.name.toLowerCase();
+    const nameRegex = new RegExp(`\\b${idAsWords.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    const nameRegex2 = new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (nameRegex.test(intentLower) || nameRegex2.test(intentLower)) {
+      const boost = 100;
+      totalScore += boost;
+      matchedRules.push({
+        condition: `Intent mentions pattern name "${pattern.name}"`,
+        weight: boost,
+      });
+    }
   }
 
   // Build human-readable reasoning
@@ -340,6 +372,7 @@ function selectColumnsForPattern(
     case 'time': {
       if (dateCols.length > 0) result.push(dateCols[0].name);
       if (numericCols.length > 0) result.push(numericCols[0].name);
+      if (dateCols.length === 0 && numericCols.length > 1) result.push(numericCols[1].name);
       if (categoricalCols.length > 0) result.push(categoricalCols[0].name);
       break;
     }
@@ -415,6 +448,16 @@ function selectColumnsForSpecificPattern(
   numericCols: DataColumn[]
 ): string[] | null {
   switch (pattern.id) {
+    // ── Scatter: 2 numerics + optional categorical for color ────────────
+    case 'scatter': {
+      if (numericCols.length >= 2) {
+        const result = [numericCols[0].name, numericCols[1].name];
+        if (categoricalCols.length > 0) result.push(categoricalCols[0].name);
+        return result;
+      }
+      return null;
+    }
+
     // ── Heatmap: 2 categoricals + 1 numeric ──────────────────────────────
     case 'heatmap': {
       const catCandidates = getCategoricalCandidates(columns);
@@ -449,11 +492,14 @@ function selectColumnsForSpecificPattern(
       return null;
     }
 
-    // ── Grouped bar: 2 categoricals + 1 numeric ────────────────────────
+    // ── Grouped bar: 2 categoricals + 1 numeric, OR 1 categorical + N numerics (wide format)
     case 'grouped-bar': {
       if (categoricalCols.length >= 2 && numericCols.length >= 1) {
         const sorted = sortByCardinality(categoricalCols);
         return [sorted[0].name, sorted[1].name, numericCols[0].name];
+      }
+      if (categoricalCols.length >= 1 && numericCols.length >= 2) {
+        return [categoricalCols[0].name];
       }
       return null;
     }

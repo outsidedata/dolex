@@ -91,6 +91,11 @@ const ranking = (columns, table) => {
     const measureCol = first(columns, 'measure');
     if (!dimCol || !measureCol)
         return null;
+    if (measureCol.stats && measureCol.stats.mean !== 0) {
+        const cv = Math.abs(measureCol.stats.stddev / measureCol.stats.mean);
+        if (cv < 0.1)
+            return null;
+    }
     const asName = sumAlias(measureCol.name);
     return makeStep('ranking', `Top ${capitalize(dimCol.name)} by ${capitalize(measureCol.name)}`, `Which ${capitalize(dimCol.name)} values rank highest by ${capitalize(measureCol.name)}?`, `Rank top ${dimCol.name} by ${measureCol.name}`, `High-cardinality dimension "${dimCol.name}" (${dimCol.uniqueCount} values) with measure "${measureCol.name}" suits a top-N ranking with limit.`, {
         select: [dimCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
@@ -99,11 +104,12 @@ const ranking = (columns, table) => {
         limit: 15,
     }, table, ['bar', 'lollipop']);
 };
+const isNullDominant = (col) => col.totalCount > 0 && col.nullCount / col.totalCount > 0.5;
 const composition = (columns, table) => {
     const hierarchyCol = first(columns, 'hierarchy');
     const measureCol = first(columns, 'measure');
-    const dimCol = first(columns, 'dimension');
-    if (hierarchyCol && dimCol && measureCol) {
+    const dimCol = findByRole(columns, 'dimension').find(d => !isNullDominant(d));
+    if (hierarchyCol && !isNullDominant(hierarchyCol) && dimCol && measureCol) {
         const asName = sumAlias(measureCol.name);
         return makeStep('composition', `${capitalize(measureCol.name)} Composition by ${capitalize(dimCol.name)} and ${capitalize(hierarchyCol.name)}`, `How is ${capitalize(measureCol.name)} distributed across ${capitalize(dimCol.name)} and ${capitalize(hierarchyCol.name)}?`, `Show composition of ${measureCol.name} by ${dimCol.name} and ${hierarchyCol.name}`, `Hierarchy column "${hierarchyCol.name}" with dimension "${dimCol.name}" and measure "${measureCol.name}" enables hierarchical composition analysis.`, {
             select: [dimCol.name, hierarchyCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],

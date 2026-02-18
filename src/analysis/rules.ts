@@ -164,6 +164,11 @@ const ranking: AnalysisRule = (columns, table) => {
   const measureCol = first(columns, 'measure');
   if (!dimCol || !measureCol) return null;
 
+  if (measureCol.stats && measureCol.stats.mean !== 0) {
+    const cv = Math.abs(measureCol.stats.stddev / measureCol.stats.mean);
+    if (cv < 0.1) return null;
+  }
+
   const asName = sumAlias(measureCol.name);
 
   return makeStep(
@@ -183,12 +188,15 @@ const ranking: AnalysisRule = (columns, table) => {
   );
 };
 
+const isNullDominant = (col: ClassifiedColumn): boolean =>
+  col.totalCount > 0 && col.nullCount / col.totalCount > 0.5;
+
 const composition: AnalysisRule = (columns, table) => {
   const hierarchyCol = first(columns, 'hierarchy');
   const measureCol = first(columns, 'measure');
-  const dimCol = first(columns, 'dimension');
+  const dimCol = findByRole(columns, 'dimension').find(d => !isNullDominant(d));
 
-  if (hierarchyCol && dimCol && measureCol) {
+  if (hierarchyCol && !isNullDominant(hierarchyCol) && dimCol && measureCol) {
     const asName = sumAlias(measureCol.name);
 
     return makeStep(

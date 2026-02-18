@@ -572,7 +572,7 @@ const MAX_EMBED_ROWS = 10_000;
 
 export function buildHtml(spec: VisualizationSpec, renderFunctionBody: string): string {
   const cappedSpec = capDataRows(spec);
-  const specJson = JSON.stringify(cappedSpec);
+  const specJson = JSON.stringify(cappedSpec).replace(/<\//g, '<\\/');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -682,7 +682,7 @@ export function buildHtmlFromBundle(
   options?: { extraScripts?: string[] }
 ): string {
   const cappedSpec = capDataRows(spec);
-  const specJson = JSON.stringify(cappedSpec);
+  const specJson = JSON.stringify(cappedSpec).replace(/<\//g, '<\\/');
   const extraScriptTags = (options?.extraScripts || [])
     .map(src => `<script src="${src}"><\/script>`)
     .join('\n');

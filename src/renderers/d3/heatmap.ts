@@ -70,6 +70,15 @@ export function renderHeatmap(container: HTMLElement, spec: VisualizationSpec): 
   const values = data.map((d: any) => Number(d[valueField]));
   const extent = d3.extent(values) as [number, number];
 
+  if (values.every((v: number) => isNaN(v))) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = `display:flex;align-items:center;justify-content:center;height:100%;color:${TEXT_MUTED};font-size:14px;font-family:Inter,system-ui,sans-serif;background:${DARK_BG};border-radius:8px;`;
+    emptyDiv.textContent = 'No numeric column for color encoding';
+    container.innerHTML = '';
+    container.appendChild(emptyDiv);
+    return;
+  }
+
   let colorScale: any;
   const palette = encoding.color?.palette;
 
@@ -203,12 +212,21 @@ export function renderHeatmap(container: HTMLElement, spec: VisualizationSpec): 
       .text((d: any) => formatValue(Number(d[valueField])));
   }
 
+  // Adaptive label thinning: show every Nth label when too many
+  const maxRowLabels = Math.max(1, Math.floor(dims.innerHeight / 14));
+  const rowLabelStep = rows.length > maxRowLabels ? Math.ceil(rows.length / maxRowLabels) : 1;
+  const rowTickValues = rowLabelStep > 1 ? rows.filter((_: any, i: number) => i % rowLabelStep === 0) : rows;
+
+  const maxColLabels = Math.max(1, Math.floor(dims.innerWidth / 30));
+  const colLabelStep = cols.length > maxColLabels ? Math.ceil(cols.length / maxColLabels) : 1;
+  const colTickValues = colLabelStep > 1 ? cols.filter((_: any, i: number) => i % colLabelStep === 0) : cols;
+
   // Y axis (row labels)
   const yAxis = g
     .append('g')
     .attr('class', 'y-axis')
     .call(
-      d3.axisLeft(yScale).tickSize(0).tickPadding(6)
+      d3.axisLeft(yScale).tickSize(0).tickPadding(6).tickValues(rowTickValues)
     );
   yAxis.select('.domain').remove();
   yAxis
@@ -226,7 +244,7 @@ export function renderHeatmap(container: HTMLElement, spec: VisualizationSpec): 
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${dims.innerHeight})`)
     .call(
-      d3.axisBottom(xScale).tickSize(0).tickPadding(8)
+      d3.axisBottom(xScale).tickSize(0).tickPadding(8).tickValues(colTickValues)
     );
   xAxis.select('.domain').remove();
   xAxis

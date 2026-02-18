@@ -17,7 +17,7 @@ export class SpecStore {
     isExpired(entry) {
         return Date.now() - entry.createdAt > TTL_MS;
     }
-    save(spec, columns, alternatives = new Map()) {
+    save(spec, columns, alternatives = new Map(), originalData) {
         this.purgeExpired();
         if (this.store.size >= MAX_ENTRIES) {
             const oldestKey = this.store.keys().next().value;
@@ -28,6 +28,7 @@ export class SpecStore {
             spec,
             columns,
             alternatives,
+            originalData,
             createdAt: Date.now(),
         });
         return id;
@@ -46,7 +47,8 @@ export class SpecStore {
         const existing = this.store.get(specId);
         const columns = existing?.columns ?? [];
         const alternatives = existing?.alternatives ?? new Map();
-        return this.save(newSpec, columns, alternatives);
+        const originalData = existing?.originalData;
+        return this.save(newSpec, columns, alternatives, originalData);
     }
     getAlternative(specId, patternId) {
         const stored = this.get(specId);

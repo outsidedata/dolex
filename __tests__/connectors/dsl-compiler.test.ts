@@ -91,6 +91,40 @@ describe('DSL-to-SQL Compiler', () => {
     expect(sql).toMatch(/strftime|DATE_TRUNC/i);
   });
 
+  it('auto-includes bucket column when date not in select', () => {
+    const sql = compileDsl(table, {
+      select: [{ field: 'revenue', aggregate: 'sum', as: 'total' }],
+      groupBy: [{ field: 'date', bucket: 'month' }],
+    });
+    expect(sql).toContain('AS "date_month"');
+    expect(sql).toContain('AS "total"');
+  });
+
+  it('replaces raw date field with bucket expression when both present', () => {
+    const sql = compileDsl(table, {
+      select: ['date', { field: 'revenue', aggregate: 'sum', as: 'total' }],
+      groupBy: [{ field: 'date', bucket: 'month' }],
+    });
+    expect(sql).toContain('AS "date_month"');
+    // Raw "date" should NOT appear as a standalone select field — only inside strftime()
+    const selectLine = sql.split('\n')[0];
+    const selectItems = selectLine.replace(/^SELECT /, '').split(', ');
+    expect(selectItems).not.toContain('"date"');
+  });
+
+  it('auto-includes bucket even when aggregate uses same source field', () => {
+    const sql = compileDsl(table, {
+      select: [
+        { field: 'date', aggregate: 'count', as: 'entries' },
+        { field: 'revenue', aggregate: 'sum', as: 'total' },
+      ],
+      groupBy: [{ field: 'date', bucket: 'month' }],
+    });
+    expect(sql).toContain('AS "date_month"');
+    expect(sql).toContain('AS "entries"');
+    expect(sql).toContain('AS "total"');
+  });
+
   it('caps limit at 10000', () => {
     const sql = compileDsl(table, {
       select: ['region'],
@@ -340,6 +374,40 @@ describe('DSL-to-SQL Compiler', () => {
     });
   });
 
+  // ─── DOT-NOTATION ALIASING ────────────────────────────────────────────────
+
+  describe('dot-notation aliasing', () => {
+    it('dot-notation select field gets AS alias', () => {
+      const sql = compileDsl('order_items', {
+        join: [
+          { table: 'products', on: { left: 'product_id', right: 'product_id' } },
+        ],
+        select: ['products.product_category_name'],
+      });
+      expect(sql).toContain('"products"."product_category_name" AS "products_product_category_name"');
+    });
+
+    it('plain fields do not get aliased', () => {
+      const sql = compileDsl('sales', {
+        select: ['region', 'revenue'],
+      });
+      expect(sql).toContain('SELECT "region", "revenue"');
+      expect(sql).not.toContain(' AS ');
+    });
+
+    it('same-name columns from different tables get distinct aliases', () => {
+      const sql = compileDsl('results', {
+        join: [
+          { table: 'drivers', on: { left: 'driverId', right: 'driverId' } },
+          { table: 'constructors', on: { left: 'constructorId', right: 'constructorId' } },
+        ],
+        select: ['drivers.nationality', 'constructors.nationality'],
+      });
+      expect(sql).toContain('"drivers"."nationality" AS "drivers_nationality"');
+      expect(sql).toContain('"constructors"."nationality" AS "constructors_nationality"');
+    });
+  });
+
   // ─── WINDOW FUNCTIONS ──────────────────────────────────────────────────────
 
   describe('window functions', () => {
@@ -526,6 +594,55 @@ describe('DSL-to-SQL Compiler', () => {
       });
       expect(sql).toContain('WITH _base AS');
       expect(sql).toContain('ROW_NUMBER() OVER (ORDER BY "revenue" DESC)');
+    });
+
+    it('window orderBy with dot-notation uses aliased name', () => {
+      const sql = compileDsl('results', {
+        join: [
+          { table: 'races', on: { left: 'raceId', right: 'raceId' } },
+        ],
+        select: [
+          'races.year',
+          { field: 'position', aggregate: 'avg', as: 'avg_pos' },
+          { window: 'lag', field: 'avg_pos', as: 'prev_avg', orderBy: [{ field: 'races.year', direction: 'asc' }] },
+        ],
+        groupBy: ['races.year'],
+      });
+      expect(sql).toContain('ORDER BY "races_year" ASC');
+      expect(sql).not.toContain('ORDER BY "year" ASC');
+    });
+
+    it('outer orderBy with dot-notation uses aliased name', () => {
+      const sql = compileDsl('results', {
+        join: [
+          { table: 'races', on: { left: 'raceId', right: 'raceId' } },
+        ],
+        select: [
+          'races.year',
+          { field: 'position', aggregate: 'avg', as: 'avg_pos' },
+          { window: 'rank', as: 'rnk', orderBy: [{ field: 'avg_pos', direction: 'asc' }] },
+        ],
+        groupBy: ['races.year'],
+        orderBy: [{ field: 'races.year', direction: 'asc' }],
+      });
+      const outerOrderBy = sql.split('FROM _base')[1];
+      expect(outerOrderBy).toContain('ORDER BY "races_year" ASC');
+    });
+
+    it('partitionBy with dot-notation uses aliased name in CTE', () => {
+      const sql = compileDsl('order_items', {
+        join: [
+          { table: 'products', on: { left: 'product_id', right: 'product_id' } },
+        ],
+        select: [
+          'products.category',
+          { field: 'price', aggregate: 'sum', as: 'revenue' },
+          { window: 'rank', as: 'cat_rank', partitionBy: ['products.category'], orderBy: [{ field: 'revenue', direction: 'desc' }] },
+        ],
+        groupBy: ['products.category'],
+      });
+      expect(sql).toContain('PARTITION BY "products_category"');
+      expect(sql).not.toContain('PARTITION BY "products.category"');
     });
   });
 });

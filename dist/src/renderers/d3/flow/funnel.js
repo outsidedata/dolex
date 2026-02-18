@@ -20,6 +20,10 @@ export function renderFunnel(container, spec) {
         container.innerHTML = '<p style="color:#ef4444;padding:20px;">Funnel requires categoryField and valueField</p>';
         return;
     }
+    if (data.length < 1 || data.every((d) => !d[categoryField] && !d[valueField])) {
+        renderEmptyState(d3.select(container).append('svg').attr('width', container.clientWidth || 800).attr('height', container.clientHeight || 500).append('g'), { innerWidth: (container.clientWidth || 800) - 60, innerHeight: (container.clientHeight || 500) - 60, margin: { top: 30, right: 30, bottom: 30, left: 30 }, width: container.clientWidth || 800, height: container.clientHeight || 500 });
+        return;
+    }
     const MAX_STAGES = 12;
     let displayData = data;
     let truncated = false;

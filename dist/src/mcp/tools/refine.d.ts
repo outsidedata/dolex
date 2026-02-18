@@ -1,24 +1,133 @@
-/**
- * MCP Tool: refine_visualization
- * Takes a current visualization spec and a refinement request,
- * returns an updated spec.
- *
- * Supports both atomic VisualizationSpec and CompoundVisualizationSpec.
- * Accepts specId from a previous visualize/refine call.
- */
 import { z } from 'zod';
 export declare const refineInputSchema: z.ZodObject<{
     specId: z.ZodString;
-    refinement: z.ZodString;
-    selectAlternative: z.ZodOptional<z.ZodString>;
+    sort: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        field: z.ZodOptional<z.ZodString>;
+        direction: z.ZodEnum<["asc", "desc"]>;
+    }, "strip", z.ZodTypeAny, {
+        direction: "asc" | "desc";
+        field?: string | undefined;
+    }, {
+        direction: "asc" | "desc";
+        field?: string | undefined;
+    }>>>;
+    limit: z.ZodOptional<z.ZodNumber>;
+    filter: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        field: z.ZodString;
+        op: z.ZodEffects<z.ZodDefault<z.ZodEnum<["in", "not_in", "gt", "gte", "lt", "lte", "=", "!="]>>, "in" | "not_in" | "gt" | "gte" | "lt" | "lte", "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined>;
+        values: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodNumber]>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        field: string;
+        values: (string | number)[];
+        op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
+    }, {
+        field: string;
+        values: (string | number)[];
+        op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
+    }>, "many">>;
+    flip: z.ZodOptional<z.ZodBoolean>;
+    title: z.ZodOptional<z.ZodString>;
+    subtitle: z.ZodOptional<z.ZodString>;
+    xLabel: z.ZodOptional<z.ZodString>;
+    yLabel: z.ZodOptional<z.ZodString>;
+    palette: z.ZodOptional<z.ZodEnum<["categorical", "blue", "green", "purple", "warm", "blueRed", "greenPurple", "tealOrange", "redGreen", "traffic-light", "profit-loss", "temperature"]>>;
+    highlight: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        values: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodNumber]>, "many">;
+        color: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        mutedColor: z.ZodOptional<z.ZodString>;
+        mutedOpacity: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    }, {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    }>>>, {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    } | null | undefined, {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    } | null | undefined>;
+    colorField: z.ZodOptional<z.ZodString>;
+    flowColorBy: z.ZodOptional<z.ZodEnum<["source", "target"]>>;
+    format: z.ZodOptional<z.ZodEnum<["percent", "dollar", "integer", "decimal", "compact"]>>;
+    switchPattern: z.ZodOptional<z.ZodString>;
+    removeTable: z.ZodOptional<z.ZodBoolean>;
+    layout: z.ZodOptional<z.ZodEnum<["rows", "columns"]>>;
+    hideColumns: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
-    refinement: string;
     specId: string;
-    selectAlternative?: string | undefined;
+    title?: string | undefined;
+    highlight?: {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    } | null | undefined;
+    sort?: {
+        direction: "asc" | "desc";
+        field?: string | undefined;
+    } | null | undefined;
+    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
+    colorField?: string | undefined;
+    palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    filter?: {
+        field: string;
+        values: (string | number)[];
+        op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
+    }[] | undefined;
+    limit?: number | undefined;
+    layout?: "rows" | "columns" | undefined;
+    subtitle?: string | undefined;
+    flip?: boolean | undefined;
+    xLabel?: string | undefined;
+    yLabel?: string | undefined;
+    flowColorBy?: "source" | "target" | undefined;
+    switchPattern?: string | undefined;
+    removeTable?: boolean | undefined;
+    hideColumns?: string[] | undefined;
 }, {
-    refinement: string;
     specId: string;
-    selectAlternative?: string | undefined;
+    title?: string | undefined;
+    highlight?: {
+        values: (string | number)[];
+        color?: string | string[] | undefined;
+        mutedColor?: string | undefined;
+        mutedOpacity?: number | undefined;
+    } | null | undefined;
+    sort?: {
+        direction: "asc" | "desc";
+        field?: string | undefined;
+    } | null | undefined;
+    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
+    colorField?: string | undefined;
+    palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
+    filter?: {
+        field: string;
+        values: (string | number)[];
+        op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
+    }[] | undefined;
+    limit?: number | undefined;
+    layout?: "rows" | "columns" | undefined;
+    subtitle?: string | undefined;
+    flip?: boolean | undefined;
+    xLabel?: string | undefined;
+    yLabel?: string | undefined;
+    flowColorBy?: "source" | "target" | undefined;
+    switchPattern?: string | undefined;
+    removeTable?: boolean | undefined;
+    hideColumns?: string[] | undefined;
 }>;
-export declare function handleRefine(): (args: z.infer<typeof refineInputSchema>) => Promise<import("./shared.js").McpResponse>;
+type RefineArgs = z.infer<typeof refineInputSchema>;
+export declare function handleRefine(): (args: RefineArgs) => Promise<import("./shared.js").McpResponse>;
+export {};
 //# sourceMappingURL=refine.d.ts.map

@@ -188,23 +188,23 @@ export function buildColorScale(
   // Specific values get color, all others are muted gray
   // Only activate if at least one highlight value matches actual data
   if (encoding.highlight && encoding.highlight.values.length > 0) {
-    const dataValues = new Set(data.map(d => d[field]));
-    const hasMatchingValues = encoding.highlight.values.some(v => dataValues.has(v));
+    const normalize = (v: any) => String(v).trim().toLowerCase();
+    const dataValues = new Set(data.map(d => normalize(d[field])));
+    const hasMatchingValues = encoding.highlight.values.some(v => dataValues.has(normalize(v)));
 
     if (hasMatchingValues) {
-      const highlightSet = new Set(encoding.highlight.values);
+      const highlightSet = new Set(encoding.highlight.values.map(v => normalize(v)));
       const highlightColors = Array.isArray(encoding.highlight.color)
         ? encoding.highlight.color
         : encoding.highlight.color
         ? [encoding.highlight.color]
-        : [categorical[0]]; // Default to first categorical color
+        : [categorical[0]];
       const mutedColor = encoding.highlight.mutedColor || '#6b7280';
       const mutedOpacity = encoding.highlight.mutedOpacity ?? 1.0;
 
       return (value: any) => {
-        if (highlightSet.has(value)) {
-          const highlightArray = Array.from(highlightSet);
-          const idx = highlightArray.indexOf(value);
+        if (highlightSet.has(normalize(value))) {
+          const idx = encoding.highlight!.values.findIndex(v => normalize(v) === normalize(value));
           return highlightColors[idx % highlightColors.length];
         }
         if (mutedOpacity < 1.0) {

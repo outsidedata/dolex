@@ -375,13 +375,29 @@ export interface VisualizeOutput {
 
 export interface RefineInput {
   specId: string;
-  refinement: string;
-  selectAlternative?: string;
+  sort?: { field?: string; direction: 'asc' | 'desc' } | null;
+  limit?: number;
+  filter?: Array<{ field: string; op?: string; values: (string | number)[] }>;
+  flip?: boolean;
+  title?: string;
+  subtitle?: string;
+  xLabel?: string;
+  yLabel?: string;
+  palette?: string;
+  highlight?: { values: (string | number)[]; color?: string | string[]; mutedColor?: string; mutedOpacity?: number } | null;
+  colorField?: string;
+  flowColorBy?: 'source' | 'target';
+  format?: string;
+  switchPattern?: string;
+  removeTable?: boolean;
+  layout?: 'rows' | 'columns';
+  hideColumns?: string[];
 }
 
 export interface RefineOutput {
   spec: VisualizationSpec | CompoundVisualizationSpec;
   changes: string[];
+  notes: string[];
 }
 
 // ─── COMPOUND VISUALIZATION TYPES ────────────────────────────────────────────

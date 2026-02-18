@@ -18,6 +18,7 @@ export interface StoredSpec {
   spec: VisualizationSpec | CompoundVisualizationSpec;
   columns: DataColumn[];
   alternatives: Map<string, VisualizationSpec>;
+  originalData?: Record<string, any>[];
   createdAt: number;
 }
 
@@ -47,6 +48,7 @@ export class SpecStore {
     spec: VisualizationSpec | CompoundVisualizationSpec,
     columns: DataColumn[],
     alternatives: Map<string, VisualizationSpec> = new Map(),
+    originalData?: Record<string, any>[],
   ): string {
     this.purgeExpired();
 
@@ -60,6 +62,7 @@ export class SpecStore {
       spec,
       columns,
       alternatives,
+      originalData,
       createdAt: Date.now(),
     });
     return id;
@@ -82,7 +85,8 @@ export class SpecStore {
     const existing = this.store.get(specId);
     const columns = existing?.columns ?? [];
     const alternatives = existing?.alternatives ?? new Map<string, VisualizationSpec>();
-    return this.save(newSpec, columns, alternatives);
+    const originalData = existing?.originalData;
+    return this.save(newSpec, columns, alternatives, originalData);
   }
 
   getAlternative(specId: string, patternId: string): VisualizationSpec | null {

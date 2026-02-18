@@ -179,6 +179,12 @@ export function renderStreamGraph(container, spec) {
 function parseDate(v) {
     if (v instanceof Date)
         return v;
+    if (v === null || v === undefined || v === '')
+        return null;
+    const num = typeof v === 'number' ? v : Number(v);
+    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+        return new Date(num, 0, 1);
+    }
     const d = new Date(v);
     return isNaN(d.getTime()) ? null : d;
 }

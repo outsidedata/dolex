@@ -49,9 +49,21 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
   const { svg, g, dims } = createSvg(chartWrapper, spec, { right: 30 });
   const tooltip = createTooltip(container);
 
+  // ── Filter out NaN/Infinity values ──
+  const validData = data.filter((d) => {
+    const xVal = Number(d[xField]);
+    const yVal = Number(d[yField]);
+    return isFinite(xVal) && isFinite(yVal);
+  });
+
+  if (validData.length === 0) {
+    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;font-family:Inter,system-ui,sans-serif;background:#0f1117;border-radius:8px;">No valid numeric data for scatter plot</div>`;
+    return;
+  }
+
   // ── Scales ──
-  const xValues = data.map((d) => Number(d[xField]));
-  const yValues = data.map((d) => Number(d[yField]));
+  const xValues = validData.map((d) => Number(d[xField]));
+  const yValues = validData.map((d) => Number(d[yField]));
 
   const xExtent = d3.extent(xValues) as [number, number];
   const yExtent = d3.extent(yValues) as [number, number];
@@ -103,12 +115,12 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
   styleAxis(yAxis);
 
   // ── Color scale ──
-  const colorScale = buildColorScale(encoding.color, data);
+  const colorScale = buildColorScale(encoding.color, validData);
 
   // ── Size scale ──
   let sizeScale: (d: any) => number = () => baseRadius;
   if (sizeField) {
-    const sizeExtent = d3.extent(data, (d: any) => Number(d[sizeField])) as [number, number];
+    const sizeExtent = d3.extent(validData, (d: any) => Number(d[sizeField])) as [number, number];
     const maxBubbleRadius = Math.min(dims.innerWidth, dims.innerHeight) * 0.06;
     const sizeRange = encoding.size?.range || [3, 20];
     const clampedRange: [number, number] = [
@@ -120,7 +132,7 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
 
   // ── Adaptive dot radius ──
   // Scale down when many points in a small area
-  const pointDensity = data.length / ((dims.innerWidth * dims.innerHeight) / 10000);
+  const pointDensity = validData.length / ((dims.innerWidth * dims.innerHeight) / 10000);
   let dotRadius = baseRadius;
   if (!sizeField) {
     if (pointDensity > 5) dotRadius = Math.max(2, baseRadius - 2);
@@ -131,7 +143,7 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
   const jitter = config.jitter ?? 0;
 
   // Pre-compute positions for hover targets and dots
-  const pointPositions = data.map((d, i) => {
+  const pointPositions = validData.map((d, i) => {
     const xBase = xScale(Number(d[xField]));
     const yBase = yScale(Number(d[yField]));
     return {
@@ -217,6 +229,19 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
     .attr('stroke', DARK_BG)
     .attr('stroke-width', 1)
     .attr('pointer-events', 'none');
+
+  // ── All-same-point annotation ──
+  if (xExtent[0] === xExtent[1] && yExtent[0] === yExtent[1] && validData.length > 1) {
+    g.append('text')
+      .attr('x', xScale(xExtent[0]))
+      .attr('y', yScale(yExtent[0]) - 20)
+      .attr('text-anchor', 'middle')
+      .attr('fill', TEXT_MUTED)
+      .attr('font-size', '11px')
+      .attr('font-family', 'Inter, system-ui, sans-serif')
+      .attr('pointer-events', 'none')
+      .text(`${validData.length} points at (${formatValue(xExtent[0])}, ${formatValue(yExtent[0])})`);
+  }
 
   // ── Trend line ──
   if (config.showTrendLine || config.showRegressionLine) {

@@ -59,23 +59,37 @@ export function renderLine(container, spec) {
     const xScale = d3.scaleTime().domain(xExtent).range([0, dims.innerWidth]).nice();
     // Y scale (linear)
     const yExtent = d3.extent(parsedData, (d) => d._value);
-    const yMin = showArea ? 0 : yExtent[0] * 0.9;
+    let yMin;
+    let yMax;
+    if (yExtent[0] === yExtent[1]) {
+        const pad = yExtent[0] === 0 ? 1 : Math.abs(yExtent[0]) * 0.1;
+        yMin = yExtent[0] - pad;
+        yMax = yExtent[1] + pad;
+    }
+    else {
+        yMin = showArea ? 0 : yExtent[0] * 0.9;
+        yMax = yExtent[1] * 1.05;
+    }
     const yScale = d3
         .scaleLinear()
-        .domain([yMin, yExtent[1] * 1.05])
+        .domain([yMin, yMax])
         .range([dims.innerHeight, 0])
         .nice();
     // ── Axes (direct creation + styleAxis) ──
     const xTickCount = getAdaptiveTickCount(dims.innerWidth);
+    const singleDate = xExtent[0].getTime() === xExtent[1].getTime();
+    const xAxisGen = d3.axisBottom(xScale).tickSize(0).tickPadding(8);
+    if (singleDate) {
+        xAxisGen.ticks(1).tickFormat(() => parsedData[0]?.[timeField] ?? d3.timeFormat('%Y-%m-%d')(xExtent[0]));
+    }
+    else {
+        xAxisGen.ticks(xTickCount);
+    }
     const xAxis = g
         .append('g')
         .attr('class', 'x-axis')
         .attr('transform', `translate(0,${dims.innerHeight})`)
-        .call(d3
-        .axisBottom(xScale)
-        .ticks(xTickCount)
-        .tickSize(0)
-        .tickPadding(8));
+        .call(xAxisGen);
     styleAxis(xAxis);
     const yTickCount = getAdaptiveTickCount(dims.innerHeight, 40);
     const yAxis = g
@@ -148,6 +162,12 @@ export function renderLine(container, spec) {
 function parseDate(v) {
     if (v instanceof Date)
         return v;
+    if (v === null || v === undefined || v === '')
+        return null;
+    const num = typeof v === 'number' ? v : Number(v);
+    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+        return new Date(num, 0, 1);
+    }
     const d = new Date(v);
     return isNaN(d.getTime()) ? null : d;
 }

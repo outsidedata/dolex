@@ -5,6 +5,10 @@ export function renderHorizonChart(container, spec) {
     const { config, encoding, data } = spec;
     const timeField = config.timeField || encoding.x?.field;
     const valueField = config.valueField || encoding.y?.field;
+    if (!timeField || !valueField || !data || data.length === 0) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:${TEXT_MUTED};font-size:14px;font-family:Inter,system-ui,sans-serif;background:${DARK_BG};border-radius:8px;">Horizon chart requires time and value fields</div>`;
+        return;
+    }
     const seriesField = config.seriesField || encoding.color?.field || null;
     const numBands = Math.max(2, Math.min(4, config.bands ?? 3));
     const mode = config.mode ?? 'mirror';
@@ -209,6 +213,12 @@ export function renderHorizonChart(container, spec) {
 function parseDate(v) {
     if (v instanceof Date)
         return v;
+    if (v === null || v === undefined || v === '')
+        return null;
+    const num = typeof v === 'number' ? v : Number(v);
+    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+        return new Date(num, 0, 1);
+    }
     const d = new Date(v);
     return isNaN(d.getTime()) ? null : d;
 }

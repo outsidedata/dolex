@@ -22,16 +22,17 @@ export const stripPlotPattern = {
     selectionRules: [
         {
             condition: 'Very small dataset — strip plot shows every point clearly',
-            weight: 70,
+            weight: 35,
             matches: (ctx) => {
                 return (ctx.dataShape.rowCount >= 3 &&
                     ctx.dataShape.rowCount <= 50 &&
-                    ctx.dataShape.numericColumnCount >= 1);
+                    ctx.dataShape.numericColumnCount >= 1 &&
+                    !ctx.dataShape.hasTimeSeries);
             },
         },
         {
             condition: 'Distribution intent with small data — too few points for histogram/violin',
-            weight: 60,
+            weight: 65,
             matches: (ctx) => {
                 return (/\b(distribut|spread|point|individual)\b/i.test(ctx.intent) &&
                     ctx.dataShape.rowCount < 30);
@@ -45,6 +46,14 @@ export const stripPlotPattern = {
                     return false;
                 const avgPerGroup = ctx.dataShape.rowCount / ctx.dataShape.categoryCount;
                 return avgPerGroup < 15 && avgPerGroup >= 3;
+            },
+        },
+        {
+            condition: 'Penalize for time/comparison/composition signals — strip-plot is wrong',
+            weight: -30,
+            matches: (ctx) => {
+                return ctx.dataShape.hasTimeSeries ||
+                    /(compar|rank|trend|over\s*time|composition|proportion)/i.test(ctx.intent);
             },
         },
         {

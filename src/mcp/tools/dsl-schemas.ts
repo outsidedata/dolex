@@ -185,7 +185,7 @@ export const dslQuerySchema = z.preprocess(normalizeDslQueryInput, dslQueryInner
 
 // ─── DASHBOARD SCHEMAS ──────────────────────────────────────────────────────
 
-const ALL_PALETTE_NAMES = [
+export const ALL_PALETTE_NAMES = [
   'categorical', 'blue', 'green', 'purple', 'warm',
   'blueRed', 'greenPurple', 'tealOrange', 'redGreen',
   'traffic-light', 'profit-loss', 'temperature',

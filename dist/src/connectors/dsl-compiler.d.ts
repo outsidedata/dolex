@@ -8,6 +8,10 @@
  * Supports JOIN clauses with dot-notation field references (table.field).
  */
 import type { DslQuery } from '../types.js';
+/**
+ * Convert dot-notation field to a flat alias: "table.col" → "table_col", plain fields unchanged.
+ */
+export declare function fieldAlias(field: string): string;
 /** Check if a DSL query contains aggregate functions that need JS post-processing on SQLite/MySQL. */
 export declare function hasJsAggregates(query: DslQuery): boolean;
 /** Check if a DSL query contains window function fields. */

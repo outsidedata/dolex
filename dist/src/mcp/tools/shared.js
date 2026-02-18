@@ -40,10 +40,22 @@ export function inferColumns(data) {
         const isDate = /date|time|year|month|day/i.test(key) ||
             values.every(v => /^\d{4}[-/]/.test(String(v)));
         const isId = /^id$|_id$|Id$/i.test(key) && uniqueValues.length > data.length * 0.5;
+        const YEAR_NAME_PATTERN = /\byear\b|\bcohort\b|\bfiscal\b|\bfy\b|\bsemester\b|\bvintage\b|\bclass_of\b|\bgraduating\b|\bperiod\b|\bseason\b/i;
+        const looksLikeYear = isNumeric &&
+            !isDate &&
+            YEAR_NAME_PATTERN.test(key) &&
+            values.length > 0 &&
+            values.every(v => {
+                const n = Number(v);
+                return Number.isInteger(n) && n >= 1900 && n <= 2100;
+            }) &&
+            uniqueValues.length <= 50 &&
+            uniqueValues.length > 1 &&
+            (Math.max(...values.map(Number)) - Math.min(...values.map(Number))) < 200;
         let type = 'categorical';
         if (isId)
             type = 'id';
-        else if (isDate)
+        else if (isDate || looksLikeYear)
             type = 'date';
         else if (isNumeric)
             type = 'numeric';
@@ -58,9 +70,10 @@ export function inferColumns(data) {
     });
 }
 // ─── COLOR PREFERENCES ─────────────────────────────────────────────────────
-export function applyColorPreferences(spec, prefs) {
+export function applyColorPreferences(spec, prefs, data) {
+    const notes = [];
     if (!prefs)
-        return;
+        return { notes };
     if (!spec.encoding.color)
         spec.encoding.color = {};
     if (prefs.palette) {
@@ -79,6 +92,51 @@ export function applyColorPreferences(spec, prefs) {
         if (!spec.encoding.color.type)
             spec.encoding.color.type = 'nominal';
     }
+    // Auto-infer color field if palette or highlight was set but no field exists
+    if ((prefs.palette || prefs.highlight) && !spec.encoding.color?.field) {
+        let inferred = null;
+        // Strategy 1: use nominal axis
+        if (spec.encoding.x?.type === 'nominal')
+            inferred = spec.encoding.x.field;
+        else if (spec.encoding.y?.type === 'nominal')
+            inferred = spec.encoding.y.field;
+        // Strategy 2: find a suitable categorical column from data
+        if (!inferred && data && data.length > 0) {
+            const keys = Object.keys(data[0]);
+            for (const key of keys) {
+                if (/^id$|_id$|Id$/i.test(key))
+                    continue;
+                const vals = data.map(d => d[key]).filter(v => v != null);
+                const isNum = vals.every(v => typeof v === 'number' || !isNaN(Number(v)));
+                if (isNum)
+                    continue;
+                const unique = new Set(vals.map(String));
+                if (unique.size <= 20) {
+                    inferred = key;
+                    break;
+                }
+            }
+        }
+        if (inferred) {
+            spec.encoding.color.field = inferred;
+            if (!spec.encoding.color.type)
+                spec.encoding.color.type = 'nominal';
+            notes.push(`Color field auto-detected as '${inferred}'. Use colorField to override.`);
+        }
+        else if (prefs.palette) {
+            notes.push(`Palette '${prefs.palette}' ignored — no categorical column found with ≤20 unique values. Use colorField to specify.`);
+        }
+    }
+    // Validate highlight values against data
+    if (prefs.highlight && spec.encoding.color?.field && data) {
+        const field = spec.encoding.color.field;
+        const dataValues = new Set(data.map(d => String(d[field]).toLowerCase()));
+        const unmatched = prefs.highlight.values.filter((v) => !dataValues.has(String(v).toLowerCase()));
+        if (unmatched.length > 0) {
+            notes.push(`Highlight: ${unmatched.map((v) => `'${v}'`).join(', ')} not found in data for field '${field}'.`);
+        }
+    }
+    return { notes };
 }
 // ─── TIME BUCKET HELPERS ────────────────────────────────────────────────────
 function getTimeBucketedFields(groupBy) {
@@ -88,14 +146,14 @@ function getTimeBucketedFields(groupBy) {
         .filter((g) => typeof g === 'object' && 'bucket' in g)
         .map(g => g.field);
 }
-function enhanceIntentForTimeBucket(intent, groupBy) {
+export function enhanceIntentForTimeBucket(intent, groupBy) {
     const bucketedFields = getTimeBucketedFields(groupBy);
     if (bucketedFields.length > 0 && !/time.series|trend|over.time/i.test(intent)) {
         return intent + ' (time series trend)';
     }
     return intent;
 }
-function applyTimeBucketColumnTypes(columns, groupBy) {
+export function applyTimeBucketColumnTypes(columns, groupBy) {
     const bucketedFields = getTimeBucketedFields(groupBy);
     for (const col of columns) {
         if (bucketedFields.some(f => col.name.includes(f) || f.includes(col.name))) {
@@ -158,7 +216,7 @@ export async function executeDashboardViews(views, sourceId, table, sourceManage
         if (view.config) {
             spec.config = { ...spec.config, ...view.config };
         }
-        applyColorPreferences(spec, view.colorPreferences);
+        applyColorPreferences(spec, view.colorPreferences, data);
         viewData.push({ viewId: view.id, data, spec });
         viewReasonings.push({ viewId: view.id, pattern: spec.pattern, reasoning });
     }

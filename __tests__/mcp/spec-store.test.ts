@@ -76,6 +76,21 @@ describe('SpecStore', () => {
     expect(stored.alternatives.get('scatter')!.pattern).toBe('scatter');
   });
 
+  it('stores and preserves originalData', () => {
+    const originalData = [{ x: 1, y: 2 }, { x: 3, y: 4 }];
+    const id = store.save(makeSpec('bar'), [], new Map(), originalData);
+    const stored = store.get(id)!;
+    expect(stored.originalData).toEqual(originalData);
+  });
+
+  it('updateSpec preserves originalData from original entry', () => {
+    const originalData = [{ x: 1, y: 2 }, { x: 3, y: 4 }];
+    const id1 = store.save(makeSpec('bar'), [], new Map(), originalData);
+    const id2 = store.updateSpec(id1, makeSpec('line'));
+    const stored = store.get(id2)!;
+    expect(stored.originalData).toEqual(originalData);
+  });
+
   it('evicts oldest entry when at capacity', () => {
     const ids: string[] = [];
     for (let i = 0; i < 100; i++) {

@@ -168,10 +168,6 @@ export declare const querySourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -181,6 +177,10 @@ export declare const querySourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, {
         select: (string | {
@@ -213,10 +213,6 @@ export declare const querySourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -226,6 +222,10 @@ export declare const querySourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }>, {
         select: (string | {
@@ -258,10 +258,6 @@ export declare const querySourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -271,6 +267,10 @@ export declare const querySourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, unknown>;
     maxRows: z.ZodOptional<z.ZodNumber>;
@@ -307,10 +307,6 @@ export declare const querySourceInputSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -320,6 +316,10 @@ export declare const querySourceInputSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     };
     sourceId: string;

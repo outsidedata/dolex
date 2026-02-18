@@ -17,9 +17,9 @@ export function renderArea(container, spec) {
         .map((d) => ({
         ...d,
         _date: parseDate(d[timeField]),
-        _value: Number(d[valueField]),
+        _value: d[valueField] == null ? null : Number(d[valueField]),
     }))
-        .filter((d) => d._date !== null && !isNaN(d._value));
+        .filter((d) => d._date !== null);
     const colorScale = buildColorScale(encoding.color, data);
     const seriesNames = seriesField
         ? [...new Set(parsedData.map((d) => d[seriesField]))]
@@ -47,7 +47,7 @@ export function renderArea(container, spec) {
     svg.style('background', 'none');
     const tooltip = createTooltip(chartWrapper);
     // Check if all values are zero
-    if (parsedData.every((d) => d._value === 0)) {
+    if (parsedData.every((d) => d._value === 0 || d._value === null)) {
         renderEmptyState(g, dims);
         return;
     }
@@ -100,6 +100,12 @@ export function renderArea(container, spec) {
 function parseDate(v) {
     if (v instanceof Date)
         return v;
+    if (v === null || v === undefined || v === '')
+        return null;
+    const num = typeof v === 'number' ? v : Number(v);
+    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+        return new Date(num, 0, 1);
+    }
     const d = new Date(v);
     return isNaN(d.getTime()) ? null : d;
 }
@@ -108,16 +114,20 @@ function drawSingleArea(g, parsedData, curve, dims, tooltip, timeField, valueFie
     const color = DEFAULT_PALETTE[0];
     const xExtent = d3.extent(sorted, (d) => d._date);
     const xScale = d3.scaleTime().domain(xExtent).range([0, dims.innerWidth]);
-    const yMin = d3.min(sorted, (d) => d._value);
-    const yMax = d3.max(sorted, (d) => d._value);
+    const validValues = sorted.filter((d) => d._value !== null && !isNaN(d._value));
+    const yMin = d3.min(validValues, (d) => d._value);
+    const yMax = d3.max(validValues, (d) => d._value);
     const yScale = d3.scaleLinear().domain([Math.min(0, yMin), yMax * 1.05]).range([dims.innerHeight, 0]).nice();
     drawAxes(g, xScale, yScale, dims, false, sorted.length);
+    const defined = (d) => d._value !== null && !isNaN(d._value);
     const areaGen = d3.area()
+        .defined(defined)
         .x((d) => xScale(d._date))
         .y0(yScale(0))
         .y1((d) => yScale(d._value))
         .curve(curve);
     const lineGen = d3.line()
+        .defined(defined)
         .x((d) => xScale(d._date))
         .y((d) => yScale(d._value))
         .curve(curve);
@@ -140,17 +150,21 @@ function drawSingleArea(g, parsedData, curve, dims, tooltip, timeField, valueFie
 function drawOverlappingAreas(g, parsedData, seriesField, seriesNames, colorScale, curve, dims, tooltip, timeField, valueField, fillOpacity) {
     const xExtent = d3.extent(parsedData, (d) => d._date);
     const xScale = d3.scaleTime().domain(xExtent).range([0, dims.innerWidth]);
-    const yMinO = d3.min(parsedData, (d) => d._value);
-    const yMax = d3.max(parsedData, (d) => d._value);
+    const validValues = parsedData.filter((d) => d._value !== null && !isNaN(d._value));
+    const yMinO = d3.min(validValues, (d) => d._value);
+    const yMax = d3.max(validValues, (d) => d._value);
     const yScale = d3.scaleLinear().domain([Math.min(0, yMinO), yMax * 1.05]).range([dims.innerHeight, 0]).nice();
     const uniqueTimes = new Set(parsedData.map((d) => d._date.getTime())).size;
     drawAxes(g, xScale, yScale, dims, false, uniqueTimes);
+    const defined = (d) => d._value !== null && !isNaN(d._value);
     const areaGen = d3.area()
+        .defined(defined)
         .x((d) => xScale(d._date))
         .y0(yScale(0))
         .y1((d) => yScale(d._value))
         .curve(curve);
     const lineGen = d3.line()
+        .defined(defined)
         .x((d) => xScale(d._date))
         .y((d) => yScale(d._value))
         .curve(curve);

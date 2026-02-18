@@ -213,13 +213,47 @@ function renderRawHistogram(container, spec, xField) {
         renderEmptyState(g, dims);
         return;
     }
+    const xExtent = d3.extent(values);
+    if (xExtent[0] === xExtent[1]) {
+        const constVal = xExtent[0];
+        const barWidth = dims.innerWidth * 0.2;
+        const barX = (dims.innerWidth - barWidth) / 2;
+        const yScale = d3.scaleLinear().domain([0, values.length]).range([dims.innerHeight, 0]).nice();
+        const yTickCount = getAdaptiveTickCount(dims.innerHeight, 40);
+        const yAxis = g.append('g').attr('class', 'y-axis')
+            .call(d3.axisLeft(yScale).ticks(yTickCount).tickSize(-dims.innerWidth).tickPadding(8).tickFormat((d) => formatValue(d)));
+        styleAxis(yAxis);
+        const xAxis = g.append('g').attr('class', 'x-axis').attr('transform', `translate(0,${dims.innerHeight})`)
+            .call(d3.axisBottom(d3.scaleLinear().domain([constVal - 1, constVal + 1]).range([0, dims.innerWidth])).ticks(3).tickPadding(8).tickFormat((d) => formatValue(d)));
+        styleAxis(xAxis);
+        g.append('rect')
+            .attr('x', barX)
+            .attr('y', yScale(values.length))
+            .attr('width', barWidth)
+            .attr('height', dims.innerHeight - yScale(values.length))
+            .attr('fill', DEFAULT_PALETTE[0])
+            .attr('rx', 2);
+        g.append('text')
+            .attr('x', dims.innerWidth / 2)
+            .attr('y', yScale(values.length) - 10)
+            .attr('text-anchor', 'middle')
+            .attr('fill', TEXT_MUTED)
+            .attr('font-size', '11px')
+            .attr('font-family', 'Inter, system-ui, sans-serif')
+            .text(`All ${values.length} values = ${formatValue(constVal)}`);
+        drawStatLines(g, d3.scaleLinear().domain([constVal - 1, constVal + 1]).range([0, dims.innerWidth]), dims.innerHeight, { ...config, mean: constVal, median: constVal });
+        return;
+    }
+    // Unique value count — if < 5, use one bin per value (discrete mode)
+    const uniqueValues = [...new Set(values)];
+    const effectiveBinCount = uniqueValues.length < 5 ? uniqueValues.length : binCount;
     // Scales
     const xScale = d3
         .scaleLinear()
-        .domain(d3.extent(values))
+        .domain(xExtent)
         .range([0, dims.innerWidth])
         .nice();
-    const histogram = d3.bin().domain(xScale.domain()).thresholds(binCount);
+    const histogram = d3.bin().domain(xScale.domain()).thresholds(effectiveBinCount);
     const bins = histogram(values);
     const yScale = d3
         .scaleLinear()

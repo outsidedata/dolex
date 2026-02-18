@@ -9,7 +9,7 @@
 import type { DslQuery, DslOrderBy, DslWindowField } from '../types.js';
 import { isDslAggregateField, isDslWindowField } from '../types.js';
 import type { ConnectedSource } from './types.js';
-import { compileDsl } from './dsl-compiler.js';
+import { compileDsl, fieldAlias } from './dsl-compiler.js';
 
 const MAX_RESULT_LIMIT = 10000;
 
@@ -102,9 +102,7 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-function bucketDate(dateStr: string, bucket: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+function bucketDateFromParsed(d: Date, bucket: string): string {
   const year = d.getUTCFullYear();
   const month = d.getUTCMonth() + 1;
 
@@ -125,12 +123,19 @@ function bucketDate(dateStr: string, bucket: string): string {
     case 'year':
       return String(year);
     default:
-      return dateStr;
+      return String(d);
   }
 }
 
-function stripTablePrefix(field: string): string {
-  return field.includes('.') ? field.split('.', 2)[1] : field;
+function bucketDate(dateStr: string, bucket: string): string {
+  const numVal = Number(dateStr);
+  if (!isNaN(numVal) && numVal > 1800 && numVal < 2200 && Math.floor(numVal) === numVal) {
+    if (bucket === 'year') return String(numVal);
+    return bucketDateFromParsed(new Date(Date.UTC(numVal, 0, 1)), bucket);
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return bucketDateFromParsed(d, bucket);
 }
 
 // ─── Window Functions ────────────────────────────────────────────────────────
@@ -321,10 +326,10 @@ export async function executeJsAggregation(
 
   const groupKeys = groupBySpecs.map(g => {
     if (typeof g === 'string') {
-      const col = stripTablePrefix(g);
+      const col = fieldAlias(g);
       return { name: col, extract: (row: Record<string, any>) => String(row[col] ?? '') };
     }
-    const col = stripTablePrefix(g.field);
+    const col = fieldAlias(g.field);
     const alias = `${g.field.replace('.', '_')}_${g.bucket}`;
     return { name: alias, extract: (row: Record<string, any>) => bucketDate(String(row[col] ?? ''), g.bucket) };
   });
@@ -353,12 +358,12 @@ export async function executeJsAggregation(
 
     for (const s of query.select) {
       if (typeof s === 'string') {
-        const col = stripTablePrefix(s);
+        const col = fieldAlias(s);
         if (!(col in row)) {
           row[col] = groupRows[0]?.[col];
         }
       } else if (isDslAggregateField(s)) {
-        const col = stripTablePrefix(s.field);
+        const col = fieldAlias(s.field);
         row[s.as] = jsAggregate(groupRows.map(r => r[col]), s.aggregate, s.percentile);
       }
     }

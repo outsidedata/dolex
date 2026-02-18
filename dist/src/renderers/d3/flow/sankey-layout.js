@@ -56,7 +56,16 @@ function computeNodeValues(nodes) {
     });
 }
 function assignLayers(nodes) {
-    const sources = nodes.filter((n) => n.targetLinks.length === 0);
+    let sources = nodes.filter((n) => n.targetLinks.length === 0);
+    // Cycle handling: if no pure sources, pick the node with max outgoing flow
+    if (sources.length === 0 && nodes.length > 0) {
+        const best = nodes.reduce((a, b) => {
+            const aOut = a.sourceLinks.reduce((s, l) => s + l.value, 0);
+            const bOut = b.sourceLinks.reduce((s, l) => s + l.value, 0);
+            return aOut >= bOut ? a : b;
+        });
+        sources = [best];
+    }
     const visited = new Set();
     const queue = sources.map((n) => ({ node: n, layer: 0 }));
     while (queue.length > 0) {
@@ -71,13 +80,21 @@ function assignLayers(nodes) {
             }
         });
     }
-    // Handle unvisited nodes (cycles or disconnected)
+    // Handle unvisited nodes (cycles or disconnected) — assign sequential layers
+    let nextLayer = (nodes.reduce((mx, n) => Math.max(mx, n.layer), 0)) + 1;
     nodes.forEach((n) => {
         if (!visited.has(n.name)) {
-            n.layer = 0;
+            n.layer = nextLayer++;
             visited.add(n.name);
         }
     });
+    // Final check: if all nodes ended up on the same layer but links exist, spread them
+    const maxLayer = nodes.reduce((mx, n) => Math.max(mx, n.layer), 0);
+    if (maxLayer === 0 && nodes.some(n => n.sourceLinks.length > 0)) {
+        nodes.forEach((n, i) => {
+            n.layer = i;
+        });
+    }
 }
 function positionNodes(nodes, width, height, nodeWidth, nodePadding) {
     const maxLayer = d3.max(nodes, (n) => n.layer) || 0;

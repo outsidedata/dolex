@@ -466,4 +466,34 @@ describe('DSL Validator — window functions', () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it('accepts partitionBy with dot-notation on joined column', () => {
+    const result = validateDslWithJoins(multiTableSchema, 'order_items', {
+      join: [
+        { table: 'products', on: { left: 'product_id', right: 'product_id' } },
+      ],
+      select: [
+        'products.product_category_name',
+        { field: 'price', aggregate: 'sum', as: 'revenue' },
+        { window: 'rank', as: 'cat_rank', partitionBy: ['products.product_category_name'], orderBy: [{ field: 'revenue', direction: 'desc' }] },
+      ],
+      groupBy: ['products.product_category_name'],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts partitionBy with unqualified name on joined column', () => {
+    const result = validateDslWithJoins(multiTableSchema, 'order_items', {
+      join: [
+        { table: 'products', on: { left: 'product_id', right: 'product_id' } },
+      ],
+      select: [
+        'products.product_category_name',
+        { field: 'price', aggregate: 'sum', as: 'revenue' },
+        { window: 'rank', as: 'cat_rank', partitionBy: ['product_category_name'], orderBy: [{ field: 'revenue', direction: 'desc' }] },
+      ],
+      groupBy: ['products.product_category_name'],
+    });
+    expect(result.ok).toBe(true);
+  });
 });

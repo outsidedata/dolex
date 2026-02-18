@@ -328,10 +328,6 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    groupBy?: (string | {
-        field: string;
-        bucket: "day" | "week" | "month" | "quarter" | "year";
-    })[] | undefined;
     having?: {
         field: string;
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -341,6 +337,10 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         field: string;
         direction: "asc" | "desc";
     }[] | undefined;
+    groupBy?: (string | {
+        field: string;
+        bucket: "day" | "week" | "month" | "quarter" | "year";
+    })[] | undefined;
     limit?: number | undefined;
 }, {
     select: (string | {
@@ -373,10 +373,6 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    groupBy?: (string | {
-        field: string;
-        bucket: "day" | "week" | "month" | "quarter" | "year";
-    })[] | undefined;
     having?: {
         field: string;
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -386,6 +382,10 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         field: string;
         direction: "asc" | "desc";
     }[] | undefined;
+    groupBy?: (string | {
+        field: string;
+        bucket: "day" | "week" | "month" | "quarter" | "year";
+    })[] | undefined;
     limit?: number | undefined;
 }>, {
     select: (string | {
@@ -418,10 +418,6 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    groupBy?: (string | {
-        field: string;
-        bucket: "day" | "week" | "month" | "quarter" | "year";
-    })[] | undefined;
     having?: {
         field: string;
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -431,8 +427,13 @@ export declare const dslQuerySchema: z.ZodEffects<z.ZodObject<{
         field: string;
         direction: "asc" | "desc";
     }[] | undefined;
+    groupBy?: (string | {
+        field: string;
+        bucket: "day" | "week" | "month" | "quarter" | "year";
+    })[] | undefined;
     limit?: number | undefined;
 }, unknown>;
+export declare const ALL_PALETTE_NAMES: readonly ["categorical", "blue", "green", "purple", "warm", "blueRed", "greenPurple", "tealOrange", "redGreen", "traffic-light", "profit-loss", "temperature"];
 export declare const dashboardViewSchema: z.ZodObject<{
     id: z.ZodString;
     title: z.ZodString;
@@ -599,10 +600,6 @@ export declare const dashboardViewSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -612,6 +609,10 @@ export declare const dashboardViewSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, {
         select: (string | {
@@ -644,10 +645,6 @@ export declare const dashboardViewSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -657,6 +654,10 @@ export declare const dashboardViewSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }>, {
         select: (string | {
@@ -689,10 +690,6 @@ export declare const dashboardViewSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -702,6 +699,10 @@ export declare const dashboardViewSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     }, unknown>;
     pattern: z.ZodOptional<z.ZodString>;
@@ -779,10 +780,6 @@ export declare const dashboardViewSchema: z.ZodObject<{
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
             value?: any;
         }[] | undefined;
-        groupBy?: (string | {
-            field: string;
-            bucket: "day" | "week" | "month" | "quarter" | "year";
-        })[] | undefined;
         having?: {
             field: string;
             op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -792,6 +789,10 @@ export declare const dashboardViewSchema: z.ZodObject<{
             field: string;
             direction: "asc" | "desc";
         }[] | undefined;
+        groupBy?: (string | {
+            field: string;
+            bucket: "day" | "week" | "month" | "quarter" | "year";
+        })[] | undefined;
         limit?: number | undefined;
     };
     pattern?: string | undefined;
@@ -812,6 +813,7 @@ export declare const dashboardViewSchema: z.ZodObject<{
     intent: string;
     pattern?: string | undefined;
     config?: Record<string, any> | undefined;
+    query?: unknown;
     colorPreferences?: {
         highlight?: {
             values: any[];
@@ -822,7 +824,6 @@ export declare const dashboardViewSchema: z.ZodObject<{
         colorField?: string | undefined;
         palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     } | undefined;
-    query?: unknown;
 }>;
 export declare const dashboardFilterSchema: z.ZodObject<{
     field: z.ZodString;
@@ -1052,10 +1053,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
                 value?: any;
             }[] | undefined;
-            groupBy?: (string | {
-                field: string;
-                bucket: "day" | "week" | "month" | "quarter" | "year";
-            })[] | undefined;
             having?: {
                 field: string;
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -1065,6 +1062,10 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 field: string;
                 direction: "asc" | "desc";
             }[] | undefined;
+            groupBy?: (string | {
+                field: string;
+                bucket: "day" | "week" | "month" | "quarter" | "year";
+            })[] | undefined;
             limit?: number | undefined;
         }, {
             select: (string | {
@@ -1097,10 +1098,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
                 value?: any;
             }[] | undefined;
-            groupBy?: (string | {
-                field: string;
-                bucket: "day" | "week" | "month" | "quarter" | "year";
-            })[] | undefined;
             having?: {
                 field: string;
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -1110,6 +1107,10 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 field: string;
                 direction: "asc" | "desc";
             }[] | undefined;
+            groupBy?: (string | {
+                field: string;
+                bucket: "day" | "week" | "month" | "quarter" | "year";
+            })[] | undefined;
             limit?: number | undefined;
         }>, {
             select: (string | {
@@ -1142,10 +1143,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
                 value?: any;
             }[] | undefined;
-            groupBy?: (string | {
-                field: string;
-                bucket: "day" | "week" | "month" | "quarter" | "year";
-            })[] | undefined;
             having?: {
                 field: string;
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -1155,6 +1152,10 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 field: string;
                 direction: "asc" | "desc";
             }[] | undefined;
+            groupBy?: (string | {
+                field: string;
+                bucket: "day" | "week" | "month" | "quarter" | "year";
+            })[] | undefined;
             limit?: number | undefined;
         }, unknown>;
         pattern: z.ZodOptional<z.ZodString>;
@@ -1232,10 +1233,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
                 value?: any;
             }[] | undefined;
-            groupBy?: (string | {
-                field: string;
-                bucket: "day" | "week" | "month" | "quarter" | "year";
-            })[] | undefined;
             having?: {
                 field: string;
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -1245,6 +1242,10 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 field: string;
                 direction: "asc" | "desc";
             }[] | undefined;
+            groupBy?: (string | {
+                field: string;
+                bucket: "day" | "week" | "month" | "quarter" | "year";
+            })[] | undefined;
             limit?: number | undefined;
         };
         pattern?: string | undefined;
@@ -1265,6 +1266,7 @@ export declare const createDashboardInputSchema: z.ZodObject<{
         intent: string;
         pattern?: string | undefined;
         config?: Record<string, any> | undefined;
+        query?: unknown;
         colorPreferences?: {
             highlight?: {
                 values: any[];
@@ -1275,7 +1277,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
             colorField?: string | undefined;
             palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
         } | undefined;
-        query?: unknown;
     }>, "many">;
     globalFilters: z.ZodOptional<z.ZodArray<z.ZodObject<{
         field: z.ZodString;
@@ -1372,10 +1373,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
                 value?: any;
             }[] | undefined;
-            groupBy?: (string | {
-                field: string;
-                bucket: "day" | "week" | "month" | "quarter" | "year";
-            })[] | undefined;
             having?: {
                 field: string;
                 op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
@@ -1385,6 +1382,10 @@ export declare const createDashboardInputSchema: z.ZodObject<{
                 field: string;
                 direction: "asc" | "desc";
             }[] | undefined;
+            groupBy?: (string | {
+                field: string;
+                bucket: "day" | "week" | "month" | "quarter" | "year";
+            })[] | undefined;
             limit?: number | undefined;
         };
         pattern?: string | undefined;
@@ -1431,6 +1432,7 @@ export declare const createDashboardInputSchema: z.ZodObject<{
         intent: string;
         pattern?: string | undefined;
         config?: Record<string, any> | undefined;
+        query?: unknown;
         colorPreferences?: {
             highlight?: {
                 values: any[];
@@ -1441,7 +1443,6 @@ export declare const createDashboardInputSchema: z.ZodObject<{
             colorField?: string | undefined;
             palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
         } | undefined;
-        query?: unknown;
     }[];
     sourceId: string;
     title?: string | undefined;

@@ -26,8 +26,9 @@ export function renderSparklineGrid(container, spec) {
     const numSeries = seriesNames.length;
     const gridCols = config.gridCols || Math.min(numSeries, Math.ceil(Math.sqrt(numSeries * (containerWidth / containerHeight))));
     const gridRows = Math.ceil(numSeries / gridCols);
+    const minCellHeight = 45;
     const cellWidth = config.cellWidth || Math.floor((containerWidth - padding * (gridCols + 1)) / gridCols);
-    const cellHeight = config.cellHeight || Math.floor((containerHeight - titleHeight - padding * (gridRows + 1)) / gridRows);
+    const cellHeight = Math.max(minCellHeight, config.cellHeight || Math.floor((containerHeight - titleHeight - padding * (gridRows + 1)) / gridRows));
     const width = containerWidth;
     const height = containerHeight;
     const svg = d3.select(container)
@@ -132,7 +133,9 @@ export function renderSparklineGrid(container, spec) {
                 .domain([yExtent[0] - yPadding, yExtent[1] + yPadding])
                 .range([cellHeight - sparkPadBot, sparkPadTop]);
             // Line path
-            const curve = curveType === 'square' ? d3.curveStepAfter : d3.curveBasis;
+            const curve = curveType === 'square' ? d3.curveStepAfter
+                : curveType === 'monotone' ? d3.curveMonotoneX
+                    : d3.curveBasis;
             const line = d3.line()
                 .curve(curve)
                 .x((d) => xScale(new Date(d[timeField])))

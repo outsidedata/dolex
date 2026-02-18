@@ -522,7 +522,7 @@ describe('SourceManager DSL joins', () => {
     expect(result.ok).toBe(true);
     expect(result.rows!.length).toBe(3); // Electronics, Clothing, Home
     // Clothing: 75+75=150, Electronics: 50+50=100, Home: 100
-    expect(result.rows![0].product_category_name).toBe('Clothing');
+    expect(result.rows![0].products_product_category_name).toBe('Clothing');
     expect(result.rows![0].revenue).toBe(150);
 
     await manager.closeAll();
@@ -550,7 +550,7 @@ describe('SourceManager DSL joins', () => {
     expect(result.ok).toBe(true);
     expect(result.rows!.length).toBe(3); // SP, RJ, MG
     // RJ: orders 2+5 → 75+75=150, SP: orders 1+3 → 50+50=100, MG: order 4 → 100
-    expect(result.rows![0].customer_state).toBe('RJ');
+    expect(result.rows![0].customers_customer_state).toBe('RJ');
     expect(result.rows![0].revenue).toBe(150);
 
     await manager.closeAll();
@@ -595,6 +595,135 @@ describe('SourceManager DSL joins', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain('nonexistent');
     expect(result.error).toContain('not found');
+
+    await manager.closeAll();
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('same-name columns from joined tables both appear in results', async () => {
+    const dir = setupMultiTableCsv();
+
+    fs.writeFileSync(path.join(dir, 'regions.csv'), [
+      'product_id,nationality',
+      '101,Japan',
+      '102,Germany',
+      '103,USA',
+    ].join('\n'));
+
+    fs.writeFileSync(path.join(dir, 'suppliers.csv'), [
+      'product_id,nationality',
+      '101,China',
+      '102,Italy',
+      '103,Mexico',
+    ].join('\n'));
+
+    manager = new SourceManager();
+    await manager.add('ecom', { type: 'csv', path: dir });
+
+    const result = await manager.queryDsl('ecom', 'regions', {
+      join: [
+        { table: 'suppliers', on: { left: 'product_id', right: 'product_id' } },
+      ],
+      select: ['regions.nationality', 'suppliers.nationality'],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.columns).toContain('regions_nationality');
+    expect(result.columns).toContain('suppliers_nationality');
+    expect(result.rows![0].regions_nationality).toBeDefined();
+    expect(result.rows![0].suppliers_nationality).toBeDefined();
+    expect(result.rows![0].regions_nationality).not.toBe(result.rows![0].suppliers_nationality);
+
+    await manager.closeAll();
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+});
+
+// ─── CSV NULL SENTINEL & NUMERIC COERCION ────────────────────────────────────
+
+describe('CSV null sentinel and numeric coercion', () => {
+  let manager: SourceManager;
+  let tmpDir: string;
+
+  it('\\N values are normalized to null', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsl-null-'));
+    const csvPath = path.join(tmpDir, 'data.csv');
+    fs.writeFileSync(csvPath, [
+      'name,score,grade',
+      'Alice,95,A',
+      'Bob,\\N,B',
+      'Carol,80,\\N',
+      'Dave,\\N,\\N',
+    ].join('\n'));
+
+    manager = new SourceManager();
+    await manager.add('test', { type: 'csv', path: csvPath });
+
+    const result = await manager.queryDsl('test', 'data', {
+      select: ['name', 'score', 'grade'],
+      filter: [{ field: 'score', op: 'is_null' }],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.rows!.length).toBe(2);
+    const names = result.rows!.map(r => r.name).sort();
+    expect(names).toEqual(['Bob', 'Dave']);
+
+    await manager.closeAll();
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('numeric columns return as JS numbers, not strings', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsl-coerce-'));
+    const csvPath = path.join(tmpDir, 'data.csv');
+    fs.writeFileSync(csvPath, [
+      'name,score,rating',
+      'Alice,95,4.5',
+      'Bob,80,3.8',
+      'Carol,70,4.2',
+    ].join('\n'));
+
+    manager = new SourceManager();
+    await manager.add('test', { type: 'csv', path: csvPath });
+
+    const result = await manager.queryDsl('test', 'data', {
+      select: ['name', 'score', 'rating'],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(typeof result.rows![0].score).toBe('number');
+    expect(typeof result.rows![0].rating).toBe('number');
+    expect(result.rows![0].score).toBe(95);
+    expect(result.rows![0].rating).toBe(4.5);
+    expect(typeof result.rows![0].name).toBe('string');
+
+    await manager.closeAll();
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('null values in numeric columns stay null after coercion', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsl-null-num-'));
+    const csvPath = path.join(tmpDir, 'data.csv');
+    fs.writeFileSync(csvPath, [
+      'name,score',
+      'Alice,95',
+      'Bob,\\N',
+      'Carol,80',
+    ].join('\n'));
+
+    manager = new SourceManager();
+    await manager.add('test', { type: 'csv', path: csvPath });
+
+    const result = await manager.queryDsl('test', 'data', {
+      select: ['name', 'score'],
+    });
+
+    expect(result.ok).toBe(true);
+    const bob = result.rows!.find(r => r.name === 'Bob');
+    expect(bob!.score).toBeNull();
+    const alice = result.rows!.find(r => r.name === 'Alice');
+    expect(typeof alice!.score).toBe('number');
+    expect(alice!.score).toBe(95);
 
     await manager.closeAll();
     fs.rmSync(tmpDir, { recursive: true });

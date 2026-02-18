@@ -33,8 +33,8 @@ export const wafflePattern: VisualizationPattern = {
 
   selectionRules: [
     {
-      condition: 'Part-to-whole with few categories — waffle beats pie every time',
-      weight: 75,
+      condition: 'Part-to-whole with few categories',
+      weight: 40,
       matches: (ctx) => {
         return (
           ctx.dataShape.categoryCount >= 2 &&
@@ -53,10 +53,24 @@ export const wafflePattern: VisualizationPattern = {
       },
     },
     {
+      condition: 'Composition intent — proportion, breakdown, split',
+      weight: 40,
+      matches: (ctx) => {
+        return /\b(proportion|share|part.of|breakdown|split|how\s+much\s+of)\b/i.test(ctx.intent);
+      },
+    },
+    {
       condition: 'Very few categories (2-4) — waffle is clearest',
-      weight: 30,
+      weight: 15,
       matches: (ctx) => {
         return ctx.dataShape.categoryCount >= 2 && ctx.dataShape.categoryCount <= 4;
+      },
+    },
+    {
+      condition: 'Penalize for comparison intent — bar chart is better',
+      weight: -25,
+      matches: (ctx) => {
+        return /(compar|rank|top|bottom|highest|lowest|bar\s*chart)/i.test(ctx.intent);
       },
     },
     {

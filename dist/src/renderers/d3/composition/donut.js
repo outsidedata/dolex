@@ -31,6 +31,7 @@ export function renderDonut(container, spec) {
     const maxVal = rawValues.length > 0 ? Math.max(...rawValues) : 0;
     const minVisible = maxVal * 0.02;
     const clampVal = (v) => (v > 0 && v < minVisible ? minVisible : v);
+    const negativeCount = data.filter((d) => Number(d[valueField]) < 0).length;
     const items = data
         .filter((d) => Number(d[valueField]) > 0)
         .map((d) => ({
@@ -173,6 +174,17 @@ export function renderDonut(container, spec) {
             .attr('font-weight', '700')
             .attr('font-family', 'Inter, system-ui, sans-serif')
             .text(centerLabel);
+    }
+    if (negativeCount > 0) {
+        svg.append('text')
+            .attr('x', wrapperWidth / 2)
+            .attr('y', wrapperHeight - 6)
+            .attr('text-anchor', 'middle')
+            .attr('fill', TEXT_MUTED)
+            .attr('font-size', '10px')
+            .attr('font-style', 'italic')
+            .attr('font-family', 'Inter, system-ui, sans-serif')
+            .text(`${negativeCount} item${negativeCount > 1 ? 's' : ''} with negative values excluded`);
     }
 }
 //# sourceMappingURL=donut.js.map
