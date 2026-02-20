@@ -13,9 +13,6 @@ import * as crypto from 'crypto';
 import { compileDsl, hasJsAggregates, hasWindowFunctions } from './dsl-compiler.js';
 import { validateDsl, validateDslWithJoins } from './dsl-validator.js';
 import { csvConnector } from './csv.js';
-import { sqliteConnector } from './sqlite.js';
-import { postgresConnector } from './postgres.js';
-import { mysqlConnector } from './mysql.js';
 import { executeJsAggregation, executeJsAggregationWithWindows } from './js-aggregation.js';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function generateSourceId(name) {
@@ -24,21 +21,9 @@ function generateSourceId(name) {
 }
 const CONNECTOR_MAP = {
     csv: csvConnector,
-    sqlite: sqliteConnector,
-    postgres: postgresConnector,
-    mysql: mysqlConnector,
 };
 function getConnectorForType(type) {
     return CONNECTOR_MAP[type];
-}
-const DIALECT_MAP = {
-    csv: 'sqlite',
-    sqlite: 'sqlite',
-    postgres: 'postgres',
-    mysql: 'mysql',
-};
-function dialectForType(type) {
-    return DIALECT_MAP[type] ?? 'sqlite';
 }
 /**
  * Check if a query result contains an error encoded in the rows.
@@ -240,18 +225,16 @@ export class SourceManager {
             const validationError = await this.validateDslQuery(idOrName, table, dslQuery);
             if (validationError)
                 return { ok: false, error: validationError };
-            const entry = this.findEntry(idOrName);
-            const dialect = dialectForType(entry.type);
-            const needsJsAgg = dialect !== 'postgres' && hasJsAggregates(dslQuery);
+            const needsJsAgg = hasJsAggregates(dslQuery);
             const needsWindows = hasWindowFunctions(dslQuery);
             if (needsJsAgg && needsWindows) {
-                return executeJsAggregationWithWindows(resolved.source, table, dslQuery, dialect);
+                return executeJsAggregationWithWindows(resolved.source, table, dslQuery, 'sqlite');
             }
             if (needsJsAgg) {
-                return executeJsAggregation(resolved.source, table, dslQuery, dialect);
+                return executeJsAggregation(resolved.source, table, dslQuery, 'sqlite');
             }
             // Pure SQL path — compileDsl handles CTE wrapping for window functions
-            const sql = compileDsl(table, dslQuery, dialect);
+            const sql = compileDsl(table, dslQuery, 'sqlite');
             const result = await resolved.source.executeQuery(sql);
             const errorMsg = hasErrorRow(result);
             if (errorMsg)

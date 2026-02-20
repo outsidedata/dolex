@@ -1,6 +1,6 @@
 /**
  * Shared Zod schemas for the query DSL.
- * Used by both query_source and visualize_from_source tools.
+ * Used by both query_data and visualize_data tools.
  */
 import { z } from 'zod';
 // ─── INPUT NORMALIZATION ─────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ export const dashboardInteractionSchema = z.object({
     views: z.array(z.string()).optional().describe('Participating view IDs (all if omitted)'),
 });
 export const createDashboardInputSchema = z.object({
-    sourceId: z.string().describe('Source ID from add_source'),
+    sourceId: z.string().describe('Dataset ID returned by load_csv'),
     table: z.string().describe('Base table within the source'),
     title: z.string().optional().describe('Dashboard title'),
     description: z.string().optional().describe('Dashboard description'),

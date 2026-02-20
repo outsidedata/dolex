@@ -387,7 +387,7 @@ describe('create_dashboard handler', () => {
 
     expect(result.isError).toBe(true);
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.error).toContain('Source not found');
+    expect(parsed.error).toContain('Dataset not found');
   });
 
   it('returns error when query fails', async () => {

@@ -15,9 +15,6 @@ export type {
 
 // ─── Connectors ─────────────────────────────────────────────────────────────
 export { csvConnector } from './csv.js';
-export { sqliteConnector } from './sqlite.js';
-export { postgresConnector } from './postgres.js';
-export { mysqlConnector } from './mysql.js';
 
 // ─── Manager ────────────────────────────────────────────────────────────────
 export { SourceManager } from './manager.js';

@@ -19,13 +19,13 @@ Right now, getting real analysis out of an AI means one of two things:
 
 2. **"Here's a bar chart"** — every AI assistant reaches for the same three chart types because they optimize for the most likely token, not the most informative visualization.
 
-Dolex replaces both. No Python. No REPL. No `import pandas`. No `plt.show()`. No debugging dependency conflicts. Just point it at your data and ask questions.
+Dolex replaces both. No Python. No REPL. No `import pandas`. No `plt.show()`. No debugging dependency conflicts. Just point it at your CSV files on disk and ask questions.
 
 ## What It Actually Is
 
 Dolex is an MCP server that gives your AI assistant a complete data analysis toolkit:
 
-**A query engine** — point it at a CSV or SQLite file and query it with a declarative DSL. Joins across tables, aggregations (sum, avg, median, stddev, percentiles), time bucketing (group by month/quarter/year), window functions (lag, lead, rank, running totals, percent of total), filters, having clauses, sorting, and limits. Everything pandas can do, without the Python.
+**A query engine** — point it at a CSV file (or a whole directory of them) and query with a declarative DSL. Automatic joins across files, aggregations (sum, avg, median, stddev, percentiles), time bucketing (group by month/quarter/year), window functions (lag, lead, rank, running totals, percent of total), filters, having clauses, sorting, and limits. Handles 500k+ rows. Everything pandas can do, without the Python.
 
 **43 handcrafted visualization patterns** — not chart.js defaults. Bump charts for rankings, beeswarms for distributions, Sankey diagrams for flows, ridgeline plots for comparing distributions, connected dot plots for two-metric comparisons, calendar heatmaps for temporal patterns, and 37 more. Each pattern has selection rules that encode real data visualization expertise.
 
@@ -77,7 +77,7 @@ dolex
 
 ## The Query Engine
 
-Drop a CSV on Claude and start asking questions. No schema definition, no imports, no setup. Dolex profiles your data automatically — column types, distributions, cardinality, sample values — and gives the LLM everything it needs to write smart queries.
+Point Claude at a CSV on your machine and start asking questions. No schema definition, no imports, no setup. Dolex loads the file locally, profiles your data automatically — column types, distributions, cardinality, sample values — and gives the LLM everything it needs to write smart queries.
 
 The DSL compiles to SQL under the hood but the LLM never writes raw SQL. Instead it works with a structured, validated query language:
 
@@ -109,12 +109,12 @@ Every query is validated before execution — field names are checked against th
 
 | Tool | What it does |
 |------|-------------|
-| `add_source` | Point at a CSV or SQLite file |
-| `describe_source` | Profile columns, stats, sample rows |
-| `analyze_source` | Auto-generate an analysis plan |
-| `query_source` | Run queries with the full DSL |
+| `load_csv` | Load a CSV file or directory |
+| `describe_data` | Profile columns, stats, sample rows |
+| `analyze_data` | Auto-generate an analysis plan |
+| `query_data` | Run queries with the full DSL |
 | `visualize` | Inline data → ranked chart recommendations |
-| `visualize_from_source` | Query + visualize in one step |
+| `visualize_data` | Query + visualize in one step |
 | `refine_visualization` | Iterate on a chart |
 | `create_dashboard` | Multi-view dashboard with filters |
 | `refine_dashboard` | Iterate on a dashboard |

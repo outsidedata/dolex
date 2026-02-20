@@ -3,7 +3,7 @@
  * Takes inline data + intent and returns visualization recommendations
  * from the handcrafted pattern library.
  *
- * For source-based data (sourceId + table + query), use visualize_from_source.
+ * For source-based data (sourceId + table + query), use visualize_data.
  *
  * Returns compact text content (specId + metadata, no data) while
  * structuredContent still gets the full pre-rendered chart HTML.
@@ -45,7 +45,7 @@ export const dataShapeHintsSchema = z.object({
 
 export const visualizeInputSchema = z.object({
   data: z.array(z.record(z.any())).optional().describe('Array of data rows to visualize. Optional if resultId is provided.'),
-  resultId: z.string().optional().describe('Result ID from a previous query_source call — reuses cached data without re-sending it'),
+  resultId: z.string().optional().describe('Result ID from a previous query_data call — reuses cached data without re-sending it'),
   intent: z.string().describe('What the user wants to see — e.g., "compare sales by region", "show distribution of ages", "how do rankings change over time"'),
   columns: columnsSchema,
   dataShapeHints: dataShapeHintsSchema,
@@ -70,7 +70,7 @@ export const visualizeInputSchema = z.object({
 });
 
 /**
- * Shared core logic for both visualize and visualize_from_source.
+ * Shared core logic for both visualize and visualize_data.
  * Takes resolved data + args and returns the MCP response.
  */
 export function handleVisualizeCore(
@@ -215,13 +215,13 @@ export function handleVisualize(
     if (args.resultId) {
       const cached = getResult(args.resultId);
       if (!cached) {
-        return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_source to get a new resultId.`);
+        return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
       }
       data = cached.rows;
     }
 
     if (!data || data.length === 0) {
-      return errorResponse('No data provided. Pass either `data` array or `resultId` from query_source.');
+      return errorResponse('No data provided. Pass either `data` array or `resultId` from query_data.');
     }
 
     return core(data, args);

@@ -1,10 +1,7 @@
 /**
  * DSL-to-SQL Compiler
  *
- * Translates the declarative query DSL into SQL.
- * Targets SQLite dialect (works for CSV-in-SQLite and SQLite sources).
- * Postgres differences are minimal and handled via dialect parameter.
- *
+ * Translates the declarative query DSL into SQL targeting SQLite dialect.
  * Supports JOIN clauses with dot-notation field references (table.field).
  */
 
@@ -31,7 +28,7 @@ function quoteField(field: string): string {
   return `"${field}"`;
 }
 
-/** Check if a DSL query contains aggregate functions that need JS post-processing on SQLite/MySQL. */
+/** Check if a DSL query contains aggregate functions that need JS post-processing on SQLite. */
 export function hasJsAggregates(query: DslQuery): boolean {
   return query.select.some(
     f => isDslAggregateField(f) && (f.aggregate === 'median' || f.aggregate === 'p25' || f.aggregate === 'p75' || f.aggregate === 'stddev' || f.aggregate === 'percentile')
@@ -50,19 +47,18 @@ export const hasPercentileAggregates = hasJsAggregates;
 export function compileDsl(
   table: string,
   query: DslQuery,
-  dialect: 'sqlite' | 'postgres' | 'mysql' = 'sqlite',
+  dialect: 'sqlite' = 'sqlite',
   options?: { skipLimit?: boolean }
 ): string {
   if (hasWindowFunctions(query)) {
-    return compileDslWithWindows(table, query, dialect, options);
+    return compileDslWithWindows(table, query, options);
   }
-  return compileDslBase(table, query, dialect, options);
+  return compileDslBase(table, query, options);
 }
 
 function compileDslBase(
   table: string,
   query: DslQuery,
-  dialect: 'sqlite' | 'postgres' | 'mysql',
   options?: { skipLimit?: boolean }
 ): string {
   const parts: string[] = [];
@@ -78,7 +74,7 @@ function compileDslBase(
     for (const g of query.groupBy) {
       if (typeof g !== 'string' && g.bucket) {
         const alias = `${g.field.replace('.', '_')}_${g.bucket}`;
-        const bucketExpr = compileBucket(g.field, g.bucket, dialect);
+        const bucketExpr = compileBucket(g.field, g.bucket);
         bucketMap.set(g.field, { expr: bucketExpr, alias });
       }
     }
@@ -94,7 +90,7 @@ function compileDslBase(
         return `${bucket.expr} AS "${bucket.alias}"`;
       }
     }
-    return compileSelectField(f, dialect);
+    return compileSelectField(f);
   });
 
   // Auto-include any bucketed columns not already emitted via replacement
@@ -129,7 +125,7 @@ function compileDslBase(
 
   // GROUP BY
   if (query.groupBy && query.groupBy.length > 0) {
-    const groupClauses = query.groupBy.map(g => compileGroupBy(g, dialect));
+    const groupClauses = query.groupBy.map(g => compileGroupBy(g));
     parts.push(`GROUP BY ${groupClauses.join(', ')}`);
   }
 
@@ -157,7 +153,6 @@ function compileDslBase(
 function compileDslWithWindows(
   table: string,
   query: DslQuery,
-  dialect: 'sqlite' | 'postgres' | 'mysql',
   options?: { skipLimit?: boolean }
 ): string {
   const windowFields = query.select.filter(isDslWindowField);
@@ -171,11 +166,11 @@ function compileDslWithWindows(
     having: query.having,
   };
 
-  const cteSql = compileDslBase(table, baseQuery, dialect, { skipLimit: true });
+  const cteSql = compileDslBase(table, baseQuery, { skipLimit: true });
 
   const outerParts: string[] = [];
 
-  const windowExprs = windowFields.map(w => compileWindowExpression(w, dialect));
+  const windowExprs = windowFields.map(w => compileWindowExpression(w));
   outerParts.push(`WITH _base AS (\n${cteSql}\n)`);
   outerParts.push(`SELECT _base.*, ${windowExprs.join(', ')}`);
   outerParts.push('FROM _base');
@@ -193,7 +188,7 @@ function compileDslWithWindows(
   return outerParts.join('\n');
 }
 
-function compileWindowExpression(w: DslWindowField, dialect: 'sqlite' | 'postgres' | 'mysql'): string {
+function compileWindowExpression(w: DslWindowField): string {
   const partitionClause = w.partitionBy && w.partitionBy.length > 0
     ? `PARTITION BY ${w.partitionBy.map(f => `"${fieldAlias(f)}"`).join(', ')}`
     : '';
@@ -239,18 +234,18 @@ function compileWindowExpression(w: DslWindowField, dialect: 'sqlite' | 'postgre
   return `${expr} AS "${w.as}"`;
 }
 
-function compileSelectField(field: string | DslAggregateField, dialect: 'sqlite' | 'postgres' | 'mysql'): string {
+function compileSelectField(field: string | DslAggregateField): string {
   if (typeof field === 'string') {
     if (field.includes('.')) {
       return `${quoteField(field)} AS "${fieldAlias(field)}"`;
     }
     return quoteField(field);
   }
-  const aggFn = compileAggregate(field.aggregate, field.field, dialect, field.percentile);
+  const aggFn = compileAggregate(field.aggregate, field.field, field.percentile);
   return `${aggFn} AS "${field.as}"`;
 }
 
-function compileAggregate(aggregate: string, field: string, dialect: 'sqlite' | 'postgres' | 'mysql', percentileValue?: number): string {
+function compileAggregate(aggregate: string, field: string, percentileValue?: number): string {
   const quoted = quoteField(field);
   const numField = `CAST(${quoted} AS REAL)`;
   switch (aggregate) {
@@ -260,32 +255,11 @@ function compileAggregate(aggregate: string, field: string, dialect: 'sqlite' | 
     case 'max': return `MAX(${numField})`;
     case 'count': return `COUNT(${quoted})`;
     case 'count_distinct': return `COUNT(DISTINCT ${quoted})`;
-    case 'stddev':
-      if (dialect === 'postgres') return `STDDEV_POP(${numField})`;
-      if (dialect === 'mysql') return `STDDEV_POP(${numField})`;
-      return `NULL`;
-    case 'median':
-      if (dialect === 'postgres') {
-        return `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${numField})`;
-      }
-      return `NULL`;
-    case 'p25':
-      if (dialect === 'postgres') {
-        return `PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY ${numField})`;
-      }
-      return `NULL`;
-    case 'p75':
-      if (dialect === 'postgres') {
-        return `PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY ${numField})`;
-      }
-      return `NULL`;
-    case 'percentile': {
-      const p = percentileValue ?? 0.5;
-      if (dialect === 'postgres') {
-        return `PERCENTILE_CONT(${p}) WITHIN GROUP (ORDER BY ${numField})`;
-      }
-      return `NULL`;
-    }
+    case 'stddev': return `NULL`;
+    case 'median': return `NULL`;
+    case 'p25': return `NULL`;
+    case 'p75': return `NULL`;
+    case 'percentile': return `NULL`;
     default: return quoted;
   }
 }
@@ -349,11 +323,11 @@ function compileHavingFilter(filter: DslFilter, query: DslQuery): string {
   }
 }
 
-function compileGroupBy(field: DslGroupByField, dialect: 'sqlite' | 'postgres' | 'mysql'): string {
+function compileGroupBy(field: DslGroupByField): string {
   if (typeof field === 'string') {
     return quoteField(field);
   }
-  return compileBucket(field.field, field.bucket, dialect);
+  return compileBucket(field.field, field.bucket);
 }
 
 /**
@@ -365,24 +339,8 @@ function ensureDateLiteral(quoted: string): string {
   return `CASE WHEN typeof(${quoted}) = 'integer' AND ${quoted} BETWEEN 1800 AND 2200 THEN ${quoted} || '-01-01' ELSE ${quoted} END`;
 }
 
-function compileBucket(field: string, bucket: string, dialect: 'sqlite' | 'postgres' | 'mysql'): string {
+function compileBucket(field: string, bucket: string): string {
   const quoted = quoteField(field);
-  if (dialect === 'postgres') {
-    return `DATE_TRUNC('${bucket}', ${quoted})`;
-  }
-
-  if (dialect === 'mysql') {
-    switch (bucket) {
-      case 'day': return `DATE_FORMAT(${quoted}, '%Y-%m-%d')`;
-      case 'week': return `DATE_FORMAT(${quoted}, '%x-W%v')`;
-      case 'month': return `DATE_FORMAT(${quoted}, '%Y-%m')`;
-      case 'quarter': return `CONCAT(YEAR(${quoted}), '-Q', QUARTER(${quoted}))`;
-      case 'year': return `YEAR(${quoted})`;
-      default: return quoted;
-    }
-  }
-
-  // SQLite strftime — normalise bare year-integers first
   const safe = ensureDateLiteral(quoted);
   switch (bucket) {
     case 'year': return `CASE WHEN typeof(${quoted}) = 'integer' AND ${quoted} BETWEEN 1800 AND 2200 THEN CAST(${quoted} AS TEXT) ELSE strftime('%Y', ${quoted}) END`;

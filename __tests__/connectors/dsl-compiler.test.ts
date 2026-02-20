@@ -150,22 +150,7 @@ describe('DSL-to-SQL Compiler', () => {
 
   // ─── PERCENTILE AGGREGATES ────────────────────────────────────────────────
 
-  it('Postgres percentile aggregates use PERCENTILE_CONT', () => {
-    const sql = compileDsl('sales', {
-      select: [
-        'region',
-        { field: 'revenue', aggregate: 'median', as: 'median_revenue' },
-        { field: 'revenue', aggregate: 'p25', as: 'p25_revenue' },
-        { field: 'revenue', aggregate: 'p75', as: 'p75_revenue' },
-      ],
-      groupBy: ['region'],
-    }, 'postgres');
-    expect(sql).toContain('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST("revenue" AS REAL))');
-    expect(sql).toContain('PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY CAST("revenue" AS REAL))');
-    expect(sql).toContain('PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY CAST("revenue" AS REAL))');
-  });
-
-  it('SQLite percentile aggregates compile to NULL (handled by JS post-processing)', () => {
+  it('percentile aggregates compile to NULL (handled by JS post-processing)', () => {
     const sql = compileDsl('sales', {
       select: [
         { field: 'revenue', aggregate: 'median', as: 'median_revenue' },
@@ -185,27 +170,7 @@ describe('DSL-to-SQL Compiler', () => {
 
   // ─── STDDEV AGGREGATE ────────────────────────────────────────────────────
 
-  it('Postgres stddev uses STDDEV_POP', () => {
-    const sql = compileDsl('sales', {
-      select: [
-        'region',
-        { field: 'revenue', aggregate: 'stddev', as: 'revenue_stddev' },
-      ],
-      groupBy: ['region'],
-    }, 'postgres');
-    expect(sql).toContain('STDDEV_POP(CAST("revenue" AS REAL)) AS "revenue_stddev"');
-  });
-
-  it('MySQL stddev uses STDDEV_POP', () => {
-    const sql = compileDsl('sales', {
-      select: [
-        { field: 'revenue', aggregate: 'stddev', as: 'revenue_stddev' },
-      ],
-    }, 'mysql');
-    expect(sql).toContain('STDDEV_POP(CAST("revenue" AS REAL)) AS "revenue_stddev"');
-  });
-
-  it('SQLite stddev compiles to NULL (handled by JS)', () => {
+  it('stddev compiles to NULL (handled by JS)', () => {
     const sql = compileDsl('sales', {
       select: [
         { field: 'revenue', aggregate: 'stddev', as: 'revenue_stddev' },
@@ -216,18 +181,7 @@ describe('DSL-to-SQL Compiler', () => {
 
   // ─── ARBITRARY PERCENTILE ─────────────────────────────────────────────────
 
-  it('Postgres arbitrary percentile uses PERCENTILE_CONT with custom p', () => {
-    const sql = compileDsl('sales', {
-      select: [
-        { field: 'revenue', aggregate: 'percentile', percentile: 0.95, as: 'p95_revenue' },
-        { field: 'revenue', aggregate: 'percentile', percentile: 0.99, as: 'p99_revenue' },
-      ],
-    }, 'postgres');
-    expect(sql).toContain('PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY CAST("revenue" AS REAL)) AS "p95_revenue"');
-    expect(sql).toContain('PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY CAST("revenue" AS REAL)) AS "p99_revenue"');
-  });
-
-  it('SQLite arbitrary percentile compiles to NULL (handled by JS)', () => {
+  it('arbitrary percentile compiles to NULL (handled by JS)', () => {
     const sql = compileDsl('sales', {
       select: [
         { field: 'revenue', aggregate: 'percentile', percentile: 0.9, as: 'p90_revenue' },

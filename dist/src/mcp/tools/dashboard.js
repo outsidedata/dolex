@@ -13,7 +13,7 @@ export function handleCreateDashboard(deps) {
     return async (args) => {
         const sourceInfo = deps.sourceManager.get(args.sourceId);
         if (!sourceInfo) {
-            return errorResponse(`Source not found: ${args.sourceId}. Use add_source first.`);
+            return errorResponse(`Dataset not found: ${args.sourceId}. Use load_csv first.`);
         }
         const result = await executeDashboardViews(args.views, args.sourceId, args.table, deps.sourceManager);
         if (isViewExecutionError(result))

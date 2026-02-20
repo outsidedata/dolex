@@ -59,10 +59,10 @@ describe('handleListSources', () => {
     expect(manager.list).toHaveBeenCalledOnce();
   });
 
-  it('returns list of sources when entries exist', async () => {
+  it('returns list of datasets when entries exist', async () => {
     const entries = [
       { id: 'src-1', name: 'sales', type: 'csv' },
-      { id: 'src-2', name: 'users', type: 'sqlite' },
+      { id: 'src-2', name: 'users', type: 'csv' },
     ];
     const manager = makeMockManager({ list: vi.fn().mockReturnValue(entries) });
     const handler = handleListSources({ sourceManager: manager });
@@ -88,8 +88,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'mydata',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/data.csv' },
+      path: '/tmp/data.csv',
       detail: 'full',
     });
 
@@ -114,9 +113,8 @@ describe('handleAddSource', () => {
 
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
-      name: 'baddb',
-      type: 'postgres',
-      config: { type: 'postgres' as const, host: 'localhost', port: 5432, database: 'nope', user: 'u', password: 'p' },
+      name: 'badcsv',
+      path: '/tmp/bad.csv',
       detail: 'full',
     });
 
@@ -134,8 +132,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'missing',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/Users/bill/Downloads/nonexistent.csv' },
+      path: '/Users/bill/Downloads/nonexistent.csv',
       detail: 'full',
     });
 
@@ -154,8 +151,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'dup',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/dup.csv' },
+      path: '/tmp/dup.csv',
       detail: 'full',
     });
 
@@ -170,8 +166,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/data.csv' },
+      path: '/tmp/data.csv',
       detail: 'compact',
     });
 
@@ -203,8 +198,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/data.csv' },
+      path: '/tmp/data.csv',
       detail: 'full',
     });
 
@@ -233,8 +227,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/data.csv' },
+      path: '/tmp/data.csv',
       detail: 'full',
     });
 
@@ -252,8 +245,7 @@ describe('handleAddSource', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/tmp/data.csv' },
+      path: '/tmp/data.csv',
       detail: 'full',
     });
 
@@ -498,8 +490,7 @@ describe('handleAddSource sandbox path rejection', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/mnt/user-data/uploads/data.csv' },
+      path: '/mnt/user-data/uploads/data.csv',
       detail: 'full',
     });
 
@@ -515,23 +506,7 @@ describe('handleAddSource sandbox path rejection', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/home/claude/data.csv' },
-      detail: 'full',
-    });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0].text);
-    expect(body.error).toContain('local filesystem');
-  });
-
-  it('rejects sandbox paths for sqlite too', async () => {
-    const manager = makeMockManager();
-    const handler = handleAddSource({ sourceManager: manager });
-    const result = await handler({
-      name: 'test',
-      type: 'sqlite',
-      config: { type: 'sqlite' as const, path: '/mnt/user-data/uploads/db.sqlite' },
+      path: '/home/claude/data.csv',
       detail: 'full',
     });
 
@@ -545,8 +520,7 @@ describe('handleAddSource sandbox path rejection', () => {
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
-      type: 'csv',
-      config: { type: 'csv' as const, path: '/Users/bill/Downloads/data.csv' },
+      path: '/Users/bill/Downloads/data.csv',
       detail: 'full',
     });
 

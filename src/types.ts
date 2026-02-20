@@ -32,7 +32,7 @@ export interface DataTable {
   rowCount: number;
 }
 
-/** Enhanced table profile returned by add_source — includes sample rows */
+/** Enhanced table profile returned by load_csv — includes sample rows */
 export interface DataProfiledTable extends DataTable {
   /** 5 representative sample rows picked for variety */
   sampleRows: Record<string, any>[];
@@ -53,7 +53,7 @@ export interface DataSchema {
 
 // ─── DATA SOURCE TYPES ────────────────────────────────────────────────────────
 
-export type DataSourceType = 'csv' | 'sqlite' | 'postgres' | 'mysql';
+export type DataSourceType = 'csv';
 
 export interface DataSourceInfo {
   id: string;
@@ -62,40 +62,12 @@ export interface DataSourceInfo {
   config: DataSourceConfig;
 }
 
-export type DataSourceConfig =
-  | CsvSourceConfig
-  | SqliteSourceConfig
-  | PostgresSourceConfig
-  | MysqlSourceConfig;
+export type DataSourceConfig = CsvSourceConfig;
 
 export interface CsvSourceConfig {
   type: 'csv';
   /** Directory containing CSV files, or path to a single CSV */
   path: string;
-}
-
-export interface SqliteSourceConfig {
-  type: 'sqlite';
-  path: string;
-}
-
-export interface PostgresSourceConfig {
-  type: 'postgres';
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  ssl?: boolean;
-}
-
-export interface MysqlSourceConfig {
-  type: 'mysql';
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
 }
 
 // ─── QUERY DSL TYPES ────────────────────────────────────────────────────────

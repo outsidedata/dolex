@@ -1,8 +1,8 @@
 /**
  * JS-based aggregation and window function helpers.
  *
- * Used when the SQL dialect doesn't support certain aggregates natively
- * (e.g., median, stddev, percentile on SQLite/MySQL) or window functions.
+ * Used when SQLite doesn't support certain aggregates natively
+ * (e.g., median, stddev, percentile) or window functions.
  * All functions are pure — no side effects or class dependencies.
  */
 import { isDslAggregateField, isDslWindowField } from '../types.js';
@@ -259,7 +259,7 @@ export function finalizeRows(rows, query) {
     };
 }
 // ─── JS Aggregation Query Execution ─────────────────────────────────────────
-export async function executeJsAggregation(source, table, query, dialect) {
+export async function executeJsAggregation(source, table, query, dialect = 'sqlite') {
     const fieldsNeeded = new Set();
     for (const s of query.select) {
         if (typeof s === 'string')
@@ -329,7 +329,7 @@ export async function executeJsAggregation(source, table, query, dialect) {
     }
     return finalizeRows(resultRows, query);
 }
-export async function executeJsAggregationWithWindows(source, table, query, dialect) {
+export async function executeJsAggregationWithWindows(source, table, query, dialect = 'sqlite') {
     const windowFields = query.select.filter(isDslWindowField);
     const baseFields = query.select.filter(f => !isDslWindowField(f));
     const baseQuery = {

@@ -7,17 +7,17 @@
  *
  * 17 tools:
  *   visualize              — Inline data + intent → ranked visualization recommendations
- *   visualize_from_source  — Source data (DSL query) + intent → ranked visualization recommendations
+ *   visualize_data         — CSV data (DSL query) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
- *   create_dashboard       — Multi-view dashboard from a data source
+ *   create_dashboard       — Multi-view dashboard from a CSV dataset
  *   refine_dashboard       — Iterate on a dashboard (add/remove views, layout, filters, theme)
- *   add_source             — Connect a data source (CSV, SQLite, Postgres, MySQL)
- *   list_sources           — List connected data sources
- *   remove_source          — Disconnect a data source
- *   describe_source        — Re-examine column profiles and sample rows for a source
- *   analyze_source         — Generate a structured analysis plan with DSL queries
- *   query_source           — Run a declarative DSL query and see tabular results
+ *   load_csv               — Load a CSV file or directory
+ *   list_data              — List loaded datasets
+ *   remove_data            — Remove a loaded dataset
+ *   describe_data          — Re-examine column profiles and sample rows for a dataset
+ *   analyze_data           — Generate a structured analysis plan with DSL queries
+ *   query_data             — Run a declarative DSL query and see tabular results
  *   server_status          — Inspect cached data in server memory
  *   clear_cache            — Clear cached specs, results, and sessions
  *   export_html            — Get the full rendered HTML for a visualization by specId
@@ -95,41 +95,41 @@ try {
 const server = new McpServer(
   {
     name: 'dolex',
-    version: '0.1.13',
+    version: '1.0.0',
     ...(serverIcons && { icons: serverIcons }),
   },
   {
     instructions: [
-      'Dolex — Data visualization with 43 chart types.',
+      'Dolex — CSV data analysis with 43 chart types.',
       '',
       'WORKFLOW:',
-      '• Got a file path? → add_source(path) immediately, don\'t verify — this server runs locally on the user\'s machine',
+      '• Got a CSV file? → load_csv(name, path) immediately, don\'t verify — this server runs locally on the user\'s machine',
       '• Got inline data? → visualize(data, intent) directly',
-      '• Need to explore? → add_source → analyze_source → visualize_from_source per step',
-      '• Need a dashboard? → add_source → create_dashboard with views array',
+      '• Need to explore? → load_csv → analyze_data → visualize_data per step',
+      '• Need a dashboard? → load_csv → create_dashboard with views array',
       '',
-      'CONTINUATION (source already connected):',
-      '• Chart from source → visualize_from_source(sourceId, table, query, intent)',
-      '• Want to SEE rows (answer a question, validate data, show a table)? → query_source',
+      'CONTINUATION (dataset already loaded):',
+      '• Chart from data → visualize_data(sourceId, table, query, intent)',
+      '• Want to SEE rows (answer a question, validate data, show a table)? → query_data',
       '• Want to CHART rows you already queried? → visualize(resultId=...) to reuse cached data',
-      '• Want a table view? → query_source for raw data, or visualize with includeDataTable=true for a formatted table with chart',
+      '• Want a table view? → query_data for raw data, or visualize with includeDataTable=true for a formatted table with chart',
       '• Tweak a chart → refine_visualization(specId, ...) — always use the MOST RECENT specId',
       '• Tweak a dashboard → refine_dashboard(currentSpec, refinement)',
-      '• specId expired? → re-run the original visualize/visualize_from_source call, then continue refining from the new specId',
+      '• specId expired? → re-run the original visualize/visualize_data call, then continue refining from the new specId',
       '',
       'TOOL GUIDE:',
-      '• add_source: Connect CSV/SQLite/Postgres/MySQL. Returns sourceId.',
-      '• describe_source: See schema, stats, samples. Use detail="compact" for large schemas.',
-      '• analyze_source: Auto-generate analysis plan with ready DSL queries. Execute each step with visualize_from_source; present results one at a time.',
-      '• query_source: Run DSL query, get rows. Returns resultId for visualize().',
-      '• visualize: Chart from inline data OR resultId from query_source. Auto-selects best pattern. Set title/subtitle here to avoid a refine round-trip.',
-      '• visualize_from_source: Chart from source + DSL query. Same as visualize but queries server-side — saves tokens.',
+      '• load_csv: Load a CSV file or directory. Returns sourceId.',
+      '• describe_data: See schema, stats, samples. Use detail="compact" for large schemas.',
+      '• analyze_data: Auto-generate analysis plan with ready DSL queries. Execute each step with visualize_data; present results one at a time.',
+      '• query_data: Run DSL query, get rows. Returns resultId for visualize().',
+      '• visualize: Chart from inline data OR resultId from query_data. Auto-selects best pattern. Set title/subtitle here to avoid a refine round-trip.',
+      '• visualize_data: Chart from loaded CSV + DSL query. Same as visualize but queries server-side — saves tokens.',
       '• refine_visualization: Tweak a chart — sort, limit, filter, palette, highlight, flip, title, format. Each call returns a new specId.',
-      '• create_dashboard: Multi-chart layout from source with per-view queries.',
+      '• create_dashboard: Multi-chart layout from loaded data with per-view queries.',
       '• refine_dashboard: Iterate dashboard — add/remove views, filters, layout, theme.',
       '• list_patterns: Browse available chart types. Only needed when the user asks what charts are available or you need a pattern ID.',
       '',
-      'Utility tools: list_sources, remove_source, server_status (inspect cached data), clear_cache, report_bug (generate GitHub issue), export_html (get chart HTML by specId), screenshot (render to PNG).',
+      'Utility tools: list_data, remove_data, server_status (inspect cached data), clear_cache, report_bug (generate GitHub issue), export_html (get chart HTML by specId), screenshot (render to PNG).',
       '',
       'COLOR: Set palette (categorical/blue/warm/blueRed/etc.) and/or highlight specific values. Use colorField to control which column drives color.',
       'PATTERNS: 43 types auto-selected by data shape + intent. When user names a specific chart type, pass pattern="<id>" to force it. Use list_patterns to browse.',
@@ -172,7 +172,7 @@ registerAppTool(
   'visualize',
   {
     title: 'Visualize Data',
-    description: 'Chart inline data or cached query results. Pass data array + intent, OR resultId from query_source.\n\nWhen to use: You have data in the conversation (pasted, generated, or from query_source resultId). Use visualize_from_source instead when data lives in a connected source — saves tokens.\n\nKey params: pattern (force a specific chart type), palette, highlight, colorField, title, subtitle.\n\nResponse: specId (use in refine calls — always use the most recent one), recommended pattern + reasoning, alternatives, data shape summary. Chart HTML in structuredContent. If the response includes notes, present each note to the user — they explain decisions the system made automatically.',
+    description: 'Chart inline data or cached query results. Pass data array + intent, OR resultId from query_data.\n\nWhen to use: You have data in the conversation (pasted, generated, or from query_data resultId). Use visualize_data instead when data lives in a loaded CSV — saves tokens.\n\nKey params: pattern (force a specific chart type), palette, highlight, colorField, title, subtitle.\n\nResponse: specId (use in refine calls — always use the most recent one), recommended pattern + reasoning, alternatives, data shape summary. Chart HTML in structuredContent. If the response includes notes, present each note to the user — they explain decisions the system made automatically.',
     inputSchema: visualizeInputSchema.shape,
     _meta: {
       ui: {
@@ -186,13 +186,13 @@ registerAppTool(
   handleVisualize(selectPatternCallback),
 );
 
-// Source-based visualization tool
+// CSV data visualization tool
 registerAppTool(
   server,
-  'visualize_from_source',
+  'visualize_data',
   {
-    title: 'Visualize from Data Source',
-    description: 'Chart data from a connected source. Queries server-side — no data in the context window.\n\nWhen to use: Source already connected via add_source. Prefer this over query_source + visualize for one-step charting.\n\nKey params: sourceId, table, query (DSL: { select, groupBy, filter, orderBy, limit }), intent, pattern, palette, highlight, colorField.\n\nResponse: Same as visualize — specId, pattern, alternatives, chart HTML.',
+    title: 'Visualize Data',
+    description: 'Chart data from a loaded CSV. Queries server-side — no data in the context window.\n\nWhen to use: CSV already loaded via load_csv. Prefer this over query_data + visualize for one-step charting.\n\nKey params: sourceId, table, query (DSL: { select, groupBy, filter, orderBy, limit }), intent, pattern, palette, highlight, colorField.\n\nResponse: Same as visualize — specId, pattern, alternatives, chart HTML.',
     inputSchema: visualizeFromSourceInputSchema.shape,
     _meta: {
       ui: {
@@ -234,61 +234,61 @@ registerAppTool(
   handleRefine(),
 );
 
-// Data source management tools
+// CSV data management tools
 server.registerTool(
-  'add_source',
+  'load_csv',
   {
-    title: 'Add Data Source',
-    description: 'Connect a data source. Call this immediately with any user-provided path — this server runs locally on the user\'s machine.\n\nSupports CSV files/directories, SQLite, PostgreSQL, MySQL. Sources persist across restarts.\n\nKey params: detail="compact" for just column names/types (saves tokens), detail="full" for stats + samples (default).\n\nReturns sourceId (use in all subsequent source operations).',
+    title: 'Load CSV Data',
+    description: 'Load a CSV file or directory of CSV files. Call this immediately with any user-provided path — this server runs locally on the user\'s machine.\n\nDatasets persist across restarts.\n\nKey params: detail="compact" for just column names/types (saves tokens), detail="full" for stats + samples (default).\n\nReturns sourceId (use in all subsequent data operations).',
     inputSchema: addSourceInputSchema,
   },
   handleAddSource({ sourceManager }),
 );
 
 server.registerTool(
-  'list_sources',
+  'list_data',
   {
-    title: 'List Data Sources',
-    description: 'List all connected data sources with IDs, types, and table counts.',
+    title: 'List Loaded Data',
+    description: 'List all loaded datasets with IDs and table counts.',
   },
   handleListSources({ sourceManager }),
 );
 
 server.registerTool(
-  'remove_source',
+  'remove_data',
   {
-    title: 'Remove Data Source',
-    description: 'Disconnect and remove a data source by ID.',
+    title: 'Remove Data',
+    description: 'Remove a loaded dataset by ID.',
     inputSchema: removeSourceInputSchema,
   },
   handleRemoveSource({ sourceManager }),
 );
 
 server.registerTool(
-  'describe_source',
+  'describe_data',
   {
-    title: 'Describe Data Source',
-    description: 'Examine column profiles for a connected source. Use to re-inspect data mid-conversation.\n\nKey params: detail="compact" for column names/types only (saves tokens), detail="full" for stats + samples (default).',
+    title: 'Describe Data',
+    description: 'Examine column profiles for a loaded dataset. Use to re-inspect data mid-conversation.\n\nKey params: detail="compact" for column names/types only (saves tokens), detail="full" for stats + samples (default).',
     inputSchema: describeSourceInputSchema,
   },
   handleDescribeSource({ sourceManager }),
 );
 
 server.registerTool(
-  'analyze_source',
+  'analyze_data',
   {
-    title: 'Analyze Data Source',
-    description: 'Auto-generate a structured analysis plan with ready-to-execute DSL queries. Returns 4-6 analysis steps covering trends, comparisons, distributions, and relationships.\n\nWhen to use: After add_source, to get an automatic data exploration plan. Execute each step with visualize_from_source and present results one at a time.',
+    title: 'Analyze Data',
+    description: 'Auto-generate a structured analysis plan with ready-to-execute DSL queries. Returns 4-6 analysis steps covering trends, comparisons, distributions, and relationships.\n\nWhen to use: After load_csv, to get an automatic data exploration plan. Execute each step with visualize_data and present results one at a time.',
     inputSchema: analyzeSourceInputSchema.shape,
   },
   handleAnalyzeSource({ sourceManager }),
 );
 
 server.registerTool(
-  'query_source',
+  'query_data',
   {
-    title: 'Query Data Source',
-    description: 'Run a DSL query and get tabular results. Returns resultId — pass to visualize(resultId=...) to chart the same data without re-sending rows.\n\nWhen to use: Need to see raw data, answer a data question, or validate before charting. For one-step charting, use visualize_from_source instead.\n\nKey params: sourceId, table, query (DSL: { select, groupBy, filter, join, orderBy, limit }).',
+    title: 'Query Data',
+    description: 'Run a DSL query and get tabular results. Returns resultId — pass to visualize(resultId=...) to chart the same data without re-sending rows.\n\nWhen to use: Need to see raw data, answer a data question, or validate before charting. For one-step charting, use visualize_data instead.\n\nKey params: sourceId, table, query (DSL: { select, groupBy, filter, join, orderBy, limit }).',
     inputSchema: querySourceInputSchema,
   },
   handleQuerySource({ sourceManager }),
@@ -300,7 +300,7 @@ registerAppTool(
   'create_dashboard',
   {
     title: 'Create Dashboard',
-    description: 'Create a multi-view dashboard from a data source. Each view has its own DSL query and intent.\n\nKey params: sourceId, table, views (array with id, title, intent, query per view), layout, filters.\n\nReturns DashboardSpec (pass to refine_dashboard for iterations) + rendered HTML.',
+    description: 'Create a multi-view dashboard from a loaded CSV dataset. Each view has its own DSL query and intent.\n\nKey params: sourceId, table, views (array with id, title, intent, query per view), layout, filters.\n\nReturns DashboardSpec (pass to refine_dashboard for iterations) + rendered HTML.',
     inputSchema: createDashboardInputSchema.shape,
     _meta: {
       ui: {

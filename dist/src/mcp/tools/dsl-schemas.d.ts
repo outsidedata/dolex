@@ -1,6 +1,6 @@
 /**
  * Shared Zod schemas for the query DSL.
- * Used by both query_source and visualize_from_source tools.
+ * Used by both query_data and visualize_data tools.
  */
 import { z } from 'zod';
 export declare function normalizeDslQueryInput(raw: unknown): unknown;

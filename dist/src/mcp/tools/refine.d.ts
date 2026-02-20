@@ -77,7 +77,7 @@ export declare const refineInputSchema: z.ZodObject<{
         direction: "asc" | "desc";
         field?: string | undefined;
     } | null | undefined;
-    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
+    format?: "compact" | "integer" | "percent" | "dollar" | "decimal" | undefined;
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     filter?: {
@@ -108,7 +108,7 @@ export declare const refineInputSchema: z.ZodObject<{
         direction: "asc" | "desc";
         field?: string | undefined;
     } | null | undefined;
-    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
+    format?: "compact" | "integer" | "percent" | "dollar" | "decimal" | undefined;
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     filter?: {

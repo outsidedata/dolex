@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
-describe('add_source enhanced response', () => {
+describe('load_csv enhanced response', () => {
   it('returns full column profiles with stats, topValues, and sampleRows', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'add-src-'));
     const csvPath = path.join(tmpDir, 'sales.csv');
@@ -23,8 +23,7 @@ describe('add_source enhanced response', () => {
     const handler = handleAddSource({ sourceManager });
     const result = await handler({
       name: 'sales',
-      type: 'csv',
-      config: { type: 'csv', path: csvPath },
+      path: csvPath,
       detail: 'full',
     });
 

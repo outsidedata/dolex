@@ -1,5 +1,5 @@
 /**
- * In-memory result cache for query_source → visualize flow.
+ * In-memory result cache for query_data → visualize flow.
  * Max 20 entries, 10-minute TTL.
  */
 

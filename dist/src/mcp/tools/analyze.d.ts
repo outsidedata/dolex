@@ -1,5 +1,5 @@
 /**
- * MCP Tool: analyze_source
+ * MCP Tool: analyze_data
  * Examines a data source and generates a structured analysis plan with DSL queries.
  */
 import { z } from 'zod';

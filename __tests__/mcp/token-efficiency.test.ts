@@ -8,7 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 describe('compact schema mode', () => {
-  it('add_source with detail=compact returns minimal columns', async () => {
+  it('load_csv with detail=compact returns minimal columns', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compact-'));
     const csvPath = path.join(tmpDir, 'data.csv');
     fs.writeFileSync(csvPath, 'name,value\nAlice,100\nBob,200\nCarol,150');
@@ -17,8 +17,7 @@ describe('compact schema mode', () => {
     const handler = handleAddSource({ sourceManager });
     const result = await handler({
       name: 'compact-test',
-      type: 'csv',
-      config: { type: 'csv', path: csvPath },
+      path: csvPath,
       detail: 'compact',
     });
 
@@ -62,7 +61,7 @@ describe('compact schema mode', () => {
     fs.rmSync(tmpDir, { recursive: true });
   });
 
-  it('add_source with detail=full returns stats and samples', async () => {
+  it('load_csv with detail=full returns stats and samples', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'full-'));
     const csvPath = path.join(tmpDir, 'data.csv');
     fs.writeFileSync(csvPath, 'name,value\nAlice,100\nBob,200\nCarol,150');
@@ -71,8 +70,7 @@ describe('compact schema mode', () => {
     const handler = handleAddSource({ sourceManager });
     const result = await handler({
       name: 'full-test',
-      type: 'csv',
-      config: { type: 'csv', path: csvPath },
+      path: csvPath,
       detail: 'full',
     });
 
@@ -173,7 +171,7 @@ describe('refine response trimmed', () => {
   });
 });
 
-describe('add_source idempotent re-add', () => {
+describe('load_csv idempotent re-add', () => {
   it('reconnects existing source instead of erroring', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'readd-'));
     const csvPath = path.join(tmpDir, 'data.csv');
@@ -184,17 +182,15 @@ describe('add_source idempotent re-add', () => {
 
     const result1 = await handler({
       name: 'readd-test',
-      type: 'csv',
-      config: { type: 'csv', path: csvPath },
+      path: csvPath,
       detail: 'compact',
     });
     const body1 = JSON.parse(result1.content[0].text);
-    expect(body1.message).toContain('Connected');
+    expect(body1.message).toContain('Loaded');
 
     const result2 = await handler({
       name: 'readd-test',
-      type: 'csv',
-      config: { type: 'csv', path: csvPath },
+      path: csvPath,
       detail: 'compact',
     });
     const body2 = JSON.parse(result2.content[0].text);

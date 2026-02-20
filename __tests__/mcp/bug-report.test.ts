@@ -194,9 +194,9 @@ describe('sanitizeError', () => {
     expect(result).not.toContain('/Users');
   });
 
-  it('redacts connection strings', () => {
-    const result = sanitizeError('Connection failed: postgres://user:pass@host:5432/db');
-    expect(result).toBe('Connection failed: <connection-string>');
+  it('redacts file paths', () => {
+    const result = sanitizeError('Connection failed: /path/to/db');
+    expect(result).toBe('Connection failed: <path>');
   });
 
   it('redacts email addresses', () => {
@@ -211,7 +211,7 @@ describe('handleReportBug', () => {
   const mockSourceManager = {
     list: () => [
       { id: 'src-1', name: 'test', type: 'csv' },
-      { id: 'src-2', name: 'db', type: 'sqlite' },
+      { id: 'src-2', name: 'sales', type: 'csv' },
     ],
     isConnected: () => true,
   };
@@ -239,8 +239,8 @@ describe('handleReportBug', () => {
     expect(text).toContain('Node.js');
     expect(text).toContain('## Recent Operations');
     expect(text).toContain('## Server State');
-    expect(text).toContain('csv: 1');
-    expect(text).toContain('sqlite: 1');
+    expect(text).toContain('Datasets');
+    expect(text).toContain('2');
   });
 
   it('includes visualization context when specId provided', async () => {

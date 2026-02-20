@@ -1,5 +1,5 @@
 /**
- * MCP Tool: query_source
+ * MCP Tool: query_data
  * Execute a DSL query against a source and return tabular results.
  */
 import { z } from 'zod';

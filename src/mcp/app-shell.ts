@@ -51,7 +51,7 @@ html, body {
 .error-text { color: #ef4444; }
 .spinner {
   width: 24px; height: 24px; margin: 0 auto 12px;
-  border: 2px solid #374151; border-top-color: #6366f1;
+  border: 2px solid #374151; border-top-color: #3366AA;
   border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }

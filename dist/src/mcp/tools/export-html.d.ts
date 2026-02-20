@@ -1,7 +1,7 @@
 /**
  * MCP Tool: export_html
  * Returns the full rendered HTML for a previously-created visualization.
- * Accepts a specId from a visualize, visualize_from_source, or refine call.
+ * Accepts a specId from a visualize, visualize_data, or refine call.
  *
  * Designed for programmatic consumption — the returned HTML is a complete,
  * self-contained document that can be opened in a browser or screenshotted.

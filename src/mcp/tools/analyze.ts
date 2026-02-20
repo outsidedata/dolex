@@ -1,5 +1,5 @@
 /**
- * MCP Tool: analyze_source
+ * MCP Tool: analyze_data
  * Examines a data source and generates a structured analysis plan with DSL queries.
  */
 
@@ -8,7 +8,7 @@ import { buildAnalysisPlan } from '../../analysis/planner.js';
 import { errorResponse, jsonResponse } from './shared.js';
 
 export const analyzeSourceInputSchema = z.object({
-  sourceId: z.string().describe('Source ID from add_source'),
+  sourceId: z.string().describe('Dataset ID returned by load_csv'),
   table: z.string().optional().describe('Table to analyze (defaults to first table)'),
   maxSteps: z.number().min(1).max(10).optional().describe('Maximum analysis steps (default: 6)'),
 });

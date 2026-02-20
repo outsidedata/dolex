@@ -56,7 +56,6 @@ export function sanitizeSpecConfig(config: Record<string, unknown>): Record<stri
 
 export function sanitizeError(error: string): string {
   return error
-    .replace(/(?:postgres|mysql|sqlite):\/\/[^\s]+/g, '<connection-string>')
     .replace(/\/[\w/.~-]+/g, '<path>')
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi, '<email>');
 }
@@ -158,14 +157,7 @@ export function handleReportBug(deps: ReportDeps) {
 
     const specStats = specStore.stats();
     const resultStats = resultCacheStats();
-    const sources = deps.sourceManager.list();
-    const sourceTypes: Record<string, number> = {};
-    for (const s of sources) {
-      sourceTypes[s.type] = (sourceTypes[s.type] || 0) + 1;
-    }
-    const sourceTypeSummary = Object.entries(sourceTypes)
-      .map(([t, c]) => `${t}: ${c}`)
-      .join(', ') || 'none';
+    const datasets = deps.sourceManager.list();
 
     sections.push([
       '## Server State',
@@ -173,7 +165,7 @@ export function handleReportBug(deps: ReportDeps) {
       `- **Uptime**: ${formatUptime(Date.now() - deps.serverStartTime)}`,
       `- **Cached specs**: ${specStats.entries}`,
       `- **Cached results**: ${resultStats.entries}`,
-      `- **Sources**: ${sources.length} (${sourceTypeSummary})`,
+      `- **Datasets**: ${datasets.length}`,
     ].join('\n'));
 
     const report = sections.join('\n\n');

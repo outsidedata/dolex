@@ -3,7 +3,7 @@
  * Takes inline data + intent and returns visualization recommendations
  * from the handcrafted pattern library.
  *
- * For source-based data (sourceId + table + query), use visualize_from_source.
+ * For source-based data (sourceId + table + query), use visualize_data.
  *
  * Returns compact text content (specId + metadata, no data) while
  * structuredContent still gets the full pre-rendered chart HTML.
@@ -224,7 +224,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     geoLevel?: "country" | "subdivision" | undefined;
 }>;
 /**
- * Shared core logic for both visualize and visualize_from_source.
+ * Shared core logic for both visualize and visualize_data.
  * Takes resolved data + args and returns the MCP response.
  */
 export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInput) => VisualizeOutput, toolName?: string): (data: Record<string, any>[], args: {

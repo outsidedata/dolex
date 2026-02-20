@@ -1,6 +1,6 @@
 /**
- * MCP Tools: list_sources, add_source, remove_source, describe_source
- * Manage data source connections.
+ * MCP Tools: list_data, load_csv, remove_data, describe_data
+ * Manage CSV datasets.
  */
 
 import { z } from 'zod';
@@ -18,44 +18,17 @@ export function isSandboxPath(filePath: string): boolean {
 }
 
 export const addSourceInputSchema = z.object({
-  name: z.string().describe('Human-readable name for this data source'),
-  type: z.enum(['csv', 'sqlite', 'postgres', 'mysql']).describe('Type of data source'),
-  config: z.union([
-    z.object({
-      type: z.literal('csv'),
-      path: z.string().describe('Path to CSV file or directory of CSV files'),
-    }),
-    z.object({
-      type: z.literal('sqlite'),
-      path: z.string().describe('Path to SQLite database file'),
-    }),
-    z.object({
-      type: z.literal('postgres'),
-      host: z.string(),
-      port: z.number().default(5432),
-      database: z.string(),
-      user: z.string(),
-      password: z.string(),
-      ssl: z.boolean().optional(),
-    }),
-    z.object({
-      type: z.literal('mysql'),
-      host: z.string(),
-      port: z.number().default(3306),
-      database: z.string(),
-      user: z.string(),
-      password: z.string(),
-    }),
-  ]).describe('Connection configuration'),
+  name: z.string().describe('Name for this dataset'),
+  path: z.string().describe('Path to a CSV file or directory of CSV files'),
   detail: z.enum(['compact', 'full']).default('full').describe('Schema detail level: "compact" returns just column names/types + row counts (saves tokens); "full" (default) includes stats, top values, and sample rows'),
 });
 
 export const removeSourceInputSchema = z.object({
-  sourceId: z.string().describe('ID of the data source to remove'),
+  sourceId: z.string().describe('Dataset ID returned by load_csv'),
 });
 
 export const describeSourceInputSchema = z.object({
-  sourceId: z.string().describe('Source ID from add_source'),
+  sourceId: z.string().describe('Dataset ID returned by load_csv'),
   table: z.string().optional().describe('Table name (optional — if omitted, returns all tables)'),
   detail: z.enum(['compact', 'full']).default('full').describe('Schema detail level: "compact" returns just column names/types + row counts; "full" (default) includes stats, top values, and sample rows'),
 });
@@ -94,15 +67,15 @@ export function handleListSources(deps: { sourceManager: any }) {
 
 export function handleAddSource(deps: { sourceManager: any }) {
   return async (args: z.infer<typeof addSourceInputSchema>) => {
-    if ((args.config.type === 'csv' || args.config.type === 'sqlite') && 'path' in args.config) {
-      if (isSandboxPath(args.config.path)) {
-        return errorResponse(
-          'This path looks like a cloud sandbox path, not a local filesystem path. '
-          + 'Dolex runs on the user\'s machine and can access any local file — but not cloud sandbox uploads. '
-          + 'Ask the user for the real local path (e.g. /Users/name/Downloads/data.csv).'
-        );
-      }
+    if (isSandboxPath(args.path)) {
+      return errorResponse(
+        'This path looks like a cloud sandbox path, not a local filesystem path. '
+        + 'Dolex runs on the user\'s machine and can access any local file — but not cloud sandbox uploads. '
+        + 'Ask the user for the real local path (e.g. /Users/name/Downloads/data.csv).'
+      );
     }
+
+    const config = { type: 'csv' as const, path: args.path };
 
     let entry: any;
     let reconnected = false;
@@ -114,18 +87,18 @@ export function handleAddSource(deps: { sourceManager: any }) {
     } else {
       let addResult: any;
       try {
-        addResult = await deps.sourceManager.add(args.name, args.config);
+        addResult = await deps.sourceManager.add(args.name, config);
       } catch (err: any) {
         if (err.code === 'ENOENT') {
           return errorResponse(
-            `File not found: ${(args.config as any).path}. `
+            `File not found: ${args.path}. `
             + 'Ask the user to double-check the path exists on their machine.'
           );
         }
         return errorResponse(err.message);
       }
       if (!addResult.ok || !addResult.entry) {
-        return errorResponse(addResult.error ?? 'Failed to add source');
+        return errorResponse(addResult.error ?? 'Failed to load CSV');
       }
       entry = addResult.entry;
     }
@@ -141,12 +114,11 @@ export function handleAddSource(deps: { sourceManager: any }) {
     );
 
     const tableCount = schema?.tables.length ?? 0;
-    const verb = reconnected ? 'Reconnected to' : 'Connected to';
+    const verb = reconnected ? 'Reconnected' : 'Loaded';
 
     return jsonResponse({
       sourceId: entry.id,
       name: entry.name,
-      type: entry.type,
       tables,
       message: `${verb} "${args.name}" — ${tableCount} tables found`,
     });

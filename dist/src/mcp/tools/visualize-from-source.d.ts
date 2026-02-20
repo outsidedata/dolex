@@ -1,5 +1,5 @@
 /**
- * MCP Tool: visualize_from_source
+ * MCP Tool: visualize_data
  * Takes a data source + DSL query + intent and returns visualization
  * recommendations from the handcrafted pattern library.
  *

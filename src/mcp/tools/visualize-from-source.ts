@@ -1,5 +1,5 @@
 /**
- * MCP Tool: visualize_from_source
+ * MCP Tool: visualize_data
  * Takes a data source + DSL query + intent and returns visualization
  * recommendations from the handcrafted pattern library.
  *
@@ -18,7 +18,7 @@ import { errorResponse, inferColumns, applyTimeBucketColumnTypes, enhanceIntentF
 import { logOperation, extractDslStructure } from './operation-log.js';
 
 export const visualizeFromSourceInputSchema = z.object({
-  sourceId: z.string().describe('Source ID from add_source'),
+  sourceId: z.string().describe('Dataset ID returned by load_csv'),
   table: z.string().describe('Base table within the source'),
   query: dslQuerySchema.describe('Declarative query to slice/aggregate the data before visualizing'),
   intent: z.string().describe('What the user wants to see — e.g., "compare sales by region", "show distribution of ages", "how do rankings change over time"'),
@@ -48,7 +48,7 @@ export function handleVisualizeFromSource(
   selectPatterns: (input: VisualizeInput) => VisualizeOutput,
   deps: { sourceManager: any },
 ) {
-  const core = handleVisualizeCore(selectPatterns, 'visualize_from_source');
+  const core = handleVisualizeCore(selectPatterns, 'visualize_data');
 
   return async (args: z.infer<typeof visualizeFromSourceInputSchema>) => {
     const start = Date.now();
@@ -63,7 +63,7 @@ export function handleVisualizeFromSource(
     const result = await deps.sourceManager.queryDsl(args.sourceId, args.table, args.query);
     if (!result.ok) {
       logOperation({
-        toolName: 'visualize_from_source',
+        toolName: 'visualize_data',
         timestamp: start,
         durationMs: Date.now() - start,
         success: false,

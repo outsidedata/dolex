@@ -27,11 +27,10 @@ export function handleServerStatus(deps: PrivacyDeps) {
     const specStats = specStore.stats();
     const resultStats = resultCacheStats();
 
-    const sources = deps.sourceManager.list();
-    const sourcesSummary = sources.map(s => ({
+    const datasets = deps.sourceManager.list();
+    const datasetsSummary = datasets.map((s: any) => ({
       id: s.id,
       name: s.name,
-      type: s.type,
       connected: deps.sourceManager.isConnected(s.id),
     }));
 
@@ -52,10 +51,10 @@ export function handleServerStatus(deps: PrivacyDeps) {
         totalDataRows: resultStats.totalRows,
         ttl: '10 minutes',
       },
-      sources: {
-        registered: sources.length,
-        connected: sourcesSummary.filter(s => s.connected).length,
-        list: sourcesSummary,
+      datasets: {
+        loaded: datasets.length,
+        connected: datasetsSummary.filter((s: any) => s.connected).length,
+        list: datasetsSummary,
       },
     });
   };

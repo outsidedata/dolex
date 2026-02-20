@@ -147,8 +147,8 @@ html, body {
   min-width: 140px;
 }
 .filter-control:focus {
-  outline: none; border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+  outline: none; border-color: #3366AA;
+  box-shadow: 0 0 0 2px rgba(51,102,170,0.2);
 }
 #dashboard-grid {
   display: grid;

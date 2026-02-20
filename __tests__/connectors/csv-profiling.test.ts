@@ -76,32 +76,3 @@ describe('CSV Connector Rich Profiling', () => {
   });
 });
 
-describe('SQLite Connector Rich Profiling', () => {
-  it('numeric columns have stats', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sqlite-profile-'));
-    const dbPath = path.join(tmpDir, 'test.sqlite');
-
-    const Database = (await import('better-sqlite3')).default;
-    const db = new Database(dbPath);
-    db.exec('CREATE TABLE test (name TEXT, value REAL)');
-    const insert = db.prepare('INSERT INTO test VALUES (?, ?)');
-    for (let i = 1; i <= 10; i++) {
-      insert.run(`item${i}`, i * 10);
-    }
-    db.close();
-
-    const manager = new SourceManager();
-    await manager.add('sqlitetest', { type: 'sqlite', path: dbPath });
-    const schema = await manager.getSchema('sqlitetest');
-    expect(schema.ok).toBe(true);
-
-    const valueCol = schema.schema!.tables[0].columns.find(c => c.name === 'value');
-    expect(valueCol).toBeDefined();
-    expect(valueCol!.stats).toBeDefined();
-    expect(valueCol!.stats!.min).toBe(10);
-    expect(valueCol!.stats!.max).toBe(100);
-
-    await manager.closeAll();
-    fs.rmSync(tmpDir, { recursive: true });
-  });
-});

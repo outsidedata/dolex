@@ -1,5 +1,5 @@
 /**
- * MCP Tool: query_source
+ * MCP Tool: query_data
  * Execute a DSL query against a source and return tabular results.
  */
 
@@ -10,7 +10,7 @@ import { errorResponse, jsonResponse } from './shared.js';
 import { logOperation, extractDslStructure } from './operation-log.js';
 
 export const querySourceInputSchema = z.object({
-  sourceId: z.string().describe('Source ID from add_source'),
+  sourceId: z.string().describe('Dataset ID returned by load_csv'),
   table: z.string().describe('Table name within the source'),
   query: dslQuerySchema.describe('Declarative query (join, select, groupBy, filter, orderBy, limit). Use join to combine tables; use table.field dot notation for joined table fields. Example: { select: ["region", { field: "revenue", aggregate: "sum", as: "total" }], groupBy: ["region"], orderBy: [{ field: "total", direction: "desc" }], limit: 10 }'),
   maxRows: z.number().optional().describe('Max rows to return (default: 20)'),
@@ -28,7 +28,7 @@ export function handleQuerySource(deps: { sourceManager: any }) {
     const result = await deps.sourceManager.queryDsl(args.sourceId, args.table, query);
     if (!result.ok) {
       logOperation({
-        toolName: 'query_source',
+        toolName: 'query_data',
         timestamp: start,
         durationMs: Date.now() - start,
         success: false,
@@ -43,7 +43,7 @@ export function handleQuerySource(deps: { sourceManager: any }) {
     const resultId = saveResult(result.rows, result.columns);
 
     logOperation({
-      toolName: 'query_source',
+      toolName: 'query_data',
       timestamp: start,
       durationMs: Date.now() - start,
       success: true,

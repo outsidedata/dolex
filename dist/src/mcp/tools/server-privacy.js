@@ -17,11 +17,10 @@ export function handleServerStatus(deps) {
     return async () => {
         const specStats = specStore.stats();
         const resultStats = resultCacheStats();
-        const sources = deps.sourceManager.list();
-        const sourcesSummary = sources.map(s => ({
+        const datasets = deps.sourceManager.list();
+        const datasetsSummary = datasets.map((s) => ({
             id: s.id,
             name: s.name,
-            type: s.type,
             connected: deps.sourceManager.isConnected(s.id),
         }));
         return jsonResponse({
@@ -41,10 +40,10 @@ export function handleServerStatus(deps) {
                 totalDataRows: resultStats.totalRows,
                 ttl: '10 minutes',
             },
-            sources: {
-                registered: sources.length,
-                connected: sourcesSummary.filter(s => s.connected).length,
-                list: sourcesSummary,
+            datasets: {
+                loaded: datasets.length,
+                connected: datasetsSummary.filter((s) => s.connected).length,
+                list: datasetsSummary,
             },
         });
     };
