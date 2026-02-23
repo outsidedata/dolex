@@ -13,7 +13,7 @@ import type { StoredSpec } from '../spec-store.js';
 import { errorResponse, htmlResponse } from './shared.js';
 import { logOperation } from './operation-log.js';
 import { selectPattern } from '../../patterns/selector.js';
-import { ALL_PALETTE_NAMES } from './dsl-schemas.js';
+import { ALL_PALETTE_NAMES } from './sql-schemas.js';
 
 const FLIPPABLE_PATTERNS = new Set([
   'bar', 'grouped-bar', 'stacked-bar', 'lollipop', 'bullet',
@@ -70,7 +70,7 @@ export const refineInputSchema = z.object({
   colorField: z.string().optional().describe('Which data field drives color'),
 
   flowColorBy: z.enum(['source', 'target']).optional()
-    .describe('Color flow charts by source or target node'),
+    .describe('Color flow charts by source or target node (alluvial, sankey, chord, funnel only)'),
 
   format: z.enum(['percent', 'dollar', 'integer', 'decimal', 'compact']).optional()
     .describe('Value axis number format'),

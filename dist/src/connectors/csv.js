@@ -62,10 +62,67 @@ function toTableName(filename) {
         .replace(/[^a-zA-Z0-9_]/g, '_');
 }
 /**
+ * Register custom aggregate functions that SQLite lacks natively.
+ * Provides: median, stddev, p25, p75, percentile.
+ */
+function registerCustomAggregates(db) {
+    const sortedNums = (values) => values.filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+    const computePercentile = (sorted, p) => {
+        if (sorted.length === 0)
+            return null;
+        if (sorted.length === 1)
+            return sorted[0];
+        const idx = p * (sorted.length - 1);
+        const lo = Math.floor(idx);
+        const hi = Math.ceil(idx);
+        if (lo === hi)
+            return sorted[lo];
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+    };
+    db.aggregate('median', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => computePercentile(sortedNums(acc), 0.5),
+    });
+    db.aggregate('stddev', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => {
+            const nums = sortedNums(acc);
+            if (nums.length === 0)
+                return null;
+            const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+            const variance = nums.reduce((sum, v) => sum + (v - mean) ** 2, 0) / nums.length;
+            return Math.sqrt(variance);
+        },
+    });
+    db.aggregate('p25', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => computePercentile(sortedNums(acc), 0.25),
+    });
+    db.aggregate('p75', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => computePercentile(sortedNums(acc), 0.75),
+    });
+    db.aggregate('p10', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => computePercentile(sortedNums(acc), 0.10),
+    });
+    db.aggregate('p90', {
+        start: () => [],
+        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        result: (acc) => computePercentile(sortedNums(acc), 0.90),
+    });
+}
+/**
  * Load CSV files into an in-memory SQLite database and build schema metadata.
  */
 function loadCsvs(csvPaths) {
     const db = new Database(':memory:');
+    registerCustomAggregates(db);
     const allColumns = [];
     const tables = [];
     const warnings = [];
@@ -226,6 +283,76 @@ class CsvConnectedSource {
     async getSchema() {
         return this.schema;
     }
+    invalidateSchema() {
+        if (!this.schema)
+            return;
+        // Refresh each table's column list from the live database,
+        // preserving existing column metadata and adding any new columns.
+        for (const table of this.schema.tables) {
+            const liveCols = this.db.prepare(`PRAGMA table_info("${table.name}")`).all();
+            const liveColNames = liveCols.map((r) => r.name);
+            const existingNames = new Set(table.columns.map(c => c.name));
+            // Add any new columns not already in the schema
+            for (const colName of liveColNames) {
+                if (!existingNames.has(colName)) {
+                    table.columns.push(this.profileNewColumn(table.name, colName, table.rowCount));
+                }
+            }
+            // Remove columns that no longer exist in the database
+            const liveSet = new Set(liveColNames);
+            table.columns = table.columns.filter(c => liveSet.has(c.name));
+        }
+    }
+    profileNewColumn(tableName, col, rowCount) {
+        const sampleStmt = this.db.prepare(`SELECT DISTINCT "${col}" FROM "${tableName}" WHERE "${col}" IS NOT NULL AND "${col}" != '' LIMIT ${SAMPLE_LIMIT}`);
+        const samples = sampleStmt.all().map((r) => String(r[col]));
+        const countStmt = this.db.prepare(`SELECT COUNT(DISTINCT "${col}") as cnt, COUNT(*) - COUNT("${col}") as nulls, COUNT(*) as total FROM "${tableName}"`);
+        const stats = countStmt.get();
+        const type = inferColumnType(col, samples, stats.cnt, rowCount);
+        let columnStats = undefined;
+        let topValues = undefined;
+        if (type === 'numeric') {
+            const numStmt = this.db.prepare(`
+        SELECT MIN(CAST("${col}" AS REAL)) as min_val, MAX(CAST("${col}" AS REAL)) as max_val, AVG(CAST("${col}" AS REAL)) as mean_val
+        FROM "${tableName}" WHERE "${col}" IS NOT NULL AND "${col}" != ''
+      `);
+            const numStats = numStmt.get();
+            const sortedStmt = this.db.prepare(`
+        SELECT CAST("${col}" AS REAL) as val FROM "${tableName}"
+        WHERE "${col}" IS NOT NULL AND "${col}" != '' ORDER BY CAST("${col}" AS REAL)
+      `);
+            const sorted = sortedStmt.all().map((r) => r.val);
+            const n = sorted.length;
+            if (n > 0) {
+                const percentile = (arr, p) => {
+                    const idx = (p / 100) * (arr.length - 1);
+                    const lo = Math.floor(idx);
+                    const hi = Math.ceil(idx);
+                    return lo === hi ? arr[lo] : arr[lo] + (arr[hi] - arr[lo]) * (idx - lo);
+                };
+                const mean = numStats.mean_val ?? 0;
+                const variance = sorted.reduce((sum, v) => sum + (v - mean) ** 2, 0) / n;
+                columnStats = {
+                    min: numStats.min_val, max: numStats.max_val, mean: numStats.mean_val,
+                    median: percentile(sorted, 50), stddev: Math.sqrt(variance),
+                    p25: percentile(sorted, 25), p75: percentile(sorted, 75),
+                };
+            }
+        }
+        else if (type === 'categorical' || type === 'date') {
+            const topStmt = this.db.prepare(`
+        SELECT "${col}" as value, COUNT(*) as count FROM "${tableName}"
+        WHERE "${col}" IS NOT NULL AND "${col}" != '' GROUP BY "${col}" ORDER BY COUNT(*) DESC LIMIT 10
+      `);
+            topValues = topStmt.all();
+        }
+        return {
+            name: col, type,
+            sampleValues: samples.slice(0, SAMPLE_DISPLAY_LIMIT),
+            uniqueCount: stats.cnt, nullCount: stats.nulls, totalCount: stats.total,
+            stats: columnStats, topValues,
+        };
+    }
     async getSampleRows(tableName, count = 5) {
         const total = this.schema.tables.find(t => t.name === tableName)?.rowCount ?? 0;
         if (total === 0)
@@ -272,6 +399,10 @@ class CsvConnectedSource {
         catch (err) {
             return { columns: [], rows: [{ error: err.message }] };
         }
+    }
+    /** Get the underlying SQLite database handle. */
+    getDatabase() {
+        return this.db;
     }
     async close() {
         try {

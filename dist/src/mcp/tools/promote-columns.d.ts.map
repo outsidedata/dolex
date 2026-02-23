@@ -1,0 +1,1 @@
+{"version":3,"file":"promote-columns.d.ts","sourceRoot":"","sources":["../../../../src/mcp/tools/promote-columns.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AACH,OAAO,KAAK,EAAE,CAAC,EAAE,MAAM,KAAK,CAAC;AAE7B,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,wBAAwB,CAAC;AAKnE,wBAAgB,oBAAoB,CAAC,IAAI,EAAE;IAAE,aAAa,EAAE,GAAG,CAAA;CAAE,IACjD,MAAM,CAAC,CAAC,KAAK,CAAC,OAAO,oBAAoB,CAAC,gDA2EzD"}

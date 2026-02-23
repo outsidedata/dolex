@@ -1,0 +1,1 @@
+{"version":3,"file":"tokenizer.d.ts","sourceRoot":"","sources":["../../../src/transforms/tokenizer.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AACH,OAAO,KAAK,EAAE,KAAK,EAAa,MAAM,YAAY,CAAC;AAEnD,qBAAa,aAAc,SAAQ,KAAK;IACF,GAAG,EAAE,MAAM;gBAAnC,OAAO,EAAE,MAAM,EAAS,GAAG,EAAE,MAAM;CAIhD;AAED,wBAAgB,QAAQ,CAAC,KAAK,EAAE,MAAM,GAAG,KAAK,EAAE,CAsF/C"}

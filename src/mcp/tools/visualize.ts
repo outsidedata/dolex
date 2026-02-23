@@ -1,9 +1,7 @@
 /**
  * MCP Tool: visualize
- * Takes inline data + intent and returns visualization recommendations
- * from the handcrafted pattern library.
- *
- * For source-based data (sourceId + table + query), use visualize_data.
+ * Takes data (inline, cached, or from a loaded CSV via SQL) + intent
+ * and returns visualization recommendations from the handcrafted pattern library.
  *
  * Returns compact text content (specId + metadata, no data) while
  * structuredContent still gets the full pre-rendered chart HTML.
@@ -12,7 +10,7 @@
 import { z } from 'zod';
 import type { VisualizeInput, VisualizeOutput, DataColumn, VisualizationSpec } from '../../types.js';
 import { isCompoundSpec } from '../../types.js';
-import { ALL_PALETTE_NAMES } from './dsl-schemas.js';
+import { ALL_PALETTE_NAMES } from './sql-schemas.js';
 import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
 import { shouldCompound, buildCompoundSpec } from '../../renderers/html/compound.js';
 import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
@@ -44,8 +42,10 @@ export const dataShapeHintsSchema = z.object({
 }).optional().describe('Hints about the data shape to help pattern selection');
 
 export const visualizeInputSchema = z.object({
-  data: z.array(z.record(z.any())).optional().describe('Array of data rows to visualize. Optional if resultId is provided.'),
+  data: z.array(z.record(z.any())).optional().describe('Array of data rows to visualize. Optional if resultId or sourceId+sql is provided.'),
   resultId: z.string().optional().describe('Result ID from a previous query_data call — reuses cached data without re-sending it'),
+  sourceId: z.string().optional().describe('Dataset ID returned by load_csv — use with sql to query server-side (saves tokens)'),
+  sql: z.string().optional().describe('SQL SELECT query to slice/aggregate the data before visualizing. Use table and column names from load_csv/describe_data.'),
   intent: z.string().describe('What the user wants to see — e.g., "compare sales by region", "show distribution of ages", "how do rankings change over time"'),
   columns: columnsSchema,
   dataShapeHints: dataShapeHintsSchema,
@@ -70,7 +70,7 @@ export const visualizeInputSchema = z.object({
 });
 
 /**
- * Shared core logic for both visualize and visualize_data.
+ * Shared core logic for all visualize data paths (inline, cached, source query).
  * Takes resolved data + args and returns the MCP response.
  */
 export function handleVisualizeCore(
@@ -206,13 +206,47 @@ export function handleVisualizeCore(
 
 export function handleVisualize(
   selectPatterns: (input: VisualizeInput) => VisualizeOutput,
+  deps?: { sourceManager?: any },
 ) {
   const core = handleVisualizeCore(selectPatterns);
 
   return async (args: z.infer<typeof visualizeInputSchema>) => {
     let data = args.data;
+    let queryMeta: { truncated?: boolean; totalSourceRows?: number } | undefined;
+    let extraMeta: Partial<OperationMeta> | undefined;
 
-    if (args.resultId) {
+    // Path 1: sourceId + sql → server-side query
+    if (args.sourceId && args.sql) {
+      if (!deps?.sourceManager) {
+        return errorResponse('Source manager not available.');
+      }
+      const start = Date.now();
+      const source = deps.sourceManager.get?.(args.sourceId);
+      const sourceType = source?.type;
+
+      const result = await deps.sourceManager.querySql(args.sourceId, args.sql);
+      if (!result.ok) {
+        logOperation({
+          toolName: 'visualize',
+          timestamp: start,
+          durationMs: Date.now() - start,
+          success: false,
+          meta: {
+            sqlPreview: args.sql.slice(0, 200),
+            sourceType,
+            error: result.error,
+          },
+        });
+        return errorResponse(result.error);
+      }
+
+      data = result.rows;
+      queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
+      extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
+    }
+
+    // Path 2: resultId → cached query result
+    if (!data && args.resultId) {
       const cached = getResult(args.resultId);
       if (!cached) {
         return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
@@ -220,10 +254,12 @@ export function handleVisualize(
       data = cached.rows;
     }
 
+    // Path 3: inline data (already in args.data)
+
     if (!data || data.length === 0) {
-      return errorResponse('No data provided. Pass either `data` array or `resultId` from query_data.');
+      return errorResponse('No data provided. Pass data array, resultId from query_data, or sourceId + sql.');
     }
 
-    return core(data, args);
+    return core(data, args, queryMeta, extraMeta);
   };
 }

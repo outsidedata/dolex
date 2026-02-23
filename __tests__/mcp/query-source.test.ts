@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 describe('query_source MCP tool', () => {
-  it('executes a DSL query and returns tabular results', async () => {
+  it('executes a SQL query and returns tabular results', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qsrc-'));
     const csvPath = path.join(tmpDir, 'data.csv');
     fs.writeFileSync(csvPath, 'region,revenue\nNorth,100\nSouth,200\nNorth,150');
@@ -17,12 +17,7 @@ describe('query_source MCP tool', () => {
     const handler = handleQuerySource({ sourceManager });
     const result = await handler({
       sourceId: addResult.entry!.id,
-      table: 'data',
-      query: {
-        select: ['region', { field: 'revenue', aggregate: 'sum', as: 'total' }],
-        groupBy: ['region'],
-        orderBy: [{ field: 'total', direction: 'desc' }],
-      },
+      sql: 'SELECT region, SUM(CAST(revenue AS REAL)) AS total FROM data GROUP BY region ORDER BY total DESC',
     });
 
     expect(result.isError).toBeUndefined();
@@ -48,8 +43,7 @@ describe('query_source MCP tool', () => {
     const handler = handleQuerySource({ sourceManager });
     const result = await handler({
       sourceId: 'big',
-      table: 'data',
-      query: { select: ['name', 'value'] },
+      sql: 'SELECT name, value FROM data',
       maxRows: 5,
     });
 
@@ -80,25 +74,18 @@ describe('query_source MCP tool', () => {
     const handler = handleQuerySource({ sourceManager });
     const result = await handler({
       sourceId: addResult.entry!.id,
-      table: 'order_items',
-      query: {
-        join: [
-          { table: 'products', on: { left: 'product_id', right: 'product_id' } },
-        ],
-        select: [
-          'products.product_category_name',
-          { field: 'price', aggregate: 'sum', as: 'revenue' },
-        ],
-        groupBy: ['products.product_category_name'],
-        orderBy: [{ field: 'revenue', direction: 'desc' }],
-      },
+      sql: `SELECT p.product_category_name, SUM(CAST(oi.price AS REAL)) AS revenue
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
+            GROUP BY p.product_category_name
+            ORDER BY revenue DESC`,
     });
 
     expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0].text);
     expect(body.rows.length).toBe(2);
     // Electronics: 50+50=100, Clothing: 75
-    expect(body.rows[0].products_product_category_name).toBe('Electronics');
+    expect(body.rows[0].product_category_name).toBe('Electronics');
     expect(body.rows[0].revenue).toBe(100);
 
     await sourceManager.closeAll();

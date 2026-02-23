@@ -6,24 +6,43 @@
  * - In-memory registry with optional JSON file persistence
  * - Connector lookup by type
  * - Connection caching (lazy connect on first query)
- * - Cross-source query routing by name
+ * - SQL query execution with safety checks
  */
 
 import * as fs from 'fs';
 import * as crypto from 'crypto';
-import type { DataSourceType, DataSourceConfig, DataSchema, DslQuery } from '../types.js';
+import type { DataSourceType, DataSourceConfig, DataSchema } from '../types.js';
 import type {
   ConnectedSource,
   SourceRegistryEntry,
   QueryExecutionResult,
 } from './types.js';
-import { compileDsl, hasJsAggregates, hasWindowFunctions } from './dsl-compiler.js';
-import { validateDsl, validateDslWithJoins } from './dsl-validator.js';
 import { csvConnector } from './csv.js';
-import type { DslQueryResult } from './js-aggregation.js';
-import { executeJsAggregation, executeJsAggregationWithWindows } from './js-aggregation.js';
 
-export type { DslQueryResult } from './js-aggregation.js';
+const MAX_RESULT_ROWS = 10000;
+
+// ─── SQL Query Result ─────────────────────────────────────────────────────
+
+export interface SqlQueryResult {
+  ok: boolean;
+  rows?: Record<string, any>[];
+  columns?: string[];
+  totalRows?: number;
+  truncated?: boolean;
+  error?: string;
+}
+
+// ─── SQL Safety ───────────────────────────────────────────────────────────
+
+function isReadOnlySelect(sql: string): boolean {
+  const trimmed = sql.trim().replace(/^\/\*.*?\*\//gs, '').trim();
+  return /^(SELECT|WITH)\b/i.test(trimmed);
+}
+
+function wrapWithLimit(sql: string, maxRows: number): string {
+  const trimmed = sql.trim().replace(/;\s*$/, '');
+  return `SELECT * FROM (${trimmed}) AS _q LIMIT ${maxRows}`;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -220,7 +239,6 @@ export class SourceManager {
 
   /**
    * Lazily connect and return the source, or an error result.
-   * Consolidates the repeated connect-or-fail pattern used by getSchema/query/queryDsl.
    */
   private async resolveSource(
     idOrName: string
@@ -264,77 +282,73 @@ export class SourceManager {
   }
 
   /**
-   * Execute a DSL query against a specific source table.
-   * Validates against schema, compiles to SQL (or JS aggregation fallback),
-   * executes, and returns rows.
+   * Execute a SQL query against a source with safety checks.
+   * Only SELECT/WITH queries are allowed. Results are auto-capped at maxRows.
+   * Error messages are enriched with available table/column names.
    */
-  async queryDsl(
+  async querySql(
     idOrName: string,
-    table: string,
-    dslQuery: DslQuery
-  ): Promise<DslQueryResult> {
+    sql: string,
+    maxRows: number = MAX_RESULT_ROWS
+  ): Promise<SqlQueryResult> {
+    if (!isReadOnlySelect(sql)) {
+      return { ok: false, error: 'Only SELECT queries are allowed.' };
+    }
+
     const resolved = await this.resolveSource(idOrName);
     if (!resolved.ok) return resolved;
 
+    const cappedSql = wrapWithLimit(sql, Math.min(maxRows, MAX_RESULT_ROWS));
+
     try {
-      const validationError = await this.validateDslQuery(idOrName, table, dslQuery);
-      if (validationError) return { ok: false, error: validationError };
-
-      const needsJsAgg = hasJsAggregates(dslQuery);
-      const needsWindows = hasWindowFunctions(dslQuery);
-
-      if (needsJsAgg && needsWindows) {
-        return executeJsAggregationWithWindows(resolved.source, table, dslQuery, 'sqlite');
-      }
-      if (needsJsAgg) {
-        return executeJsAggregation(resolved.source, table, dslQuery, 'sqlite');
-      }
-
-      // Pure SQL path — compileDsl handles CTE wrapping for window functions
-      const sql = compileDsl(table, dslQuery, 'sqlite');
-      const result = await resolved.source.executeQuery(sql);
+      const result = await resolved.source.executeQuery(cappedSql);
       const errorMsg = hasErrorRow(result);
-      if (errorMsg) return { ok: false, error: errorMsg };
+      if (errorMsg) {
+        const enriched = await this.enrichSqlError(idOrName, errorMsg);
+        return { ok: false, error: enriched };
+      }
 
       return {
         ok: true,
         rows: result.rows,
         columns: result.columns,
         totalRows: result.rows.length,
-        truncated: false,
+        truncated: result.rows.length >= Math.min(maxRows, MAX_RESULT_ROWS),
       };
     } catch (err: any) {
-      return { ok: false, error: `DSL query failed: ${err.message}` };
+      const enriched = await this.enrichSqlError(idOrName, err.message);
+      return { ok: false, error: `SQL query failed: ${enriched}` };
     }
   }
 
   /**
-   * Validate a DSL query against the source schema. Returns an error message
-   * if validation fails, or null if the query is valid.
+   * Enrich SQLite error messages with available table/column info.
    */
-  private async validateDslQuery(
-    idOrName: string,
-    table: string,
-    dslQuery: DslQuery
-  ): Promise<string | null> {
-    const schemaResult = await this.getSchema(idOrName);
-    if (!schemaResult.ok || !schemaResult.schema) return null;
+  private async enrichSqlError(idOrName: string, errorMsg: string): Promise<string> {
+    try {
+      const schemaResult = await this.getSchema(idOrName);
+      if (!schemaResult.ok || !schemaResult.schema) return errorMsg;
 
-    const schema = schemaResult.schema;
+      const schema = schemaResult.schema;
 
-    if (dslQuery.join && dslQuery.join.length > 0) {
-      const validation = validateDslWithJoins(schema, table, dslQuery);
-      return validation.ok ? null : validation.error ?? 'Validation failed';
+      if (/no such column/i.test(errorMsg)) {
+        const allCols = schema.tables.flatMap(t => t.columns.map(c => c.name));
+        const unique = [...new Set(allCols)];
+        return `${errorMsg}. Available columns: ${unique.join(', ')}`;
+      }
+
+      if (/no such table/i.test(errorMsg)) {
+        const tables = schema.tables.map(t => t.name);
+        return `${errorMsg}. Available tables: ${tables.join(', ')}`;
+      }
+
+      if (/no such function/i.test(errorMsg)) {
+        return `${errorMsg}. Available aggregate functions: SUM, AVG, MIN, MAX, COUNT, MEDIAN, STDDEV, P25, P75, P10, P90. Window functions: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, etc.`;
+      }
+    } catch {
+      // Schema lookup failed — return original error
     }
-
-    const tableSchema = schema.tables.find(t => t.name === table);
-    if (!tableSchema) {
-      const available = schema.tables.map(t => t.name).join(', ');
-      return `Table "${table}" not found. Available: ${available}`;
-    }
-
-    const validation = validateDsl(tableSchema, dslQuery);
-    return validation.ok ? null : validation.error ?? 'Validation failed';
+    return errorMsg;
   }
 
   // ─── Cross-Source ──────────────────────────────────────────────────────────

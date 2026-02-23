@@ -32,7 +32,7 @@ describe('analyze_source tool', () => {
     const body = JSON.parse(result.content[0].text);
     expect(body.summary).toBeTruthy();
     expect(body.steps.length).toBeGreaterThanOrEqual(3);
-    expect(body.steps[0].query).toBeDefined();
+    expect(body.steps[0].sql).toBeDefined();
     expect(body.steps[0].suggestedPatterns).toBeDefined();
   });
 

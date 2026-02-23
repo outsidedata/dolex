@@ -127,8 +127,7 @@ describe('query_source returns resultId', () => {
     const handler = handleQuerySource({ sourceManager });
     const result = await handler({
       sourceId: 'qr-test',
-      table: 'data',
-      query: { select: ['name', 'value'] },
+      sql: 'SELECT name, value FROM data',
     });
 
     const body = JSON.parse(result.content[0].text);

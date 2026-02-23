@@ -33,8 +33,6 @@ Dolex is an MCP server that gives Claude a complete data analysis toolkit. It ru
 
 **Pattern intelligence** — Dolex doesn't just render charts. It analyzes the shape of your data and your intent, scores all 43 patterns, and recommends the one that actually communicates the insight — not the obvious one.
 
-**Multi-view dashboards** — N-panel layouts with global filter controls and cross-view interactions. Not static images — interactive HTML with linked highlighting.
-
 **Auto-analysis planning** — give it a dataset and it generates a structured analysis plan: which columns matter, what relationships to explore, what charts to build, with ready-to-execute queries for each step.
 
 **100% local, 100% offline** — your data never leaves your machine. Charts render as self-contained HTML. 33 TopoJSON map files ship with the package. Zero CDN calls, zero external dependencies.
@@ -114,12 +112,13 @@ Every query is validated before execution — field names are checked against th
 | `load_csv` | Load a CSV file or directory |
 | `describe_data` | Profile columns, stats, sample rows |
 | `analyze_data` | Auto-generate an analysis plan |
-| `query_data` | Run queries with the full DSL |
-| `visualize` | Inline data → ranked chart recommendations |
-| `visualize_data` | Query + visualize in one step |
+| `query_data` | Run SQL queries (JOINs, GROUP BY, window functions, CTEs) |
+| `visualize` | Data → ranked chart recommendations (inline, cached, or CSV+SQL) |
 | `refine_visualization` | Iterate on a chart |
-| `create_dashboard` | Multi-view dashboard with filters |
-| `refine_dashboard` | Iterate on a dashboard |
+| `transform_data` | Create derived columns with expressions |
+| `promote_columns` | Persist working columns to disk |
+| `list_transforms` | List columns by layer (source/derived/working) |
+| `drop_columns` | Drop derived or working columns |
 | `list_patterns` | Browse all 43 patterns |
 | `export_html` | Get raw HTML |
 | `screenshot` | Render to PNG |

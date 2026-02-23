@@ -56,7 +56,7 @@ describe('real-data integration', () => {
     expect(categories).toContain('relationship');
   });
 
-  it('all generated queries are structurally valid DSL', () => {
+  it('all generated SQL queries are valid strings', () => {
     const columns: DataColumn[] = [
       { name: 'date', type: 'date', sampleValues: ['2024-01-01'], uniqueCount: 90, nullCount: 0, totalCount: 1000 },
       { name: 'category', type: 'categorical', sampleValues: ['A', 'B', 'C'], uniqueCount: 3, nullCount: 0, totalCount: 1000 },
@@ -66,22 +66,13 @@ describe('real-data integration', () => {
 
     const plan = buildAnalysisPlan(columns, 'data', 'test-data');
     for (const step of plan.steps) {
-      expect(step.query.select).toBeDefined();
-      expect(Array.isArray(step.query.select)).toBe(true);
-      expect(step.query.select.length).toBeGreaterThan(0);
+      expect(typeof step.sql).toBe('string');
+      expect(step.sql.length).toBeGreaterThan(0);
+      expect(step.sql.toUpperCase()).toContain('SELECT');
       expect(step.table).toBe('data');
       expect(step.suggestedPatterns.length).toBeGreaterThan(0);
       expect(step.intent).toBeTruthy();
       expect(step.title).toBeTruthy();
-
-      if (step.query.groupBy) {
-        expect(Array.isArray(step.query.groupBy)).toBe(true);
-      }
-      if (step.query.orderBy) {
-        for (const ob of step.query.orderBy) {
-          expect(['asc', 'desc']).toContain(ob.direction);
-        }
-      }
     }
   });
 
@@ -94,10 +85,9 @@ describe('real-data integration', () => {
 
     const plan = buildAnalysisPlan(columns, 'users', 'user-data');
     expect(plan.steps.length).toBeGreaterThanOrEqual(2);
-    // Should not reference user_id in any step
+    // Should not reference user_id in any step's SQL
     for (const step of plan.steps) {
-      const selectFields = step.query.select.map(f => typeof f === 'string' ? f : f.field);
-      expect(selectFields).not.toContain('user_id');
+      expect(step.sql).not.toContain('user_id');
     }
   });
 });

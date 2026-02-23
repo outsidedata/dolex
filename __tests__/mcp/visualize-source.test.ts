@@ -33,19 +33,19 @@ describe('visualize (inline data mode)', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('schema does not accept sourceId', async () => {
+  it('schema accepts sourceId for server-side queries', async () => {
     const { visualizeInputSchema } = await import('../../src/mcp/tools/visualize.js');
 
     const result = visualizeInputSchema.safeParse({
-      data: [{ x: 1 }],
       sourceId: 'src-abc123',
+      sql: 'SELECT * FROM sales',
       intent: 'test',
     });
 
-    // sourceId is not in the schema, so it should be stripped (Zod strip mode)
-    // or if strict, rejected. Either way, the key shouldn't appear in output.
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect((result.data as any).sourceId).toBeUndefined();
+      expect(result.data.sourceId).toBe('src-abc123');
+      expect(result.data.sql).toBe('SELECT * FROM sales');
     }
   });
 
@@ -190,91 +190,25 @@ describe('visualize (inline data mode)', () => {
   });
 });
 
-describe('visualize_from_source', () => {
-  it('schema requires sourceId, table, and query', async () => {
-    const { visualizeFromSourceInputSchema } = await import('../../src/mcp/tools/visualize-from-source.js');
+describe('visualize (source query mode)', () => {
+  it('schema accepts sourceId + sql + intent', async () => {
+    const { visualizeInputSchema } = await import('../../src/mcp/tools/visualize.js');
 
-    // Missing all required fields
-    expect(visualizeFromSourceInputSchema.safeParse({ intent: 'test' }).success).toBe(false);
-
-    // Missing table and query
-    expect(visualizeFromSourceInputSchema.safeParse({
-      sourceId: 'src-abc',
-      intent: 'test',
-    }).success).toBe(false);
-
-    // Missing query
-    expect(visualizeFromSourceInputSchema.safeParse({
-      sourceId: 'src-abc',
-      table: 'sales',
-      intent: 'test',
-    }).success).toBe(false);
-  });
-
-  it('schema accepts valid source query', async () => {
-    const { visualizeFromSourceInputSchema } = await import('../../src/mcp/tools/visualize-from-source.js');
-
-    const parsed = visualizeFromSourceInputSchema.safeParse({
+    const parsed = visualizeInputSchema.safeParse({
       sourceId: 'src-abc123',
-      table: 'sales',
-      query: {
-        select: ['region', { field: 'revenue', aggregate: 'sum', as: 'total' }],
-        groupBy: ['region'],
-      },
+      sql: 'SELECT region, SUM(revenue) AS total FROM sales GROUP BY region',
       intent: 'compare revenue by region',
     });
 
     expect(parsed.success).toBe(true);
   });
 
-  it('schema accepts query with join array', async () => {
-    const { visualizeFromSourceInputSchema } = await import('../../src/mcp/tools/visualize-from-source.js');
+  it('schema accepts pattern and renamed params with sourceId', async () => {
+    const { visualizeInputSchema } = await import('../../src/mcp/tools/visualize.js');
 
-    const parsed = visualizeFromSourceInputSchema.safeParse({
+    const parsed = visualizeInputSchema.safeParse({
       sourceId: 'src-abc123',
-      table: 'order_items',
-      query: {
-        join: [
-          { table: 'products', on: { left: 'product_id', right: 'product_id' } },
-        ],
-        select: [
-          'products.product_category_name',
-          { field: 'price', aggregate: 'sum', as: 'revenue' },
-        ],
-        groupBy: ['products.product_category_name'],
-      },
-      intent: 'revenue by product category',
-    });
-
-    expect(parsed.success).toBe(true);
-  });
-
-  it('schema accepts chained joins with type', async () => {
-    const { visualizeFromSourceInputSchema } = await import('../../src/mcp/tools/visualize-from-source.js');
-
-    const parsed = visualizeFromSourceInputSchema.safeParse({
-      sourceId: 'src-abc123',
-      table: 'order_items',
-      query: {
-        join: [
-          { table: 'orders', on: { left: 'order_id', right: 'order_id' }, type: 'inner' },
-          { table: 'customers', on: { left: 'orders.customer_id', right: 'customer_id' } },
-        ],
-        select: ['customers.customer_state'],
-      },
-      intent: 'test',
-    });
-
-    expect(parsed.success).toBe(true);
-  });
-
-  it('schema accepts pattern and renamed params', async () => {
-    const { visualizeFromSourceInputSchema } = await import('../../src/mcp/tools/visualize-from-source.js');
-
-    const parsed = visualizeFromSourceInputSchema.safeParse({
-      sourceId: 'src-abc123',
-      table: 'sales',
-      query: { select: ['region'] },
+      sql: 'SELECT region FROM sales',
       intent: 'test',
       pattern: 'lollipop',
       includeDataTable: false,
@@ -290,17 +224,16 @@ describe('visualize_from_source', () => {
   });
 
   it('handler returns error when source manager not available', async () => {
-    const { handleVisualizeFromSource } = await import('../../src/mcp/tools/visualize-from-source.js');
+    const { handleVisualize } = await import('../../src/mcp/tools/visualize.js');
 
-    const handler = handleVisualizeFromSource(
+    const handler = handleVisualize(
       () => ({ recommended: { pattern: 'bar', spec: {} as any, reasoning: '' }, alternatives: [] }),
       { sourceManager: null },
     );
 
     const result = await handler({
       sourceId: 'src-abc',
-      table: 'sales',
-      query: { select: ['x'] },
+      sql: 'SELECT x FROM sales',
       intent: 'test',
     });
 
@@ -309,21 +242,20 @@ describe('visualize_from_source', () => {
   });
 
   it('handler returns error on query failure', async () => {
-    const { handleVisualizeFromSource } = await import('../../src/mcp/tools/visualize-from-source.js');
+    const { handleVisualize } = await import('../../src/mcp/tools/visualize.js');
 
     const mockSourceManager = {
-      queryDsl: async () => ({ ok: false, error: 'Table not found' }),
+      querySql: async () => ({ ok: false, error: 'Table not found' }),
     };
 
-    const handler = handleVisualizeFromSource(
+    const handler = handleVisualize(
       () => ({ recommended: { pattern: 'bar', spec: {} as any, reasoning: '' }, alternatives: [] }),
       { sourceManager: mockSourceManager },
     );
 
     const result = await handler({
       sourceId: 'src-abc',
-      table: 'nonexistent',
-      query: { select: ['x'] },
+      sql: 'SELECT x FROM nonexistent',
       intent: 'test',
     });
 
@@ -332,17 +264,17 @@ describe('visualize_from_source', () => {
   });
 
   it('handler returns visualization on successful query', async () => {
-    const { handleVisualizeFromSource } = await import('../../src/mcp/tools/visualize-from-source.js');
+    const { handleVisualize } = await import('../../src/mcp/tools/visualize.js');
 
     const mockSourceManager = {
-      queryDsl: async () => ({
+      querySql: async () => ({
         ok: true,
         rows: [{ region: 'North', total: 100 }, { region: 'South', total: 200 }],
         columns: ['region', 'total'],
       }),
     };
 
-    const handler = handleVisualizeFromSource(
+    const handler = handleVisualize(
       (input) => ({
         recommended: {
           pattern: 'bar',
@@ -362,11 +294,7 @@ describe('visualize_from_source', () => {
 
     const result = await handler({
       sourceId: 'src-abc',
-      table: 'sales',
-      query: {
-        select: ['region', { field: 'revenue', aggregate: 'sum', as: 'total' }],
-        groupBy: ['region'],
-      },
+      sql: 'SELECT region, SUM(revenue) AS total FROM sales GROUP BY region',
       intent: 'compare revenue by region',
     });
 

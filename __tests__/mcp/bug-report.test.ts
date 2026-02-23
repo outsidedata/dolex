@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   OperationLog,
-  extractDslStructure,
   operationLog,
 } from '../../src/mcp/tools/operation-log.js';
 import {
@@ -68,66 +67,6 @@ describe('OperationLog', () => {
     expect(log.size).toBe(0);
     expect(log.getAll()).toEqual([]);
     expect(log.getLast()).toBeUndefined();
-  });
-});
-
-// ─── extractDslStructure ────────────────────────────────────────────────────
-
-describe('extractDslStructure', () => {
-  it('extracts clause presence', () => {
-    const result = extractDslStructure({
-      select: ['region', { field: 'revenue', aggregate: 'sum', as: 'total' }],
-      groupBy: ['region'],
-      filter: [{ field: 'year', op: '=', value: 2024 }],
-      orderBy: [{ field: 'total', direction: 'desc' }],
-      limit: 10,
-    });
-    expect(result.hasGroupBy).toBe(true);
-    expect(result.hasFilter).toBe(true);
-    expect(result.hasOrderBy).toBe(true);
-    expect(result.hasLimit).toBe(true);
-    expect(result.hasJoin).toBe(false);
-    expect(result.hasHaving).toBe(false);
-    expect(result.aggregates).toEqual(['sum']);
-    expect(result.windows).toEqual([]);
-  });
-
-  it('extracts window functions', () => {
-    const result = extractDslStructure({
-      select: [
-        'month',
-        { field: 'revenue', aggregate: 'sum', as: 'total' },
-        { window: 'lag', field: 'total', as: 'prev', orderBy: [{ field: 'month', direction: 'asc' }] },
-      ],
-      groupBy: ['month'],
-    });
-    expect(result.aggregates).toEqual(['sum']);
-    expect(result.windows).toEqual(['lag']);
-  });
-
-  it('deduplicates aggregates', () => {
-    const result = extractDslStructure({
-      select: [
-        { field: 'a', aggregate: 'sum', as: 'x' },
-        { field: 'b', aggregate: 'sum', as: 'y' },
-        { field: 'c', aggregate: 'avg', as: 'z' },
-      ],
-    });
-    expect(result.aggregates).toEqual(['sum', 'avg']);
-  });
-
-  it('handles null/undefined input', () => {
-    const result = extractDslStructure(null);
-    expect(result.hasJoin).toBe(false);
-    expect(result.aggregates).toEqual([]);
-  });
-
-  it('detects joins', () => {
-    const result = extractDslStructure({
-      join: [{ table: 'orders', on: { left: 'id', right: 'customer_id' } }],
-      select: ['name'],
-    });
-    expect(result.hasJoin).toBe(true);
   });
 });
 

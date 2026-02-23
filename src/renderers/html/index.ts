@@ -251,7 +251,5 @@ export { buildFunnelHtml } from './builders/funnel.js';
 export { buildGroupedBarHtml } from './builders/grouped-bar.js';
 export { buildWaterfallHtml } from './builders/waterfall.js';
 export { buildCompoundHtml } from './builders/compound.js';
-export { buildDashboardHtml } from './builders/dashboard.js';
-export type { DashboardViewData } from './builders/dashboard.js';
 export { shouldCompound, buildCompoundSpec } from './compound.js';
 export { getPreferredHeight } from './sizing.js';

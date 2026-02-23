@@ -189,9 +189,8 @@ html, body {
     root.style.display = 'block';
     root.innerHTML = '';
 
-    var isDashboard = html.indexOf('dashboard-grid') !== -1;
     var isCompound = html.indexOf('compound-container') !== -1;
-    var initialHeight = isDashboard ? 900 : isCompound ? 700 : DEFAULT_HEIGHT;
+    var initialHeight = isCompound ? 700 : DEFAULT_HEIGHT;
 
     var iframe = document.createElement('iframe');
     iframe.id = 'chart-frame';

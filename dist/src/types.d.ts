@@ -8,6 +8,8 @@ export interface DataColumn {
     uniqueCount: number;
     nullCount: number;
     totalCount: number;
+    /** Column origin: source (from CSV), derived (persisted transform), working (session-only transform) */
+    layer?: 'source' | 'derived' | 'working';
     /** Numeric columns: summary statistics */
     stats?: {
         min: number;
@@ -58,87 +60,13 @@ export interface CsvSourceConfig {
     /** Directory containing CSV files, or path to a single CSV */
     path: string;
 }
-/** Aggregate function for the query DSL */
-export type DslAggregate = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'count_distinct' | 'median' | 'p25' | 'p75' | 'stddev' | 'percentile';
-/** An aggregate select field */
-export interface DslAggregateField {
+/** Filter operator (used by transform pipeline for client-side row filtering) */
+export type RowFilterOp = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'in' | 'not_in' | 'between' | 'is_null' | 'is_not_null';
+/** A filter condition (used by transform pipeline for client-side row filtering) */
+export interface RowFilter {
     field: string;
-    aggregate: DslAggregate;
-    as: string;
-    /** For aggregate: 'percentile' — the percentile value (0–1), e.g. 0.95 for p95 */
-    percentile?: number;
-}
-/** Window function name */
-export type DslWindowFunction = 'lag' | 'lead' | 'rank' | 'dense_rank' | 'row_number' | 'running_sum' | 'running_avg' | 'pct_of_total';
-/** A window function select field — references base query output columns */
-export interface DslWindowField {
-    window: DslWindowFunction;
-    /** Field to operate on (required for lag, lead, running_sum, running_avg, pct_of_total) */
-    field?: string;
-    /** Output column name */
-    as: string;
-    /** Partition columns (default: whole result set) */
-    partitionBy?: string[];
-    /** Sort order within the window (required for lag, lead, rank, dense_rank, row_number, running_sum, running_avg) */
-    orderBy?: DslOrderBy[];
-    /** Offset for lag/lead (default: 1) */
-    offset?: number;
-    /** Default value for lag/lead when offset is out of range */
-    default?: any;
-}
-/** A field selection — plain string for pass-through, object for aggregation or window */
-export type DslSelectField = string | DslAggregateField | DslWindowField;
-/** Type guard: check if a select field is an aggregate field */
-export declare function isDslAggregateField(field: DslSelectField): field is DslAggregateField;
-/** Type guard: check if a select field is a window function field */
-export declare function isDslWindowField(field: DslSelectField): field is DslWindowField;
-/** A group-by field — plain string or time-bucketed */
-export type DslGroupByField = string | {
-    field: string;
-    bucket: 'day' | 'week' | 'month' | 'quarter' | 'year';
-};
-/** Filter operator */
-export type DslFilterOp = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'in' | 'not_in' | 'between' | 'is_null' | 'is_not_null';
-/** A filter condition */
-export interface DslFilter {
-    field: string;
-    op: DslFilterOp;
+    op: RowFilterOp;
     value?: any;
-}
-/** Sort directive */
-export interface DslOrderBy {
-    field: string;
-    direction: 'asc' | 'desc';
-}
-/** A join clause — attaches another table in the same source */
-export interface DslJoin {
-    /** Table name to join */
-    table: string;
-    /** Join key mapping */
-    on: {
-        /** Field from the left/current table (supports table.field dot notation) */
-        left: string;
-        /** Field from the joined table */
-        right: string;
-    };
-    /** Join type. Default: 'left' */
-    type?: 'inner' | 'left';
-}
-/** The full declarative query */
-export interface DslQuery {
-    join?: DslJoin[];
-    select: DslSelectField[];
-    groupBy?: DslGroupByField[];
-    filter?: DslFilter[];
-    having?: DslFilter[];
-    orderBy?: DslOrderBy[];
-    limit?: number;
-}
-/** Source-based input for visualize (alternative to inline data) */
-export interface SourceDataRef {
-    sourceId: string;
-    table: string;
-    query: DslQuery;
 }
 export type PatternCategory = 'comparison' | 'distribution' | 'composition' | 'time' | 'relationship' | 'flow' | 'geo';
 export interface DataRequirements {
@@ -392,89 +320,4 @@ export interface Interaction {
 }
 /** Type guard: check if a spec is a CompoundVisualizationSpec */
 export declare function isCompoundSpec(spec: VisualizationSpec | CompoundVisualizationSpec): spec is CompoundVisualizationSpec;
-/** A dashboard: multiple views with independent queries, global filters, and cross-filtering. */
-export interface DashboardSpec {
-    /** Discriminator — renderers check this to decide how to render */
-    dashboard: true;
-    /** Stable ID for persistence across conversation turns */
-    id: string;
-    /** Dashboard title */
-    title: string;
-    /** Optional description */
-    description?: string;
-    /** Single source for v1 */
-    sourceId: string;
-    /** Base table within the source */
-    table: string;
-    /** The views that make up this dashboard */
-    views: DashboardViewSpec[];
-    /** Global filter controls */
-    globalFilters?: DashboardFilter[];
-    /** Grid layout configuration */
-    layout: DashboardLayout;
-    /** Interaction links between views */
-    interactions?: DashboardInteraction[];
-    /** Color theme */
-    theme?: 'dark' | 'light';
-}
-/** A single view within a dashboard — each has its own query */
-export interface DashboardViewSpec {
-    /** Stable, user-referenceable ID */
-    id: string;
-    /** View title */
-    title: string;
-    /** Intent string for pattern selection */
-    intent: string;
-    /** Per-view DSL query */
-    query: DslQuery;
-    /** Optional pattern override (auto-select if omitted) */
-    pattern?: string;
-    /** Color preferences for this view */
-    colorPreferences?: {
-        palette?: ColorPaletteName;
-        highlight?: {
-            values: any[];
-            color?: string | string[];
-            mutedColor?: string;
-            mutedOpacity?: number;
-        };
-        colorField?: string;
-    };
-    /** Pattern-specific configuration overrides */
-    config?: Record<string, any>;
-}
-/** A global filter control on the dashboard */
-export interface DashboardFilter {
-    /** Field name to filter on */
-    field: string;
-    /** Display label (defaults to field name) */
-    label?: string;
-    /** Filter control type */
-    type: 'select' | 'multi-select' | 'range' | 'date-range';
-    /** Allowed values (populated from data at render time if omitted) */
-    values?: any[];
-    /** Current filter state */
-    currentValue?: any;
-}
-/** Grid layout configuration for a dashboard */
-export interface DashboardLayout {
-    /** Number of grid columns (1-4) */
-    columns: number;
-    /** Per-view size overrides: colSpan and rowSpan */
-    viewSizes?: Record<string, {
-        colSpan?: number;
-        rowSpan?: number;
-    }>;
-}
-/** An interaction link between dashboard views */
-export interface DashboardInteraction {
-    /** Interaction type */
-    type: 'crossfilter' | 'highlight';
-    /** Which data field to link on */
-    field: string;
-    /** Participating view IDs (all views if omitted) */
-    views?: string[];
-}
-/** Type guard: check if a spec is a DashboardSpec */
-export declare function isDashboardSpec(spec: VisualizationSpec | CompoundVisualizationSpec | DashboardSpec): spec is DashboardSpec;
 //# sourceMappingURL=types.d.ts.map

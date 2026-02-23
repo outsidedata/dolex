@@ -42,26 +42,11 @@ export type {
   TableColumn,
   CompoundLayout,
   Interaction,
-  DslJoin,
-  DslQuery,
-  DslSelectField,
-  DslAggregateField,
-  DslWindowFunction,
-  DslWindowField,
-  DslGroupByField,
-  DslFilter,
-  DslFilterOp,
-  DslOrderBy,
-  DslAggregate,
-  SourceDataRef,
-  DashboardSpec,
-  DashboardViewSpec,
-  DashboardFilter,
-  DashboardLayout,
-  DashboardInteraction,
+  RowFilter,
+  RowFilterOp,
 } from './types.js';
 
-export { isCompoundSpec, isDashboardSpec, isDslAggregateField, isDslWindowField } from './types.js';
+export { isCompoundSpec } from './types.js';
 
 // ─── PATTERNS ────────────────────────────────────────────────────────────────
 
@@ -125,6 +110,4 @@ export {
 } from './renderers/html/index.js';
 
 export { buildCompoundHtml } from './renderers/html/builders/compound.js';
-export { buildDashboardHtml } from './renderers/html/builders/dashboard.js';
-export type { DashboardViewData } from './renderers/html/builders/dashboard.js';
 export { shouldCompound, buildCompoundSpec } from './renderers/html/compound.js';

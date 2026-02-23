@@ -1,9 +1,7 @@
 /**
  * MCP Tool: visualize
- * Takes inline data + intent and returns visualization recommendations
- * from the handcrafted pattern library.
- *
- * For source-based data (sourceId + table + query), use visualize_data.
+ * Takes data (inline, cached, or from a loaded CSV via SQL) + intent
+ * and returns visualization recommendations from the handcrafted pattern library.
  *
  * Returns compact text content (specId + metadata, no data) while
  * structuredContent still gets the full pre-rendered chart HTML.
@@ -67,6 +65,8 @@ export declare const dataShapeHintsSchema: z.ZodOptional<z.ZodObject<{
 export declare const visualizeInputSchema: z.ZodObject<{
     data: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodAny>, "many">>;
     resultId: z.ZodOptional<z.ZodString>;
+    sourceId: z.ZodOptional<z.ZodString>;
+    sql: z.ZodOptional<z.ZodString>;
     intent: z.ZodString;
     columns: z.ZodOptional<z.ZodArray<z.ZodObject<{
         name: z.ZodString;
@@ -169,6 +169,8 @@ export declare const visualizeInputSchema: z.ZodObject<{
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
     resultId?: string | undefined;
+    sourceId?: string | undefined;
+    sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
         categoricalColumnCount?: number | undefined;
@@ -207,6 +209,8 @@ export declare const visualizeInputSchema: z.ZodObject<{
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
     resultId?: string | undefined;
+    sourceId?: string | undefined;
+    sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
         categoricalColumnCount?: number | undefined;
@@ -224,7 +228,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     geoLevel?: "country" | "subdivision" | undefined;
 }>;
 /**
- * Shared core logic for both visualize and visualize_data.
+ * Shared core logic for all visualize data paths (inline, cached, source query).
  * Takes resolved data + args and returns the MCP response.
  */
 export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInput) => VisualizeOutput, toolName?: string): (data: Record<string, any>[], args: {
@@ -258,7 +262,9 @@ export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInp
         text: string;
     }[];
 };
-export declare function handleVisualize(selectPatterns: (input: VisualizeInput) => VisualizeOutput): (args: z.infer<typeof visualizeInputSchema>) => Promise<{
+export declare function handleVisualize(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps?: {
+    sourceManager?: any;
+}): (args: z.infer<typeof visualizeInputSchema>) => Promise<{
     structuredContent?: {
         html: string;
     } | undefined;

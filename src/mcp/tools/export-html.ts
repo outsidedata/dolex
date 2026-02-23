@@ -1,7 +1,7 @@
 /**
  * MCP Tool: export_html
  * Returns the full rendered HTML for a previously-created visualization.
- * Accepts a specId from a visualize, visualize_data, or refine call.
+ * Accepts a specId from a visualize or refine call.
  *
  * Designed for programmatic consumption — the returned HTML is a complete,
  * self-contained document that can be opened in a browser or screenshotted.
@@ -15,7 +15,7 @@ import { specStore } from '../spec-store.js';
 import { errorResponse } from './shared.js';
 
 export const exportHtmlInputSchema = z.object({
-  specId: z.string().describe('Spec ID from a previous visualize, visualize_data, or refine call'),
+  specId: z.string().describe('Spec ID from a previous visualize or refine call'),
 });
 
 export function handleExportHtml() {

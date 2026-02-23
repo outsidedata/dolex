@@ -22,7 +22,7 @@ export function registerPrompts(server: McpServer) {
             'Please:',
             '1. Load it using load_csv',
             '2. Call analyze_data to get an automatic analysis plan',
-            '3. For each step in the plan, call visualize_data with the provided query and use one of the suggested patterns',
+            '3. For each step in the plan, call visualize with sourceId, sql, and intent using one of the suggested patterns',
             '4. After each chart, write a 2-3 sentence finding explaining what the data reveals — be specific about numbers, trends, and outliers',
             '5. End with a "Key Takeaways" summary',
             '',

@@ -1,6 +1,6 @@
 /**
  * Operation log — ring buffer of recent tool calls for bug reports.
- * Captures sanitized metadata (patterns, data shapes, DSL structure)
+ * Captures sanitized metadata (patterns, data shapes, SQL previews)
  * but never data values, connection strings, or file paths.
  */
 export interface OperationMeta {
@@ -15,22 +15,12 @@ export interface OperationMeta {
             type: string;
         }[];
     };
-    dslStructure?: DslStructure;
+    sqlPreview?: string;
     sourceType?: string;
     error?: string;
     viewCount?: number;
     filterCount?: number;
     changes?: string[];
-}
-export interface DslStructure {
-    hasJoin: boolean;
-    hasFilter: boolean;
-    hasGroupBy: boolean;
-    hasHaving: boolean;
-    hasOrderBy: boolean;
-    hasLimit: boolean;
-    aggregates: string[];
-    windows: string[];
 }
 export interface OperationEntry {
     toolName: string;
@@ -47,7 +37,6 @@ export declare class OperationLog {
     clear(): void;
     get size(): number;
 }
-export declare function extractDslStructure(query: unknown): DslStructure;
 export declare const operationLog: OperationLog;
 /** Log an operation, silently ignoring errors so logging never breaks tool handlers. */
 export declare function logOperation(entry: OperationEntry): void;

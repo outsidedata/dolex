@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { visualizeInputSchema } from '../../src/mcp/tools/visualize.js';
-import { visualizeFromSourceInputSchema } from '../../src/mcp/tools/visualize-from-source.js';
 
 describe('visualize geo params', () => {
   it('accepts geoLevel and geoRegion', () => {
@@ -55,12 +54,11 @@ describe('visualize geo params', () => {
   });
 });
 
-describe('visualize_from_source geo params', () => {
-  it('accepts geoLevel and geoRegion', () => {
-    const result = visualizeFromSourceInputSchema.safeParse({
+describe('visualize source query geo params', () => {
+  it('accepts geoLevel and geoRegion with sourceId + sql', () => {
+    const result = visualizeInputSchema.safeParse({
       sourceId: 'test',
-      table: 'data',
-      query: { select: ['*'] },
+      sql: 'SELECT * FROM data',
       intent: 'map of Japan by prefecture',
       geoLevel: 'subdivision',
       geoRegion: 'JP',

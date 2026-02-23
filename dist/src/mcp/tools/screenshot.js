@@ -12,7 +12,7 @@ import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 import { specStore } from '../spec-store.js';
 import { errorResponse } from './shared.js';
 export const screenshotInputSchema = z.object({
-    specId: z.string().describe('Spec ID from a previous visualize, visualize_data, or refine call'),
+    specId: z.string().describe('Spec ID from a previous visualize or refine call'),
     width: z.number().optional().describe('Image width in pixels (default: 800)'),
     height: z.number().optional().describe('Image height in pixels (default: 600)'),
 });

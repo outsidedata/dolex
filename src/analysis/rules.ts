@@ -1,4 +1,3 @@
-import type { DslQuery, DslSelectField } from '../types.js';
 import type { ClassifiedColumn, AnalysisStep, AnalysisCategory } from './types.js';
 
 // --- Helpers ----------------------------------------------------------------
@@ -29,17 +28,32 @@ function sumAlias(measureName: string): string {
   return `total_${measureName}`;
 }
 
+function sqlTimeBucket(col: string, bucket: 'day' | 'week' | 'month' | 'quarter' | 'year'): string {
+  switch (bucket) {
+    case 'year':
+      return `CASE WHEN typeof("${col}") = 'integer' AND "${col}" BETWEEN 1800 AND 2200 THEN CAST("${col}" AS TEXT) ELSE strftime('%Y', "${col}") END`;
+    case 'quarter':
+      return `strftime('%Y', "${col}") || '-Q' || ((CAST(strftime('%m', "${col}") AS INTEGER) - 1) / 3 + 1)`;
+    case 'month':
+      return `strftime('%Y-%m', "${col}")`;
+    case 'week':
+      return `strftime('%Y-W%W', "${col}")`;
+    case 'day':
+      return `strftime('%Y-%m-%d', "${col}")`;
+  }
+}
+
 function makeStep(
   category: AnalysisCategory,
   title: string,
   question: string,
   intent: string,
   rationale: string,
-  query: DslQuery,
+  sql: string,
   table: string,
   suggestedPatterns: string[],
 ): AnalysisStep {
-  return { title, question, intent, query, table, suggestedPatterns, rationale, category };
+  return { title, question, intent, sql, table, suggestedPatterns, rationale, category };
 }
 
 // --- Rules ------------------------------------------------------------------
@@ -53,6 +67,7 @@ const timeTrend: AnalysisRule = (columns, table) => {
 
   const bucket = pickTimeBucket(timeCol);
   const asName = sumAlias(measureCol.name);
+  const bucketExpr = sqlTimeBucket(timeCol.name, bucket);
 
   return makeStep(
     'trend',
@@ -60,11 +75,7 @@ const timeTrend: AnalysisRule = (columns, table) => {
     `How does ${capitalize(measureCol.name)} change over time?`,
     `Show ${measureCol.name} trend over ${timeCol.name}`,
     `Time column "${timeCol.name}" paired with measure "${measureCol.name}" suggests a time-series trend analysis.`,
-    {
-      select: [timeCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-      groupBy: [{ field: timeCol.name, bucket }],
-      orderBy: [{ field: timeCol.name, direction: 'asc' }],
-    },
+    `SELECT ${bucketExpr} AS "${timeCol.name}_${bucket}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY 1 ORDER BY 1 ASC`,
     table,
     ['line', 'area', 'sparkline-grid'],
   );
@@ -78,6 +89,7 @@ const trendByGroup: AnalysisRule = (columns, table) => {
 
   const bucket = pickTimeBucket(timeCol);
   const asName = sumAlias(measureCol.name);
+  const bucketExpr = sqlTimeBucket(timeCol.name, bucket);
 
   return makeStep(
     'trend',
@@ -85,11 +97,7 @@ const trendByGroup: AnalysisRule = (columns, table) => {
     `How does ${capitalize(measureCol.name)} trend over time across different ${capitalize(dimCol.name)} values?`,
     `Show ${measureCol.name} trend over ${timeCol.name} grouped by ${dimCol.name}`,
     `Time column "${timeCol.name}" with low-cardinality dimension "${dimCol.name}" (${dimCol.uniqueCount} values) enables grouped trend comparison.`,
-    {
-      select: [timeCol.name, dimCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-      groupBy: [{ field: timeCol.name, bucket }, dimCol.name],
-      orderBy: [{ field: timeCol.name, direction: 'asc' }],
-    },
+    `SELECT ${bucketExpr} AS "${timeCol.name}_${bucket}", "${dimCol.name}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY 1, "${dimCol.name}" ORDER BY 1 ASC`,
     table,
     ['small-multiples', 'sparkline-grid'],
   );
@@ -111,11 +119,7 @@ const comparison: AnalysisRule = (columns, table) => {
     `How does ${capitalize(measureCol.name)} compare across ${capitalize(dimCol.name)} values?`,
     `Compare ${measureCol.name} across ${dimCol.name}`,
     `Dimension "${dimCol.name}" (${dimCol.uniqueCount} unique values) with measure "${measureCol.name}" enables categorical comparison.`,
-    {
-      select: [dimCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-      groupBy: [dimCol.name],
-      orderBy: [{ field: asName, direction: 'desc' }],
-    },
+    `SELECT "${dimCol.name}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY "${dimCol.name}" ORDER BY "${asName}" DESC`,
     table,
     patterns,
   );
@@ -131,7 +135,7 @@ const distribution: AnalysisRule = (columns, table) => {
     `What is the distribution of ${capitalize(measureCol.name)}?`,
     `Show distribution of ${measureCol.name}`,
     `Measure "${measureCol.name}" can be analyzed for its statistical distribution.`,
-    { select: [measureCol.name] },
+    `SELECT "${measureCol.name}" FROM "${table}"`,
     table,
     ['histogram', 'violin', 'beeswarm'],
   );
@@ -143,9 +147,9 @@ const relationship: AnalysisRule = (columns, table) => {
 
   const [m1, m2] = measures;
   const dimCol = findByRole(columns, 'dimension').find(d => d.uniqueCount <= 10);
-  const selectFields: DslSelectField[] = dimCol
-    ? [m1.name, m2.name, dimCol.name]
-    : [m1.name, m2.name];
+  const selectCols = dimCol
+    ? `"${m1.name}", "${m2.name}", "${dimCol.name}"`
+    : `"${m1.name}", "${m2.name}"`;
 
   return makeStep(
     'relationship',
@@ -153,7 +157,7 @@ const relationship: AnalysisRule = (columns, table) => {
     `What is the relationship between ${capitalize(m1.name)} and ${capitalize(m2.name)}?`,
     `Explore relationship between ${m1.name} and ${m2.name}`,
     `Two measure columns "${m1.name}" and "${m2.name}" enable relationship analysis.${dimCol ? ` Dimension "${dimCol.name}" adds color grouping.` : ''}`,
-    { select: selectFields },
+    `SELECT ${selectCols} FROM "${table}"`,
     table,
     ['scatter', 'heatmap'],
   );
@@ -177,12 +181,7 @@ const ranking: AnalysisRule = (columns, table) => {
     `Which ${capitalize(dimCol.name)} values rank highest by ${capitalize(measureCol.name)}?`,
     `Rank top ${dimCol.name} by ${measureCol.name}`,
     `High-cardinality dimension "${dimCol.name}" (${dimCol.uniqueCount} values) with measure "${measureCol.name}" suits a top-N ranking with limit.`,
-    {
-      select: [dimCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-      groupBy: [dimCol.name],
-      orderBy: [{ field: asName, direction: 'desc' }],
-      limit: 15,
-    },
+    `SELECT "${dimCol.name}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY "${dimCol.name}" ORDER BY "${asName}" DESC LIMIT 15`,
     table,
     ['bar', 'lollipop'],
   );
@@ -205,10 +204,7 @@ const composition: AnalysisRule = (columns, table) => {
       `How is ${capitalize(measureCol.name)} distributed across ${capitalize(dimCol.name)} and ${capitalize(hierarchyCol.name)}?`,
       `Show composition of ${measureCol.name} by ${dimCol.name} and ${hierarchyCol.name}`,
       `Hierarchy column "${hierarchyCol.name}" with dimension "${dimCol.name}" and measure "${measureCol.name}" enables hierarchical composition analysis.`,
-      {
-        select: [dimCol.name, hierarchyCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-        groupBy: [dimCol.name, hierarchyCol.name],
-      },
+      `SELECT "${dimCol.name}", "${hierarchyCol.name}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY "${dimCol.name}", "${hierarchyCol.name}"`,
       table,
       ['treemap', 'sunburst', 'stacked-bar'],
     );
@@ -223,10 +219,7 @@ const composition: AnalysisRule = (columns, table) => {
       `What share does each ${capitalize(dimCol.name)} contribute to total ${capitalize(measureCol.name)}?`,
       `Show composition of ${measureCol.name} by ${dimCol.name}`,
       `Dimension "${dimCol.name}" (${dimCol.uniqueCount} values) with measure "${measureCol.name}" suits part-of-whole composition analysis.`,
-      {
-        select: [dimCol.name, { field: measureCol.name, aggregate: 'sum', as: asName }],
-        groupBy: [dimCol.name],
-      },
+      `SELECT "${dimCol.name}", SUM("${measureCol.name}") AS "${asName}" FROM "${table}" GROUP BY "${dimCol.name}"`,
       table,
       ['donut', 'waffle', 'treemap'],
     );

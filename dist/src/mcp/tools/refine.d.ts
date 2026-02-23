@@ -85,15 +85,15 @@ export declare const refineInputSchema: z.ZodObject<{
         values: (string | number)[];
         op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
     }[] | undefined;
-    limit?: number | undefined;
-    layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
+    limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
     yLabel?: string | undefined;
     flowColorBy?: "source" | "target" | undefined;
     switchPattern?: string | undefined;
     removeTable?: boolean | undefined;
+    layout?: "rows" | "columns" | undefined;
     hideColumns?: string[] | undefined;
 }, {
     specId: string;
@@ -116,15 +116,15 @@ export declare const refineInputSchema: z.ZodObject<{
         values: (string | number)[];
         op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
     }[] | undefined;
-    limit?: number | undefined;
-    layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
+    limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
     yLabel?: string | undefined;
     flowColorBy?: "source" | "target" | undefined;
     switchPattern?: string | undefined;
     removeTable?: boolean | undefined;
+    layout?: "rows" | "columns" | undefined;
     hideColumns?: string[] | undefined;
 }>;
 type RefineArgs = z.infer<typeof refineInputSchema>;

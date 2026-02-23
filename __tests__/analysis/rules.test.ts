@@ -18,7 +18,7 @@ describe('generateCandidates', () => {
     const candidates = generateCandidates(cols, table);
     const trend = candidates.find(c => c.category === 'trend');
     expect(trend).toBeDefined();
-    expect(trend!.query.groupBy).toBeDefined();
+    expect(trend!.sql).toContain('GROUP BY');
     expect(trend!.suggestedPatterns).toContain('line');
   });
 
@@ -27,7 +27,7 @@ describe('generateCandidates', () => {
     const candidates = generateCandidates(cols, table);
     const comp = candidates.find(c => c.category === 'comparison');
     expect(comp).toBeDefined();
-    expect(comp!.query.groupBy).toBeDefined();
+    expect(comp!.sql).toContain('GROUP BY');
   });
 
   it('generates a distribution when a measure exists', () => {
@@ -57,8 +57,8 @@ describe('generateCandidates', () => {
     const candidates = generateCandidates(cols, table);
     const ranking = candidates.find(c => c.category === 'ranking');
     expect(ranking).toBeDefined();
-    expect(ranking!.query.limit).toBeDefined();
-    expect(ranking!.query.orderBy).toBeDefined();
+    expect(ranking!.sql).toContain('LIMIT');
+    expect(ranking!.sql).toContain('ORDER BY');
   });
 
   it('generates composition when hierarchy + measure exist', () => {
@@ -81,7 +81,8 @@ describe('generateCandidates', () => {
     ];
     const candidates = generateCandidates(cols, table);
     const trendGroup = candidates.filter(c => c.category === 'trend');
-    const multiGroup = trendGroup.find(c => c.query.groupBy && c.query.groupBy.length > 1);
+    // Should have a multi-group trend with both time and dimension in GROUP BY
+    const multiGroup = trendGroup.find(c => c.sql.includes('region'));
     expect(multiGroup).toBeDefined();
   });
 

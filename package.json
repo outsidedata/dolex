@@ -1,7 +1,7 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "1.0.1",
-  "description": "AI data analyst — 43 handcrafted visualization patterns, query engine with window functions, and auto-analysis planning via MCP",
+  "version": "3.0.0",
+  "description": "AI data analyst — 43 handcrafted visualization patterns, SQL query engine with custom aggregates, and auto-analysis planning via MCP",
   "type": "module",
   "license": "MIT",
   "engines": {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { VisualizationSpec } from '../../src/types.js';
-import { inferColumns, applyTimeBucketColumnTypes, enhanceIntentForTimeBucket, applyColorPreferences } from '../../src/mcp/tools/shared.js';
+import { inferColumns, applyColorPreferences } from '../../src/mcp/tools/shared.js';
 
 describe('inferColumns', () => {
   it('infers date type from column name containing "date"', () => {
@@ -114,55 +114,6 @@ describe('inferColumns', () => {
       const cols = inferColumns(data);
       expect(cols.find(c => c.name === 'year')?.type).toBe('date');
     });
-  });
-});
-
-describe('applyTimeBucketColumnTypes', () => {
-  it('marks bucketed columns as date type', () => {
-    const cols = inferColumns([
-      { date_month: '2023-01', insults: 42 },
-      { date_month: '2023-02', insults: 55 },
-    ]);
-    applyTimeBucketColumnTypes(cols, [{ field: 'date', bucket: 'month' }]);
-    expect(cols.find(c => c.name === 'date_month')?.type).toBe('date');
-  });
-
-  it('marks year-bucketed columns as date', () => {
-    const cols = inferColumns([
-      { season_year: '2020', total: 100 },
-      { season_year: '2021', total: 200 },
-    ]);
-    // Without bucket info, season_year could be numeric
-    applyTimeBucketColumnTypes(cols, [{ field: 'season', bucket: 'year' }]);
-    expect(cols.find(c => c.name === 'season_year')?.type).toBe('date');
-  });
-
-  it('does nothing without groupBy', () => {
-    const cols = inferColumns([{ x: 1, y: 2 }]);
-    applyTimeBucketColumnTypes(cols, undefined);
-    expect(cols.find(c => c.name === 'x')?.type).toBe('numeric');
-  });
-});
-
-describe('enhanceIntentForTimeBucket', () => {
-  it('adds time series context when bucket present', () => {
-    const intent = enhanceIntentForTimeBucket('compare insults', [{ field: 'date', bucket: 'month' }]);
-    expect(intent).toContain('time series');
-  });
-
-  it('does not double-add if intent already mentions time', () => {
-    const intent = enhanceIntentForTimeBucket('show time series of insults', [{ field: 'date', bucket: 'month' }]);
-    expect(intent).toBe('show time series of insults');
-  });
-
-  it('returns intent unchanged without groupBy', () => {
-    const intent = enhanceIntentForTimeBucket('compare insults', undefined);
-    expect(intent).toBe('compare insults');
-  });
-
-  it('returns intent unchanged with non-bucketed groupBy', () => {
-    const intent = enhanceIntentForTimeBucket('compare insults', ['region']);
-    expect(intent).toBe('compare insults');
   });
 });
 

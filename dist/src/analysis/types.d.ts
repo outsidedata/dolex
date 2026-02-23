@@ -1,4 +1,3 @@
-import type { DslQuery } from '../types.js';
 export type ColumnRole = 'measure' | 'dimension' | 'time' | 'hierarchy' | 'id' | 'text';
 export interface ClassifiedColumn {
     name: string;
@@ -26,7 +25,7 @@ export interface AnalysisStep {
     title: string;
     question: string;
     intent: string;
-    query: DslQuery;
+    sql: string;
     table: string;
     suggestedPatterns: string[];
     rationale: string;

@@ -29,6 +29,10 @@ export interface ConnectedSource {
     executeQuery(sql: string): Promise<QueryExecutionResult>;
     /** Get sample rows from a table, picked for variety. */
     getSampleRows(tableName: string, count?: number): Promise<Record<string, any>[]>;
+    /** Get the underlying database handle (only available for SQL-backed connectors). */
+    getDatabase?(): any;
+    /** Invalidate cached schema so the next getSchema() rebuilds from the live database. */
+    invalidateSchema?(): void;
     /** Close the connection and free resources. */
     close(): Promise<void>;
 }

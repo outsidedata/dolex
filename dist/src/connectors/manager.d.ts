@@ -6,12 +6,18 @@
  * - In-memory registry with optional JSON file persistence
  * - Connector lookup by type
  * - Connection caching (lazy connect on first query)
- * - Cross-source query routing by name
+ * - SQL query execution with safety checks
  */
-import type { DataSourceConfig, DataSchema, DslQuery } from '../types.js';
+import type { DataSourceConfig, DataSchema } from '../types.js';
 import type { ConnectedSource, SourceRegistryEntry, QueryExecutionResult } from './types.js';
-import type { DslQueryResult } from './js-aggregation.js';
-export type { DslQueryResult } from './js-aggregation.js';
+export interface SqlQueryResult {
+    ok: boolean;
+    rows?: Record<string, any>[];
+    columns?: string[];
+    totalRows?: number;
+    truncated?: boolean;
+    error?: string;
+}
 export declare class SourceManager {
     private registry;
     private connections;
@@ -53,7 +59,6 @@ export declare class SourceManager {
     isConnected(idOrName: string): boolean;
     /**
      * Lazily connect and return the source, or an error result.
-     * Consolidates the repeated connect-or-fail pattern used by getSchema/query/queryDsl.
      */
     private resolveSource;
     getSchema(idOrName: string): Promise<{
@@ -67,16 +72,15 @@ export declare class SourceManager {
         error?: string;
     }>;
     /**
-     * Execute a DSL query against a specific source table.
-     * Validates against schema, compiles to SQL (or JS aggregation fallback),
-     * executes, and returns rows.
+     * Execute a SQL query against a source with safety checks.
+     * Only SELECT/WITH queries are allowed. Results are auto-capped at maxRows.
+     * Error messages are enriched with available table/column names.
      */
-    queryDsl(idOrName: string, table: string, dslQuery: DslQuery): Promise<DslQueryResult>;
+    querySql(idOrName: string, sql: string, maxRows?: number): Promise<SqlQueryResult>;
     /**
-     * Validate a DSL query against the source schema. Returns an error message
-     * if validation fails, or null if the query is valid.
+     * Enrich SQLite error messages with available table/column info.
      */
-    private validateDslQuery;
+    private enrichSqlError;
     getAllSchemas(): Promise<{
         sourceId: string;
         sourceName: string;
