@@ -5,7 +5,7 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 19 tools:
+ * Tools:
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
@@ -70,7 +70,6 @@ import { handlePromoteColumns } from './tools/promote-columns.js';
 import { handleListTransforms } from './tools/list-transforms.js';
 import { handleDropColumns } from './tools/drop-columns.js';
 import { specStore } from './spec-store.js';
-import { registerPrompts } from './prompts.js';
 
 import { mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -418,10 +417,6 @@ registerAppResource(
     }],
   }),
 );
-
-// ─── REGISTER PROMPTS ──────────────────────────────────────────────────────
-
-registerPrompts(server);
 
 // ─── START ──────────────────────────────────────────────────────────────────
 

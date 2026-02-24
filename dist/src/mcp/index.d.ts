@@ -5,7 +5,7 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 19 tools:
+ * Tools:
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
