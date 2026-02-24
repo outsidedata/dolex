@@ -5,7 +5,7 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 17 tools:
+ * 19 tools:
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
@@ -23,6 +23,8 @@
  *   promote_columns        — Promote working columns to derived (persisted)
  *   list_transforms        — List columns by layer (source/derived/working)
  *   drop_columns           — Drop derived or working columns
+ *   visualize_cli_only     — CLI ONLY: visualize + write to disk (no HTML in response)
+ *   refine_visualization_cli_only — CLI ONLY: refine + write to disk (no HTML in response)
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -54,6 +56,8 @@ import {
 } from './tools/server-privacy.js';
 import { exportHtmlInputSchema, handleExportHtml } from './tools/export-html.js';
 import { screenshotInputSchema, handleScreenshot, closeBrowser } from './tools/screenshot.js';
+import { visualizeCliInputSchema, handleVisualizeCli } from './tools/visualize-cli.js';
+import { refineCliInputSchema, handleRefineCli } from './tools/refine-cli.js';
 import {
   transformDataBaseSchema,
   transformDataSchema,
@@ -357,6 +361,30 @@ server.registerTool(
     inputSchema: screenshotInputSchema.shape,
   },
   handleScreenshot(),
+);
+
+// ─── CLI-ONLY TOOLS ────────────────────────────────────────────────────────
+// These tools are for Claude Code / CLI use ONLY. They write HTML to disk
+// instead of returning it. DO NOT use these in Claude Desktop.
+
+server.registerTool(
+  'visualize_cli_only',
+  {
+    title: 'CLI ONLY: Visualize to File',
+    description: 'FOR CLAUDE CODE / CLI USE ONLY. DO NOT USE IN CLAUDE DESKTOP.\n\nSame as visualize but writes HTML directly to disk via writeTo parameter. NEVER returns HTML in response. Use this for article mode and programmatic workflows.',
+    inputSchema: visualizeCliInputSchema.shape,
+  },
+  handleVisualizeCli(selectPatternCallback, { sourceManager }),
+);
+
+server.registerTool(
+  'refine_visualization_cli_only',
+  {
+    title: 'CLI ONLY: Refine to File',
+    description: 'FOR CLAUDE CODE / CLI USE ONLY. DO NOT USE IN CLAUDE DESKTOP.\n\nSame as refine_visualization but writes HTML directly to disk via writeTo parameter. NEVER returns HTML in response.',
+    inputSchema: refineCliInputSchema.shape,
+  },
+  handleRefineCli(),
 );
 
 // ─── MCP APPS RESOURCE ─────────────────────────────────────────────────────

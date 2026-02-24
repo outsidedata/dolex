@@ -5,7 +5,7 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 17 tools:
+ * 19 tools:
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
@@ -23,6 +23,8 @@
  *   promote_columns        — Promote working columns to derived (persisted)
  *   list_transforms        — List columns by layer (source/derived/working)
  *   drop_columns           — Drop derived or working columns
+ *   visualize_cli_only     — CLI ONLY: visualize + write to disk (no HTML in response)
+ *   refine_visualization_cli_only — CLI ONLY: refine + write to disk (no HTML in response)
  */
 export {};
 //# sourceMappingURL=index.d.ts.map

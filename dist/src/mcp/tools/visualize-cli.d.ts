@@ -1,68 +1,16 @@
 /**
- * MCP Tool: visualize
- * Takes data (inline, cached, or from a loaded CSV via SQL) + intent
- * and returns visualization recommendations from the handcrafted pattern library.
+ * MCP Tool: visualize_cli_only
  *
- * Returns compact text content (specId + metadata, no data) while
- * structuredContent still gets the full pre-rendered chart HTML.
+ * FOR CLAUDE CODE / CLI USE ONLY. DO NOT USE IN CLAUDE DESKTOP.
+ *
+ * Same as visualize but:
+ * - NEVER returns HTML in response
+ * - Writes HTML directly to disk via writeTo parameter
+ * - Returns only specId and metadata
  */
 import { z } from 'zod';
 import type { VisualizeInput, VisualizeOutput } from '../../types.js';
-import type { OperationMeta } from './operation-log.js';
-export declare const columnsSchema: z.ZodOptional<z.ZodArray<z.ZodObject<{
-    name: z.ZodString;
-    type: z.ZodEnum<["numeric", "categorical", "date", "id", "text"]>;
-    sampleValues: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    uniqueCount: z.ZodOptional<z.ZodNumber>;
-    nullCount: z.ZodOptional<z.ZodNumber>;
-    totalCount: z.ZodOptional<z.ZodNumber>;
-}, "strip", z.ZodTypeAny, {
-    type: "numeric" | "categorical" | "date" | "id" | "text";
-    name: string;
-    sampleValues?: string[] | undefined;
-    uniqueCount?: number | undefined;
-    nullCount?: number | undefined;
-    totalCount?: number | undefined;
-}, {
-    type: "numeric" | "categorical" | "date" | "id" | "text";
-    name: string;
-    sampleValues?: string[] | undefined;
-    uniqueCount?: number | undefined;
-    nullCount?: number | undefined;
-    totalCount?: number | undefined;
-}>, "many">>;
-export declare const dataShapeHintsSchema: z.ZodOptional<z.ZodObject<{
-    rowCount: z.ZodOptional<z.ZodNumber>;
-    categoryCount: z.ZodOptional<z.ZodNumber>;
-    seriesCount: z.ZodOptional<z.ZodNumber>;
-    numericColumnCount: z.ZodOptional<z.ZodNumber>;
-    categoricalColumnCount: z.ZodOptional<z.ZodNumber>;
-    dateColumnCount: z.ZodOptional<z.ZodNumber>;
-    hasTimeSeries: z.ZodOptional<z.ZodBoolean>;
-    hasHierarchy: z.ZodOptional<z.ZodBoolean>;
-    hasNegativeValues: z.ZodOptional<z.ZodBoolean>;
-}, "strip", z.ZodTypeAny, {
-    dateColumnCount?: number | undefined;
-    categoricalColumnCount?: number | undefined;
-    rowCount?: number | undefined;
-    categoryCount?: number | undefined;
-    seriesCount?: number | undefined;
-    numericColumnCount?: number | undefined;
-    hasTimeSeries?: boolean | undefined;
-    hasHierarchy?: boolean | undefined;
-    hasNegativeValues?: boolean | undefined;
-}, {
-    dateColumnCount?: number | undefined;
-    categoricalColumnCount?: number | undefined;
-    rowCount?: number | undefined;
-    categoryCount?: number | undefined;
-    seriesCount?: number | undefined;
-    numericColumnCount?: number | undefined;
-    hasTimeSeries?: boolean | undefined;
-    hasHierarchy?: boolean | undefined;
-    hasNegativeValues?: boolean | undefined;
-}>>;
-export declare const visualizeInputSchema: z.ZodObject<{
+export declare const visualizeCliInputSchema: z.ZodObject<{
     data: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodAny>, "many">>;
     resultId: z.ZodOptional<z.ZodString>;
     sourceId: z.ZodOptional<z.ZodString>;
@@ -146,8 +94,10 @@ export declare const visualizeInputSchema: z.ZodObject<{
     maxAlternativeChartTypes: z.ZodOptional<z.ZodNumber>;
     geoLevel: z.ZodOptional<z.ZodEnum<["country", "subdivision"]>>;
     geoRegion: z.ZodOptional<z.ZodString>;
+    writeTo: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     intent: string;
+    writeTo: string;
     columns?: {
         type: "numeric" | "categorical" | "date" | "id" | "text";
         name: string;
@@ -188,6 +138,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     geoLevel?: "country" | "subdivision" | undefined;
 }, {
     intent: string;
+    writeTo: string;
     columns?: {
         type: "numeric" | "categorical" | "date" | "id" | "text";
         name: string;
@@ -227,52 +178,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     maxAlternativeChartTypes?: number | undefined;
     geoLevel?: "country" | "subdivision" | undefined;
 }>;
-/**
- * Shared core logic for all visualize data paths (inline, cached, source query).
- * Takes resolved data + args and returns the MCP response.
- */
-export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInput) => VisualizeOutput, toolName?: string): (data: Record<string, any>[], args: {
-    intent: string;
-    columns?: z.infer<typeof columnsSchema>;
-    dataShapeHints?: z.infer<typeof dataShapeHintsSchema>;
-    pattern?: string;
-    title?: string;
-    subtitle?: string;
-    includeDataTable?: boolean;
-    palette?: string;
-    highlight?: {
-        values: any[];
-        color?: string | string[];
-        mutedColor?: string;
-        mutedOpacity?: number;
-    };
-    colorField?: string;
-    maxAlternativeChartTypes?: number;
-    geoLevel?: "country" | "subdivision";
-    geoRegion?: string;
-}, queryMeta?: {
-    truncated?: boolean;
-    totalSourceRows?: number;
-}, extraMeta?: Partial<OperationMeta>) => {
-    structuredContent?: {
-        specId: string;
-        html: string;
-    } | undefined;
-    content: {
-        type: "text";
-        text: string;
-    }[];
-};
-export declare function handleVisualize(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps?: {
+export declare function handleVisualizeCli(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps?: {
     sourceManager?: any;
-}): (args: z.infer<typeof visualizeInputSchema>) => Promise<import("./shared.js").McpResponse | {
-    structuredContent?: {
-        specId: string;
-        html: string;
-    } | undefined;
-    content: {
-        type: "text";
-        text: string;
-    }[];
-}>;
-//# sourceMappingURL=visualize.d.ts.map
+}): (args: z.infer<typeof visualizeCliInputSchema>) => Promise<import("./shared.js").McpResponse>;
+//# sourceMappingURL=visualize-cli.d.ts.map

@@ -1,5 +1,15 @@
+/**
+ * MCP Tool: refine_visualization_cli_only
+ *
+ * FOR CLAUDE CODE / CLI USE ONLY. DO NOT USE IN CLAUDE DESKTOP.
+ *
+ * Same as refine_visualization but:
+ * - NEVER returns HTML in response
+ * - Writes HTML directly to disk via writeTo parameter
+ * - Returns only specId and changes
+ */
 import { z } from 'zod';
-export declare const refineInputSchema: z.ZodObject<{
+export declare const refineCliInputSchema: z.ZodObject<{
     specId: z.ZodString;
     sort: z.ZodOptional<z.ZodNullable<z.ZodObject<{
         field: z.ZodOptional<z.ZodString>;
@@ -64,8 +74,11 @@ export declare const refineInputSchema: z.ZodObject<{
     removeTable: z.ZodOptional<z.ZodBoolean>;
     layout: z.ZodOptional<z.ZodEnum<["rows", "columns"]>>;
     hideColumns: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+} & {
+    writeTo: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     specId: string;
+    writeTo: string;
     title?: string | undefined;
     highlight?: {
         values: (string | number)[];
@@ -97,6 +110,7 @@ export declare const refineInputSchema: z.ZodObject<{
     hideColumns?: string[] | undefined;
 }, {
     specId: string;
+    writeTo: string;
     title?: string | undefined;
     highlight?: {
         values: (string | number)[];
@@ -127,7 +141,5 @@ export declare const refineInputSchema: z.ZodObject<{
     layout?: "rows" | "columns" | undefined;
     hideColumns?: string[] | undefined;
 }>;
-type RefineArgs = z.infer<typeof refineInputSchema>;
-export declare function handleRefine(): (args: RefineArgs) => Promise<import("./shared.js").McpResponse>;
-export {};
-//# sourceMappingURL=refine.d.ts.map
+export declare function handleRefineCli(): (args: z.infer<typeof refineCliInputSchema>) => Promise<import("./shared.js").McpResponse>;
+//# sourceMappingURL=refine-cli.d.ts.map

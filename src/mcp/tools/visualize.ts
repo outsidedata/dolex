@@ -67,8 +67,6 @@ export const visualizeInputSchema = z.object({
     .describe('Geographic level: "country" (each row = a nation) or "subdivision" (each row = a state/province). Auto-detected if omitted.'),
   geoRegion: z.string().optional()
     .describe('Geographic region code: "world", ISO country code (US, CN, AU, etc.), or continent (EU, AF, AS, SA, NA, OC). Auto-detected if omitted.'),
-  returnHtml: z.boolean().optional()
-    .describe('Whether to return pre-rendered HTML in the response. Default: true. Set to false to save tokens — use screenshot(specId) to render later.'),
 });
 
 /**
@@ -93,7 +91,6 @@ export function handleVisualizeCore(
     maxAlternativeChartTypes?: number;
     geoLevel?: 'country' | 'subdivision';
     geoRegion?: string;
-    returnHtml?: boolean;
   }, queryMeta?: { truncated?: boolean; totalSourceRows?: number }, extraMeta?: Partial<OperationMeta>) => {
     const start = Date.now();
     const notes: string[] = [];
@@ -193,13 +190,13 @@ export function handleVisualizeCore(
       },
     });
 
-    const shouldReturnHtml = args.returnHtml !== false;
+    // Always include HTML — Desktop requires it for inline chart rendering
     return {
       content: [{
         type: 'text' as const,
         text: JSON.stringify(compactResponse, null, 2),
       }],
-      ...(outputHtml && shouldReturnHtml ? {
+      ...(outputHtml ? {
         structuredContent: {
           specId,
           html: outputHtml,

@@ -58,8 +58,6 @@ export const refineInputSchema = z.object({
     removeTable: z.boolean().optional().describe('Remove the data table from a compound chart'),
     layout: z.enum(['rows', 'columns']).optional().describe('Compound layout'),
     hideColumns: z.array(z.string()).optional().describe('Hide columns from the data table'),
-    returnHtml: z.boolean().optional()
-        .describe('Whether to return pre-rendered HTML in the response. Default: true. Set to false to save tokens.'),
 });
 function applyAtomicParams(spec, args, stored) {
     const changes = [];
@@ -420,8 +418,8 @@ export function handleRefine() {
                 changes: result.changes,
             },
         });
-        const shouldReturnHtml = args.returnHtml !== false;
-        if (outputHtml && shouldReturnHtml) {
+        // Always include HTML — Desktop requires it for inline chart rendering
+        if (outputHtml) {
             return htmlResponse(body, outputHtml);
         }
         return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
