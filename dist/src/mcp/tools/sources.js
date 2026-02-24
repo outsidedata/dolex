@@ -16,7 +16,7 @@ export function isSandboxPath(filePath) {
 export const addSourceInputSchema = z.object({
     name: z.string().describe('Name for this dataset'),
     path: z.string().describe('Path to a CSV file or directory of CSV files'),
-    detail: z.enum(['compact', 'full']).default('full').describe('Schema detail level: "compact" returns just column names/types + row counts (saves tokens); "full" (default) includes stats, top values, and sample rows'),
+    detail: z.enum(['compact', 'full']).default('compact').describe('Schema detail level: "compact" (default) returns just column names/types + row counts; "full" includes stats, top values, and sample rows'),
 });
 export const removeSourceInputSchema = z.object({
     sourceId: z.string().describe('Dataset ID returned by load_csv'),

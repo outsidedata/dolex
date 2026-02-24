@@ -18,9 +18,10 @@ export function jsonResponse(body) {
     };
 }
 export function htmlResponse(body, html) {
+    const specId = body?.specId;
     return {
         content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
-        structuredContent: { html },
+        structuredContent: { ...(specId ? { specId } : {}), html },
     };
 }
 // ─── COLUMN INFERENCE ───────────────────────────────────────────────────────

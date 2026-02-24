@@ -146,6 +146,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     maxAlternativeChartTypes: z.ZodOptional<z.ZodNumber>;
     geoLevel: z.ZodOptional<z.ZodEnum<["country", "subdivision"]>>;
     geoRegion: z.ZodOptional<z.ZodString>;
+    returnHtml: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     intent: string;
     columns?: {
@@ -186,6 +187,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     includeDataTable?: boolean | undefined;
     maxAlternativeChartTypes?: number | undefined;
     geoLevel?: "country" | "subdivision" | undefined;
+    returnHtml?: boolean | undefined;
 }, {
     intent: string;
     columns?: {
@@ -226,6 +228,7 @@ export declare const visualizeInputSchema: z.ZodObject<{
     includeDataTable?: boolean | undefined;
     maxAlternativeChartTypes?: number | undefined;
     geoLevel?: "country" | "subdivision" | undefined;
+    returnHtml?: boolean | undefined;
 }>;
 /**
  * Shared core logic for all visualize data paths (inline, cached, source query).
@@ -250,11 +253,13 @@ export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInp
     maxAlternativeChartTypes?: number;
     geoLevel?: "country" | "subdivision";
     geoRegion?: string;
+    returnHtml?: boolean;
 }, queryMeta?: {
     truncated?: boolean;
     totalSourceRows?: number;
 }, extraMeta?: Partial<OperationMeta>) => {
     structuredContent?: {
+        specId: string;
         html: string;
     } | undefined;
     content: {
@@ -264,8 +269,9 @@ export declare function handleVisualizeCore(selectPatterns: (input: VisualizeInp
 };
 export declare function handleVisualize(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps?: {
     sourceManager?: any;
-}): (args: z.infer<typeof visualizeInputSchema>) => Promise<{
+}): (args: z.infer<typeof visualizeInputSchema>) => Promise<import("./shared.js").McpResponse | {
     structuredContent?: {
+        specId: string;
         html: string;
     } | undefined;
     content: {

@@ -176,7 +176,7 @@ registerAppTool(
   'visualize',
   {
     title: 'Visualize Data',
-    description: 'Chart data from inline arrays, cached query results, or loaded CSVs.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), pattern recommendation, alternatives, chart HTML.\nPresent any notes to the user.',
+    description: 'Chart data from inline arrays, cached query results, or loaded CSVs.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), pattern recommendation, alternatives.\nSet returnHtml=false to skip HTML in response (saves tokens); use screenshot(specId) to render later.\nPresent any notes to the user.',
     inputSchema: visualizeInputSchema.shape,
     _meta: {
       ui: {
@@ -355,7 +355,7 @@ server.registerTool(
   'export_html',
   {
     title: 'Export Chart HTML',
-    description: 'Get the full self-contained HTML for a visualization by specId. Suitable for saving to file or opening in a browser.',
+    description: 'Get the full self-contained HTML for a visualization by specId. Suitable for saving to file or opening in a browser.\n\nUse writeTo param to save directly to disk (returns path, not HTML — saves tokens).',
     inputSchema: exportHtmlInputSchema.shape,
   },
   handleExportHtml(),

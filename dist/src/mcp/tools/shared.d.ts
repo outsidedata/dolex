@@ -16,6 +16,7 @@ export interface McpResponse {
     content: McpTextContent[];
     isError?: boolean;
     structuredContent?: {
+        specId?: string;
         html: string;
     };
 }

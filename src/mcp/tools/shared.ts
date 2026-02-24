@@ -21,7 +21,7 @@ export interface McpResponse {
   [key: string]: unknown;
   content: McpTextContent[];
   isError?: boolean;
-  structuredContent?: { html: string };
+  structuredContent?: { specId?: string; html: string };
 }
 
 export function errorResponse(message: string): McpResponse {
@@ -38,9 +38,10 @@ export function jsonResponse(body: unknown): McpResponse {
 }
 
 export function htmlResponse(body: unknown, html: string): McpResponse {
+  const specId = (body as Record<string, unknown>)?.specId as string | undefined;
   return {
     content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
-    structuredContent: { html },
+    structuredContent: { ...(specId ? { specId } : {}), html },
   };
 }
 
