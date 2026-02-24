@@ -5,7 +5,7 @@
  * An MCP server that provides visualization intelligence from a handcrafted
  * pattern library that goes far beyond bar/line/pie.
  *
- * 18 tools:
+ * 17 tools:
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
@@ -23,7 +23,6 @@
  *   promote_columns        — Promote working columns to derived (persisted)
  *   list_transforms        — List columns by layer (source/derived/working)
  *   drop_columns           — Drop derived or working columns
- *   report_bug             — Generate a sanitized bug report for GitHub issues
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -53,7 +52,6 @@ import {
   handleServerStatus,
   handleClearCache,
 } from './tools/server-privacy.js';
-import { bugReportInputSchema, handleReportBug } from './tools/bug-report.js';
 import { exportHtmlInputSchema, handleExportHtml } from './tools/export-html.js';
 import { screenshotInputSchema, handleScreenshot, closeBrowser } from './tools/screenshot.js';
 import {
@@ -133,7 +131,7 @@ const server = new McpServer(
       '• refine_visualization: Tweak a chart — sort, limit, filter, palette, highlight, flip, title, format. Each call returns a new specId.',
       '• list_patterns: Browse available chart types. Only needed when the user asks what charts are available or you need a pattern ID.',
       '',
-      'Utility tools: list_data, remove_data, server_status (inspect cached data), clear_cache, report_bug (generate GitHub issue), export_html (get chart HTML by specId), screenshot (render to PNG).',
+      'Utility tools: list_data, remove_data, server_status (inspect cached data), clear_cache, export_html (get chart HTML by specId), screenshot (render to PNG).',
       '',
       'COLOR: Set palette (categorical/blue/warm/blueRed/etc.) and/or highlight specific values. Use colorField to control which column drives color.',
       'PATTERNS: 43 types auto-selected by data shape + intent. When user names a specific chart type, pass pattern="<id>" to force it. Use list_patterns to browse.',
@@ -339,16 +337,6 @@ server.registerTool(
     inputSchema: clearCacheInputSchema,
   },
   handleClearCache(privacyDeps),
-);
-
-server.registerTool(
-  'report_bug',
-  {
-    title: 'Report Bug',
-    description: 'Generate a sanitized bug report for GitHub issues. Includes environment info and recent operations — never includes data values or file paths.',
-    inputSchema: bugReportInputSchema.shape,
-  },
-  handleReportBug({ sourceManager, serverStartTime }),
 );
 
 server.registerTool(

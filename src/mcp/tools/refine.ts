@@ -81,6 +81,9 @@ export const refineInputSchema = z.object({
   removeTable: z.boolean().optional().describe('Remove the data table from a compound chart'),
   layout: z.enum(['rows', 'columns']).optional().describe('Compound layout'),
   hideColumns: z.array(z.string()).optional().describe('Hide columns from the data table'),
+
+  returnHtml: z.boolean().optional()
+    .describe('Whether to return pre-rendered HTML in the response. Default: true. Set to false to save tokens.'),
 });
 
 type RefineArgs = z.infer<typeof refineInputSchema>;
@@ -452,7 +455,8 @@ export function handleRefine() {
       },
     });
 
-    if (outputHtml) {
+    const shouldReturnHtml = args.returnHtml !== false;
+    if (outputHtml && shouldReturnHtml) {
       return htmlResponse(body, outputHtml);
     }
     return { content: [{ type: 'text' as const, text: JSON.stringify(body, null, 2) }] };

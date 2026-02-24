@@ -124,7 +124,6 @@ Every query is validated before execution — field names are checked against th
 | `screenshot` | Render to PNG |
 | `server_status` | Inspect server state |
 | `clear_cache` | Reset |
-| `report_bug` | File a bug report |
 
 ## License
 

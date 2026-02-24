@@ -64,6 +64,7 @@ export declare const refineInputSchema: z.ZodObject<{
     removeTable: z.ZodOptional<z.ZodBoolean>;
     layout: z.ZodOptional<z.ZodEnum<["rows", "columns"]>>;
     hideColumns: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    returnHtml: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     specId: string;
     title?: string | undefined;
@@ -86,6 +87,7 @@ export declare const refineInputSchema: z.ZodObject<{
         op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
     }[] | undefined;
     subtitle?: string | undefined;
+    returnHtml?: boolean | undefined;
     limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
@@ -117,6 +119,7 @@ export declare const refineInputSchema: z.ZodObject<{
         op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
     }[] | undefined;
     subtitle?: string | undefined;
+    returnHtml?: boolean | undefined;
     limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
