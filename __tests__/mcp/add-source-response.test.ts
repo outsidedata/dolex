@@ -5,8 +5,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
-describe('load_csv enhanced response', () => {
-  it('returns full column profiles with stats, topValues, and sampleRows', async () => {
+describe('load_csv smart summary response', () => {
+  it('returns smart summary with column names, types, and ranges', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'add-src-'));
     const csvPath = path.join(tmpDir, 'sales.csv');
     const rows = [
@@ -24,35 +24,36 @@ describe('load_csv enhanced response', () => {
     const result = await handler({
       name: 'sales',
       path: csvPath,
-      detail: 'full',
     });
 
     expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0].text);
 
+    // New format: sourceId + summary (string) + message
     expect(body.sourceId).toBeDefined();
-    expect(body.name).toBe('sales');
-    expect(body.tables).toHaveLength(1);
+    expect(typeof body.summary).toBe('string');
+    expect(body.message).toContain('Loaded');
+    expect(body.message).toContain('1 table');
 
-    const table = body.tables[0];
-    expect(table.rowCount).toBe(5);
-    expect(table.columns).toBeDefined();
-    expect(table.columns.length).toBeGreaterThan(0);
-    expect(table.sampleRows).toBeDefined();
-    expect(table.sampleRows.length).toBeLessThanOrEqual(5);
+    // Summary should contain table info
+    expect(body.summary).toContain('sales:'); // table name
+    expect(body.summary).toContain('5 rows'); // row count
 
-    // Numeric column should have stats
-    const revenueCol = table.columns.find((c: any) => c.name === 'revenue');
-    expect(revenueCol).toBeDefined();
-    expect(revenueCol.stats).toBeDefined();
-    expect(revenueCol.stats.min).toBe(100);
-    expect(revenueCol.stats.max).toBe(300);
+    // Summary should contain column names
+    expect(body.summary).toContain('date');
+    expect(body.summary).toContain('region');
+    expect(body.summary).toContain('revenue');
 
-    // Categorical column should have topValues
-    const regionCol = table.columns.find((c: any) => c.name === 'region');
-    expect(regionCol).toBeDefined();
-    expect(regionCol.topValues).toBeDefined();
-    expect(regionCol.topValues.length).toBeGreaterThan(0);
+    // Summary should contain numeric range for revenue
+    expect(body.summary).toContain('100'); // min
+    expect(body.summary).toContain('300'); // max
+
+    // Summary should contain categorical values for region
+    expect(body.summary).toContain('North');
+    expect(body.summary).toContain('South');
+
+    // Should NOT have the old tables array
+    expect(body.tables).toBeUndefined();
 
     await sourceManager.closeAll();
     fs.rmSync(tmpDir, { recursive: true });

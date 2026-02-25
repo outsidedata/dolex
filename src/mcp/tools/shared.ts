@@ -7,11 +7,17 @@
  * - Color preference application to visualization specs
  */
 
+import { writeFileSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import type {
   DataColumn,
   VisualizationSpec,
+  CompoundVisualizationSpec,
   ColorPaletteName,
 } from '../../types.js';
+import { isCompoundSpec } from '../../types.js';
+import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
+import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 
 // ─── MCP RESPONSE BUILDERS ─────────────────────────────────────────────────
 
@@ -168,11 +174,132 @@ export function applyColorPreferences(
   return { notes };
 }
 
+// ─── HTML BUILDING ──────────────────────────────────────────────────────────
+
+export function buildOutputHtml(spec: VisualizationSpec | CompoundVisualizationSpec): string | undefined {
+  if (isCompoundSpec(spec)) {
+    return buildCompoundHtml(spec);
+  }
+  if (isHtmlPatternSupported(spec.pattern)) {
+    return buildChartHtml(spec);
+  }
+  return undefined;
+}
+
+export function writeHtmlToDisk(html: string, writeTo: string): { ok: true; message: string } | { ok: false; error: string } {
+  try {
+    mkdirSync(dirname(writeTo), { recursive: true });
+    writeFileSync(writeTo, html, 'utf-8');
+    return { ok: true, message: `Wrote ${html.length} bytes to ${writeTo}` };
+  } catch (err) {
+    return { ok: false, error: `Failed to write to ${writeTo}: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 // ─── FORMATTING ─────────────────────────────────────────────────────────────
 
 export function formatUptime(ms: number): string {
   const min = Math.floor(ms / 60000);
   if (min < 60) return `${min} minutes`;
   return `${Math.floor(min / 60)}h ${min % 60}m`;
+}
+
+// ─── DATA RESOLUTION ────────────────────────────────────────────────────────
+
+export interface ResolvedData {
+  data: Record<string, any>[];
+  queryMeta?: { truncated?: boolean; totalSourceRows?: number };
+  extraMeta?: { sqlPreview?: string; sourceType?: string };
+}
+
+/**
+ * Resolves data from one of three sources: sourceId+sql, resultId, or inline data.
+ * Returns the resolved data or an error response.
+ */
+export async function resolveData(
+  args: { data?: Record<string, any>[]; resultId?: string; sourceId?: string; sql?: string },
+  deps: { sourceManager?: any; getResult: (id: string) => { rows: Record<string, any>[]; columns: { name: string; type: string }[] } | null },
+): Promise<ResolvedData | McpResponse> {
+  let data = args.data;
+  let queryMeta: ResolvedData['queryMeta'];
+  let extraMeta: ResolvedData['extraMeta'];
+
+  if (args.sourceId && args.sql) {
+    if (!deps.sourceManager) {
+      return errorResponse('Source manager not available.');
+    }
+    const source = deps.sourceManager.get?.(args.sourceId);
+    const sourceType = source?.type;
+
+    const result = await deps.sourceManager.querySql(args.sourceId, args.sql);
+    if (!result.ok) {
+      return errorResponse(result.error);
+    }
+    data = result.rows;
+    queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
+    extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
+  }
+
+  if (!data && args.resultId) {
+    const cached = deps.getResult(args.resultId);
+    if (!cached) {
+      return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
+    }
+    data = cached.rows;
+  }
+
+  if (!data || data.length === 0) {
+    return errorResponse('No data provided. Pass data array, resultId from query_data, or sourceId + sql.');
+  }
+
+  return { data, queryMeta, extraMeta };
+}
+
+/** Type guard: checks if a resolveData result is an error response. */
+export function isErrorResponse(result: ResolvedData | McpResponse): result is McpResponse {
+  return 'content' in result && 'isError' in result;
+}
+
+// ─── TRANSFORM TOOL HELPERS ─────────────────────────────────────────────────
+
+export interface TransformContext {
+  source: any;
+  db: any;
+  table: any;
+}
+
+/**
+ * Shared setup for all transform tools: connect to source, get database handle,
+ * validate table exists. Returns either the context or an error response.
+ */
+export async function connectAndValidateTable(
+  deps: { sourceManager: any },
+  sourceId: string,
+  tableName: string,
+): Promise<TransformContext | McpResponse> {
+  const connResult = await deps.sourceManager.connect(sourceId);
+  if (!connResult.ok) {
+    return errorResponse(`Source not found: ${sourceId}`);
+  }
+
+  const source = connResult.source!;
+  const db = source.getDatabase?.();
+  if (!db) {
+    return errorResponse('Source does not support transforms (no database handle)');
+  }
+
+  const schema = await source.getSchema();
+  const table = schema.tables.find((t: any) => t.name === tableName);
+  if (!table) {
+    const available = schema.tables.map((t: any) => t.name);
+    return errorResponse(`Table '${tableName}' not found. Available: [${available.join(', ')}]`);
+  }
+
+  return { source, db, table };
+}
+
+/** Type guard: checks if a connectAndValidateTable result is an error response. */
+export function isTransformError(result: TransformContext | McpResponse): result is McpResponse {
+  return 'content' in result;
 }
 

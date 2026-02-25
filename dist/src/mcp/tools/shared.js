@@ -6,6 +6,11 @@
  * - Column inference from data rows
  * - Color preference application to visualization specs
  */
+import { writeFileSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
+import { isCompoundSpec } from '../../types.js';
+import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
+import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 export function errorResponse(message) {
     return {
         content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
@@ -137,11 +142,95 @@ export function applyColorPreferences(spec, prefs, data) {
     }
     return { notes };
 }
+// ─── HTML BUILDING ──────────────────────────────────────────────────────────
+export function buildOutputHtml(spec) {
+    if (isCompoundSpec(spec)) {
+        return buildCompoundHtml(spec);
+    }
+    if (isHtmlPatternSupported(spec.pattern)) {
+        return buildChartHtml(spec);
+    }
+    return undefined;
+}
+export function writeHtmlToDisk(html, writeTo) {
+    try {
+        mkdirSync(dirname(writeTo), { recursive: true });
+        writeFileSync(writeTo, html, 'utf-8');
+        return { ok: true, message: `Wrote ${html.length} bytes to ${writeTo}` };
+    }
+    catch (err) {
+        return { ok: false, error: `Failed to write to ${writeTo}: ${err instanceof Error ? err.message : String(err)}` };
+    }
+}
 // ─── FORMATTING ─────────────────────────────────────────────────────────────
 export function formatUptime(ms) {
     const min = Math.floor(ms / 60000);
     if (min < 60)
         return `${min} minutes`;
     return `${Math.floor(min / 60)}h ${min % 60}m`;
+}
+/**
+ * Resolves data from one of three sources: sourceId+sql, resultId, or inline data.
+ * Returns the resolved data or an error response.
+ */
+export async function resolveData(args, deps) {
+    let data = args.data;
+    let queryMeta;
+    let extraMeta;
+    if (args.sourceId && args.sql) {
+        if (!deps.sourceManager) {
+            return errorResponse('Source manager not available.');
+        }
+        const source = deps.sourceManager.get?.(args.sourceId);
+        const sourceType = source?.type;
+        const result = await deps.sourceManager.querySql(args.sourceId, args.sql);
+        if (!result.ok) {
+            return errorResponse(result.error);
+        }
+        data = result.rows;
+        queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
+        extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
+    }
+    if (!data && args.resultId) {
+        const cached = deps.getResult(args.resultId);
+        if (!cached) {
+            return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
+        }
+        data = cached.rows;
+    }
+    if (!data || data.length === 0) {
+        return errorResponse('No data provided. Pass data array, resultId from query_data, or sourceId + sql.');
+    }
+    return { data, queryMeta, extraMeta };
+}
+/** Type guard: checks if a resolveData result is an error response. */
+export function isErrorResponse(result) {
+    return 'content' in result && 'isError' in result;
+}
+/**
+ * Shared setup for all transform tools: connect to source, get database handle,
+ * validate table exists. Returns either the context or an error response.
+ */
+export async function connectAndValidateTable(deps, sourceId, tableName) {
+    const connResult = await deps.sourceManager.connect(sourceId);
+    if (!connResult.ok) {
+        return errorResponse(`Source not found: ${sourceId}`);
+    }
+    const source = connResult.source;
+    const db = source.getDatabase?.();
+    if (!db) {
+        return errorResponse('Source does not support transforms (no database handle)');
+    }
+    const schema = await source.getSchema();
+    const table = schema.tables.find((t) => t.name === tableName);
+    if (!table) {
+        const available = schema.tables.map((t) => t.name);
+        return errorResponse(`Table '${tableName}' not found. Available: [${available.join(', ')}]`);
+    }
+    return { source, db, table };
+}
+/** Type guard: checks if a connectAndValidateTable result is an error response. */
+export function isTransformError(result) {
+    return 'content' in result;
 }
 //# sourceMappingURL=shared.js.map

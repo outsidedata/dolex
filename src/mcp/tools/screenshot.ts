@@ -7,11 +7,8 @@
  */
 
 import { z } from 'zod';
-import { isCompoundSpec } from '../../types.js';
-import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
-import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 import { specStore } from '../spec-store.js';
-import { errorResponse } from './shared.js';
+import { errorResponse, buildOutputHtml } from './shared.js';
 
 export const screenshotInputSchema = z.object({
   specId: z.string().describe('Spec ID from a previous visualize or refine call'),
@@ -57,15 +54,9 @@ export function handleScreenshot() {
       return errorResponse(`Spec "${args.specId}" not found or expired. Create a new visualization first.`);
     }
 
-    const { spec } = stored;
-    let html: string;
-
-    if (isCompoundSpec(spec)) {
-      html = buildCompoundHtml(spec);
-    } else if (isHtmlPatternSupported(spec.pattern)) {
-      html = buildChartHtml(spec);
-    } else {
-      return errorResponse(`Pattern "${spec.pattern}" does not have an HTML builder.`);
+    const html = buildOutputHtml(stored.spec);
+    if (!html) {
+      return errorResponse(`Spec "${args.specId}" does not have an HTML builder.`);
     }
 
     const width = args.width ?? 800;

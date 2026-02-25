@@ -9,17 +9,10 @@
  * - Returns only specId and metadata
  */
 import { z } from 'zod';
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
-import { isCompoundSpec } from '../../types.js';
 import { ALL_PALETTE_NAMES } from './sql-schemas.js';
-import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
-import { shouldCompound, buildCompoundSpec } from '../../renderers/html/compound.js';
-import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
-import { specStore } from '../spec-store.js';
 import { getResult } from './result-cache.js';
-import { errorResponse, inferColumns, applyColorPreferences } from './shared.js';
-import { columnsSchema, dataShapeHintsSchema } from './visualize.js';
+import { errorResponse, resolveData, isErrorResponse, writeHtmlToDisk, } from './shared.js';
+import { columnsSchema, dataShapeHintsSchema, handleVisualizeCore } from './visualize.js';
 export const visualizeCliInputSchema = z.object({
     data: z.array(z.record(z.any())).optional().describe('Array of data rows to visualize. Optional if resultId or sourceId+sql is provided.'),
     resultId: z.string().optional().describe('Result ID from a previous query_data call'),
@@ -46,117 +39,34 @@ export const visualizeCliInputSchema = z.object({
     writeTo: z.string().describe('REQUIRED. File path to write the HTML chart to. The HTML is written to disk and NOT returned in the response.'),
 });
 export function handleVisualizeCli(selectPatterns, deps) {
+    const core = handleVisualizeCore(selectPatterns, 'visualize_cli_only');
     return async (args) => {
-        let data = args.data;
-        let queryMeta;
-        // Path 1: sourceId + sql → server-side query
-        if (args.sourceId && args.sql) {
-            if (!deps?.sourceManager) {
-                return errorResponse('Source manager not available.');
-            }
-            const result = await deps.sourceManager.querySql(args.sourceId, args.sql);
-            if (!result.ok) {
-                return errorResponse(result.error);
-            }
-            data = result.rows;
-            queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
-        }
-        // Path 2: resultId → cached query result
-        if (!data && args.resultId) {
-            const cached = getResult(args.resultId);
-            if (!cached) {
-                return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
-            }
-            data = cached.rows;
-        }
-        if (!data || data.length === 0) {
-            return errorResponse('No data provided. Pass data array, resultId from query_data, or sourceId + sql.');
-        }
-        const notes = [];
-        const columns = args.columns || inferColumns(data);
-        const maxAlternativeChartTypes = args.maxAlternativeChartTypes ?? 2;
-        const input = {
-            data,
-            intent: args.intent,
-            columns,
-            dataShapeHints: args.dataShapeHints,
-            forcePattern: args.pattern,
-            geoLevel: args.geoLevel,
-            geoRegion: args.geoRegion,
-        };
-        const result = selectPatterns(input);
-        const alternatives = result.alternatives.slice(0, maxAlternativeChartTypes);
-        const colorPrefs = (args.palette || args.highlight || args.colorField)
-            ? { palette: args.palette, highlight: args.highlight, colorField: args.colorField }
-            : undefined;
-        if (colorPrefs) {
-            const colorResult = applyColorPreferences(result.recommended.spec, colorPrefs, data);
-            notes.push(...colorResult.notes);
-        }
-        const spec = result.recommended.spec;
-        if (args.title)
-            spec.title = args.title;
-        if (args.subtitle)
-            spec.config = { ...spec.config, subtitle: args.subtitle };
-        const hasHtmlBuilder = spec && isHtmlPatternSupported(spec.pattern);
-        let outputHtml;
-        let finalSpec = spec;
-        if (hasHtmlBuilder && shouldCompound(spec, { compound: args.includeDataTable })) {
-            const compoundSpec = buildCompoundSpec(spec, columns);
-            outputHtml = buildCompoundHtml(compoundSpec);
-            finalSpec = compoundSpec;
-        }
-        else if (hasHtmlBuilder) {
-            outputHtml = buildChartHtml(spec);
-        }
-        const alternativesMap = new Map();
-        for (const alt of alternatives) {
-            alternativesMap.set(alt.pattern, alt.spec);
-        }
-        const specId = specStore.save(finalSpec, columns, alternativesMap, data);
-        // Write HTML to disk
-        let writeResult;
-        if (outputHtml) {
-            try {
-                mkdirSync(dirname(args.writeTo), { recursive: true });
-                writeFileSync(args.writeTo, outputHtml, 'utf-8');
-                writeResult = `Wrote ${outputHtml.length} bytes to ${args.writeTo}`;
-            }
-            catch (err) {
-                return errorResponse(`Failed to write to ${args.writeTo}: ${err instanceof Error ? err.message : String(err)}`);
-            }
+        const resolved = await resolveData(args, { sourceManager: deps?.sourceManager, getResult });
+        if (isErrorResponse(resolved))
+            return resolved;
+        const coreResult = core(resolved.data, args, resolved.queryMeta, resolved.extraMeta);
+        // Extract the text response body and add write info
+        const textContent = coreResult.content.find((c) => c.type === 'text');
+        if (!textContent)
+            return errorResponse('Unexpected error: no text content from core');
+        const body = JSON.parse(textContent.text);
+        // Write HTML to disk from structuredContent (if present)
+        const html = coreResult.structuredContent?.html;
+        if (html) {
+            const writeResult = writeHtmlToDisk(html, args.writeTo);
+            if (!writeResult.ok)
+                return errorResponse(writeResult.error);
+            body.writeTo = args.writeTo;
+            body.writeResult = writeResult.message;
         }
         else {
-            writeResult = `No HTML builder for pattern "${spec.pattern}"`;
+            body.writeTo = args.writeTo;
+            body.writeResult = `No HTML builder for pattern "${body.recommended?.pattern}"`;
         }
-        const compactResponse = {
-            specId,
-            writeTo: args.writeTo,
-            writeResult,
-            ...(notes.length > 0 ? { notes } : {}),
-            recommended: {
-                pattern: result.recommended.pattern,
-                title: spec.title,
-                reasoning: result.recommended.reasoning,
-            },
-            alternatives: alternatives.map(a => ({
-                pattern: a.pattern,
-                reasoning: a.reasoning,
-            })),
-            dataShape: {
-                rowCount: data.length,
-                columnCount: columns.length,
-                ...(queryMeta?.truncated ? { truncated: true, totalSourceRows: queryMeta.totalSourceRows } : {}),
-            },
-        };
-        if (isCompoundSpec(finalSpec)) {
-            compactResponse.compound = true;
-        }
-        // CLI tools NEVER return structuredContent - just text
         return {
             content: [{
                     type: 'text',
-                    text: JSON.stringify(compactResponse, null, 2),
+                    text: JSON.stringify(body, null, 2),
                 }],
         };
     };

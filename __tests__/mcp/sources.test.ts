@@ -89,7 +89,6 @@ describe('handleAddSource', () => {
     const result = await handler({
       name: 'mydata',
       path: '/tmp/data.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBeUndefined();
@@ -97,13 +96,11 @@ describe('handleAddSource', () => {
 
     // Should use the existing entry
     expect(body.sourceId).toBe('src-existing');
-    expect(body.name).toBe('mydata');
     expect(body.message).toContain('Reconnected');
     // add() should NOT have been called since we reconnected
     expect(manager.add).not.toHaveBeenCalled();
-    // getSchema and connect should have been called with the existing id
+    // getSchema should have been called with the existing id
     expect(manager.getSchema).toHaveBeenCalledWith('src-existing');
-    expect(manager.connect).toHaveBeenCalledWith('src-existing');
   });
 
   it('returns error when sourceManager.add() throws', async () => {
@@ -115,7 +112,6 @@ describe('handleAddSource', () => {
     const result = await handler({
       name: 'badcsv',
       path: '/tmp/bad.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBe(true);
@@ -133,7 +129,6 @@ describe('handleAddSource', () => {
     const result = await handler({
       name: 'missing',
       path: '/Users/bill/Downloads/nonexistent.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBe(true);
@@ -152,7 +147,6 @@ describe('handleAddSource', () => {
     const result = await handler({
       name: 'dup',
       path: '/tmp/dup.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBe(true);
@@ -160,66 +154,30 @@ describe('handleAddSource', () => {
     expect(body.error).toBe('Duplicate name');
   });
 
-  it('uses compact detail to build table profiles without stats or sampleRows', async () => {
+  it('returns smart summary with column info', async () => {
     const manager = makeMockManager();
 
     const handler = handleAddSource({ sourceManager: manager });
     const result = await handler({
       name: 'test',
       path: '/tmp/data.csv',
-      detail: 'compact',
     });
 
     expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0].text);
 
-    const table = body.tables[0];
-    expect(table.name).toBe('data');
-    expect(table.rowCount).toBe(3);
-    // Compact: columns should only have name and type
-    for (const col of table.columns) {
-      expect(col).toHaveProperty('name');
-      expect(col).toHaveProperty('type');
-      expect(col).not.toHaveProperty('stats');
-      expect(col).not.toHaveProperty('topValues');
-      expect(col).not.toHaveProperty('sample');
-      expect(col).not.toHaveProperty('nullCount');
-      expect(col).not.toHaveProperty('uniqueCount');
-    }
-    // No sampleRows in compact mode
-    expect(table.sampleRows).toBeUndefined();
-    // getSampleRows should NOT have been called
-    expect(manager._mockSource.getSampleRows).not.toHaveBeenCalled();
+    // New format: sourceId + summary + message
+    expect(body.sourceId).toBe('src-123');
+    expect(body.summary).toBeDefined();
+    expect(body.summary).toContain('data:'); // table name
+    expect(body.summary).toContain('3'); // row count
+    expect(body.summary).toContain('id'); // column name
+    expect(body.summary).toContain('name'); // column name
+    expect(body.message).toContain('Loaded');
+    expect(body.message).toContain('1 table');
   });
 
-  it('includes full profile with stats, topValues, sample, and sampleRows when detail is full', async () => {
-    const manager = makeMockManager();
-
-    const handler = handleAddSource({ sourceManager: manager });
-    const result = await handler({
-      name: 'test',
-      path: '/tmp/data.csv',
-      detail: 'full',
-    });
-
-    expect(result.isError).toBeUndefined();
-    const body = JSON.parse(result.content[0].text);
-
-    const table = body.tables[0];
-    expect(table.sampleRows).toBeDefined();
-    expect(manager._mockSource.getSampleRows).toHaveBeenCalledWith('data', 5);
-
-    const idCol = table.columns.find((c: any) => c.name === 'id');
-    expect(idCol.stats).toEqual({ min: 1, max: 3, mean: 2 });
-    expect(idCol.sample).toEqual([1, 2, 3]);
-
-    const nameCol = table.columns.find((c: any) => c.name === 'name');
-    expect(nameCol.topValues).toBeDefined();
-    expect(nameCol.topValues).toHaveLength(2);
-    expect(nameCol.sample).toEqual(['Alice', 'Bob', 'Carol']);
-  });
-
-  it('handles getSchema failure gracefully (empty tables)', async () => {
+  it('handles getSchema failure gracefully (empty summary)', async () => {
     const manager = makeMockManager({
       getSchema: vi.fn().mockResolvedValue({ ok: false, error: 'Schema error' }),
     });
@@ -228,32 +186,12 @@ describe('handleAddSource', () => {
     const result = await handler({
       name: 'test',
       path: '/tmp/data.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0].text);
-    expect(body.tables).toEqual([]);
-    expect(body.message).toContain('0 tables found');
-  });
-
-  it('handles connect failure gracefully (sampleRows empty for full detail)', async () => {
-    const manager = makeMockManager({
-      connect: vi.fn().mockResolvedValue({ ok: false, error: 'Connection lost' }),
-    });
-
-    const handler = handleAddSource({ sourceManager: manager });
-    const result = await handler({
-      name: 'test',
-      path: '/tmp/data.csv',
-      detail: 'full',
-    });
-
-    expect(result.isError).toBeUndefined();
-    const body = JSON.parse(result.content[0].text);
-    const table = body.tables[0];
-    // When connectedSource is null, sampleRows should be empty
-    expect(table.sampleRows).toEqual([]);
+    expect(body.summary).toBe('');
+    expect(body.message).toContain('0 table');
   });
 });
 
@@ -491,7 +429,6 @@ describe('handleAddSource sandbox path rejection', () => {
     const result = await handler({
       name: 'test',
       path: '/mnt/user-data/uploads/data.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBe(true);
@@ -507,7 +444,6 @@ describe('handleAddSource sandbox path rejection', () => {
     const result = await handler({
       name: 'test',
       path: '/home/claude/data.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBe(true);
@@ -521,7 +457,6 @@ describe('handleAddSource sandbox path rejection', () => {
     const result = await handler({
       name: 'test',
       path: '/Users/bill/Downloads/data.csv',
-      detail: 'full',
     });
 
     expect(result.isError).toBeUndefined();

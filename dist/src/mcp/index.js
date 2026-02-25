@@ -80,7 +80,7 @@ const server = new McpServer({
         'Dolex — CSV data analysis with 43 chart types.',
         '',
         'WORKFLOW:',
-        '• Got a CSV file? → load_csv(name, path) immediately, don\'t verify — this server runs locally on the user\'s machine',
+        '• Got a CSV file? → load_csv(name, path) — returns smart summary (column names, types, ranges, categorical values)',
         '• Got inline data? → visualize(data, intent) directly',
         '• Need to explore? → load_csv → analyze_data → visualize(sourceId, sql, intent) per step',
         '',
@@ -93,8 +93,8 @@ const server = new McpServer({
         '• specId expired? → re-run the original visualize call, then continue refining from the new specId',
         '',
         'TOOL GUIDE:',
-        '• load_csv: Load a CSV file or directory. Returns sourceId.',
-        '• describe_data: See schema, stats, samples. Use detail="compact" for large schemas.',
+        '• load_csv: Load CSV. Returns sourceId + smart summary (columns, types, ranges, categorical values) — enough to write SQL.',
+        '• describe_data: Full column stats, top values, sample rows. Call only when you need deep exploration.',
         '• analyze_data: Auto-generate analysis plan with ready SQL queries. Execute each step with visualize; present results one at a time.',
         '• query_data: Run SQL query, get rows. Returns resultId for visualize().',
         '• visualize: Chart data. Pass inline data array, resultId from query_data, or sourceId + sql for server-side query. Auto-selects best pattern. Set title/subtitle here to avoid a refine round-trip.',
@@ -169,7 +169,7 @@ registerAppTool(server, 'refine_visualization', {
 // CSV data management tools
 server.registerTool('load_csv', {
     title: 'Load CSV Data',
-    description: 'Load a CSV file or directory. Datasets persist across restarts. Returns sourceId.\nUse detail="compact" for column names/types only (saves tokens).',
+    description: 'Load a CSV file or directory. Datasets persist across restarts.\nReturns sourceId + smart summary: column names, types, numeric ranges, categorical values.\nThis gives you enough to write SQL. Call describe_data only if you need full stats.',
     inputSchema: addSourceInputSchema,
 }, handleAddSource({ sourceManager }));
 server.registerTool('list_data', {
@@ -183,7 +183,7 @@ server.registerTool('remove_data', {
 }, handleRemoveSource({ sourceManager }));
 server.registerTool('describe_data', {
     title: 'Describe Data',
-    description: 'Column profiles for a loaded dataset. Use detail="compact" for names/types only.',
+    description: 'Full column profiles: stats (min/max/mean/median), top values with counts, sample rows.\nUse only when you need deep exploration — load_csv already gives you enough to write SQL.',
     inputSchema: describeSourceInputSchema,
 }, handleDescribeSource({ sourceManager }));
 server.registerTool('analyze_data', {

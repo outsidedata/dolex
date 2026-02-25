@@ -1,9 +1,7 @@
 import { z } from 'zod';
 import { isCompoundSpec } from '../../types.js';
-import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
-import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 import { specStore } from '../spec-store.js';
-import { errorResponse, htmlResponse } from './shared.js';
+import { errorResponse, htmlResponse, buildOutputHtml } from './shared.js';
 import { logOperation } from './operation-log.js';
 import { selectPattern } from '../../patterns/selector.js';
 import { ALL_PALETTE_NAMES } from './sql-schemas.js';
@@ -343,15 +341,6 @@ function applyCompoundParams(spec, args, stored) {
         }
     }
     return { spec, changes, notes };
-}
-function buildOutputHtml(spec) {
-    if (isCompoundSpec(spec)) {
-        return buildCompoundHtml(spec);
-    }
-    if (isHtmlPatternSupported(spec.pattern)) {
-        return buildChartHtml(spec);
-    }
-    return undefined;
 }
 export function handleRefine() {
     return async (args) => {

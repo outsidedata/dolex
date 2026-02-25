@@ -1,4 +1,4 @@
-import { jsonResponse, errorResponse } from './shared.js';
+import { jsonResponse, errorResponse, connectAndValidateTable, isTransformError } from './shared.js';
 import { TransformMetadata } from '../../transforms/metadata.js';
 import { ColumnManager } from '../../transforms/column-manager.js';
 import { findDependents } from '../../transforms/dependency.js';
@@ -6,29 +6,16 @@ import { evaluateExpression } from '../../transforms/evaluator.js';
 import { writeManifest, resolveManifestPath } from '../../transforms/manifest.js';
 export function handleDropColumns(deps) {
     return async (args) => {
-        const connResult = await deps.sourceManager.connect(args.sourceId);
-        if (!connResult.ok) {
-            return errorResponse(`Source not found: ${args.sourceId}`);
-        }
-        const source = connResult.source;
-        const db = source.getDatabase?.();
-        if (!db) {
-            return errorResponse('Source does not support transforms (no database handle)');
-        }
-        const schema = await source.getSchema();
-        const table = schema.tables.find((t) => t.name === args.table);
-        if (!table) {
-            const available = schema.tables.map((t) => t.name);
-            return errorResponse(`Table '${args.table}' not found. Available: [${available.join(', ')}]`);
-        }
-        const metadata = new TransformMetadata(db);
+        const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
+        if (isTransformError(ctx))
+            return ctx;
+        const metadata = new TransformMetadata(ctx.db);
         metadata.init();
-        const mgr = new ColumnManager(db);
+        const mgr = new ColumnManager(ctx.db);
         const columnsToDrop = resolveWildcard(args.columns, args.layer, metadata, args.table);
         if (typeof columnsToDrop === 'string') {
             return errorResponse(columnsToDrop);
         }
-        // Pre-validate all columns (atomic: all-or-nothing)
         const allCols = mgr.getColumnNames(args.table);
         for (const col of columnsToDrop) {
             const record = metadata.get(args.table, col);
@@ -89,13 +76,13 @@ export function handleDropColumns(deps) {
         if (manifestUpdated) {
             const entry = deps.sourceManager.get(args.sourceId);
             if (entry?.config) {
-                const schema = await source.getSchema();
+                const schema = await ctx.source.getSchema();
                 const manifestPath = resolveManifestPath(entry.config);
                 const tableNames = schema.tables.map((t) => t.name);
                 writeManifest(metadata, tableNames, manifestPath);
             }
         }
-        source.invalidateSchema?.();
+        ctx.source.invalidateSchema?.();
         return jsonResponse({
             dropped,
             restored,

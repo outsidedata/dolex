@@ -11,12 +11,14 @@ import { z } from 'zod';
 import type { VisualizeInput, VisualizeOutput, DataColumn, VisualizationSpec } from '../../types.js';
 import { isCompoundSpec } from '../../types.js';
 import { ALL_PALETTE_NAMES } from './sql-schemas.js';
-import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
+import { isHtmlPatternSupported } from '../../renderers/html/index.js';
 import { shouldCompound, buildCompoundSpec } from '../../renderers/html/compound.js';
-import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 import { specStore } from '../spec-store.js';
 import { getResult } from './result-cache.js';
-import { errorResponse, inferColumns, applyColorPreferences } from './shared.js';
+import {
+  errorResponse, inferColumns, applyColorPreferences, buildOutputHtml,
+  resolveData, isErrorResponse,
+} from './shared.js';
 import { logOperation } from './operation-log.js';
 import type { OperationMeta } from './operation-log.js';
 
@@ -122,17 +124,12 @@ export function handleVisualizeCore(
     const spec = result.recommended.spec;
     if (args.title) spec.title = args.title;
     if (args.subtitle) spec.config = { ...spec.config, subtitle: args.subtitle };
-    const hasHtmlBuilder = spec && isHtmlPatternSupported(spec.pattern);
 
-    let outputHtml: string | undefined;
     let finalSpec: VisualizationSpec | import('../../types.js').CompoundVisualizationSpec = spec;
-    if (hasHtmlBuilder && shouldCompound(spec, { compound: args.includeDataTable })) {
-      const compoundSpec = buildCompoundSpec(spec, columns);
-      outputHtml = buildCompoundHtml(compoundSpec);
-      finalSpec = compoundSpec;
-    } else if (hasHtmlBuilder) {
-      outputHtml = buildChartHtml(spec);
+    if (isHtmlPatternSupported(spec.pattern) && shouldCompound(spec, { compound: args.includeDataTable })) {
+      finalSpec = buildCompoundSpec(spec, columns);
     }
+    const outputHtml = buildOutputHtml(finalSpec);
 
     const alternativesMap = new Map<string, VisualizationSpec>();
     for (const alt of alternatives) {
@@ -213,55 +210,20 @@ export function handleVisualize(
   const core = handleVisualizeCore(selectPatterns);
 
   return async (args: z.infer<typeof visualizeInputSchema>) => {
-    let data = args.data;
-    let queryMeta: { truncated?: boolean; totalSourceRows?: number } | undefined;
-    let extraMeta: Partial<OperationMeta> | undefined;
-
-    // Path 1: sourceId + sql → server-side query
-    if (args.sourceId && args.sql) {
-      if (!deps?.sourceManager) {
-        return errorResponse('Source manager not available.');
-      }
-      const start = Date.now();
-      const source = deps.sourceManager.get?.(args.sourceId);
-      const sourceType = source?.type;
-
-      const result = await deps.sourceManager.querySql(args.sourceId, args.sql);
-      if (!result.ok) {
+    const resolved = await resolveData(args, { sourceManager: deps?.sourceManager, getResult });
+    if (isErrorResponse(resolved)) {
+      if (args.sourceId && args.sql) {
         logOperation({
           toolName: 'visualize',
-          timestamp: start,
-          durationMs: Date.now() - start,
+          timestamp: Date.now(),
+          durationMs: 0,
           success: false,
-          meta: {
-            sqlPreview: args.sql.slice(0, 200),
-            sourceType,
-            error: result.error,
-          },
+          meta: { sqlPreview: args.sql.slice(0, 200), error: 'Data resolution failed' },
         });
-        return errorResponse(result.error);
       }
-
-      data = result.rows;
-      queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
-      extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
+      return resolved;
     }
 
-    // Path 2: resultId → cached query result
-    if (!data && args.resultId) {
-      const cached = getResult(args.resultId);
-      if (!cached) {
-        return errorResponse(`Result "${args.resultId}" not found or expired. Re-run query_data to get a new resultId.`);
-      }
-      data = cached.rows;
-    }
-
-    // Path 3: inline data (already in args.data)
-
-    if (!data || data.length === 0) {
-      return errorResponse('No data provided. Pass data array, resultId from query_data, or sourceId + sql.');
-    }
-
-    return core(data, args, queryMeta, extraMeta);
+    return core(resolved.data, args, resolved.queryMeta, resolved.extraMeta);
   };
 }

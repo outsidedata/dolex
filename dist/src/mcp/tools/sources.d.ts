@@ -7,15 +7,12 @@ export declare function isSandboxPath(filePath: string): boolean;
 export declare const addSourceInputSchema: z.ZodObject<{
     name: z.ZodString;
     path: z.ZodString;
-    detail: z.ZodDefault<z.ZodEnum<["compact", "full"]>>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     path: string;
-    detail: "compact" | "full";
 }, {
     name: string;
     path: string;
-    detail?: "compact" | "full" | undefined;
 }>;
 export declare const removeSourceInputSchema: z.ZodObject<{
     sourceId: z.ZodString;

@@ -10,13 +10,8 @@
  */
 
 import { z } from 'zod';
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
-import { isCompoundSpec } from '../../types.js';
-import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
-import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
 import { specStore } from '../spec-store.js';
-import { errorResponse } from './shared.js';
+import { errorResponse, buildOutputHtml, writeHtmlToDisk } from './shared.js';
 
 export const exportHtmlInputSchema = z.object({
   specId: z.string().describe('Spec ID from a previous visualize or refine call'),
@@ -30,31 +25,19 @@ export function handleExportHtml() {
       return errorResponse(`Spec "${args.specId}" not found or expired. Create a new visualization first.`);
     }
 
-    const { spec } = stored;
-    let html: string;
-
-    if (isCompoundSpec(spec)) {
-      html = buildCompoundHtml(spec);
-    } else if (isHtmlPatternSupported(spec.pattern)) {
-      html = buildChartHtml(spec);
-    } else {
-      return errorResponse(`Pattern "${spec.pattern}" does not have an HTML builder.`);
+    const html = buildOutputHtml(stored.spec);
+    if (!html) {
+      return errorResponse(`Spec "${args.specId}" does not have an HTML builder.`);
     }
 
-    // Write to disk if path provided
     if (args.writeTo) {
-      try {
-        mkdirSync(dirname(args.writeTo), { recursive: true });
-        writeFileSync(args.writeTo, html, 'utf-8');
-        return {
-          content: [{ type: 'text' as const, text: `Wrote ${html.length} bytes to ${args.writeTo}` }],
-        };
-      } catch (err) {
-        return errorResponse(`Failed to write to ${args.writeTo}: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      const writeResult = writeHtmlToDisk(html, args.writeTo);
+      if (!writeResult.ok) return errorResponse(writeResult.error);
+      return {
+        content: [{ type: 'text' as const, text: writeResult.message }],
+      };
     }
 
-    // Return HTML in response (original behavior)
     return {
       content: [{ type: 'text' as const, text: html }],
     };

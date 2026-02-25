@@ -7,31 +7,32 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-describe('compact schema mode', () => {
-  it('load_csv with detail=compact returns minimal columns', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compact-'));
+describe('load_csv smart summary', () => {
+  it('returns smart summary with column info and ranges', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-'));
     const csvPath = path.join(tmpDir, 'data.csv');
     fs.writeFileSync(csvPath, 'name,value\nAlice,100\nBob,200\nCarol,150');
 
     const sourceManager = new SourceManager();
     const handler = handleAddSource({ sourceManager });
     const result = await handler({
-      name: 'compact-test',
+      name: 'smart-test',
       path: csvPath,
-      detail: 'compact',
     });
 
     const body = JSON.parse(result.content[0].text);
-    const table = body.tables[0];
 
-    expect(table.rowCount).toBe(3);
-    expect(table.columns).toHaveLength(2);
-    expect(table.columns[0]).toEqual({ name: 'name', type: expect.any(String) });
-    expect(table.columns[1]).toEqual({ name: 'value', type: expect.any(String) });
-    expect(table.sampleRows).toBeUndefined();
-    expect(table.columns[0].stats).toBeUndefined();
-    expect(table.columns[0].topValues).toBeUndefined();
-    expect(table.columns[0].sample).toBeUndefined();
+    // New format: sourceId + summary (string) + message
+    expect(body.sourceId).toBeDefined();
+    expect(typeof body.summary).toBe('string');
+    expect(body.summary).toContain('data:'); // table name
+    expect(body.summary).toContain('3 rows'); // row count
+    expect(body.summary).toContain('name'); // column name
+    expect(body.summary).toContain('value'); // column name
+    expect(body.message).toContain('Loaded');
+
+    // Should NOT have tables array anymore
+    expect(body.tables).toBeUndefined();
 
     await sourceManager.closeAll();
     fs.rmSync(tmpDir, { recursive: true });
@@ -56,28 +57,6 @@ describe('compact schema mode', () => {
     expect(body.rowCount).toBe(2);
     expect(body.columns[0]).toEqual({ name: 'city', type: expect.any(String) });
     expect(body.sampleRows).toBeUndefined();
-
-    await sourceManager.closeAll();
-    fs.rmSync(tmpDir, { recursive: true });
-  });
-
-  it('load_csv with detail=full returns stats and samples', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'full-'));
-    const csvPath = path.join(tmpDir, 'data.csv');
-    fs.writeFileSync(csvPath, 'name,value\nAlice,100\nBob,200\nCarol,150');
-
-    const sourceManager = new SourceManager();
-    const handler = handleAddSource({ sourceManager });
-    const result = await handler({
-      name: 'full-test',
-      path: csvPath,
-      detail: 'full',
-    });
-
-    const body = JSON.parse(result.content[0].text);
-    const table = body.tables[0];
-    expect(table.sampleRows).toBeDefined();
-    expect(table.columns[0].sample).toBeDefined();
 
     await sourceManager.closeAll();
     fs.rmSync(tmpDir, { recursive: true });
@@ -182,7 +161,6 @@ describe('load_csv idempotent re-add', () => {
     const result1 = await handler({
       name: 'readd-test',
       path: csvPath,
-      detail: 'compact',
     });
     const body1 = JSON.parse(result1.content[0].text);
     expect(body1.message).toContain('Loaded');
@@ -190,7 +168,6 @@ describe('load_csv idempotent re-add', () => {
     const result2 = await handler({
       name: 'readd-test',
       path: csvPath,
-      detail: 'compact',
     });
     const body2 = JSON.parse(result2.content[0].text);
     expect(body2.message).toContain('Reconnected');
