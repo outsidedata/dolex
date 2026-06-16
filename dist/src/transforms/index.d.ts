@@ -16,4 +16,3 @@ export { executeSingleTransform, executeBatchTransform } from './pipeline.js';
 export { ColumnManager } from './column-manager.js';
 export { TransformMetadata } from './metadata.js';
 export { resolveManifestPath, readManifest, writeManifest, replayManifest, } from './manifest.js';
-//# sourceMappingURL=index.d.ts.map

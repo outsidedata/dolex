@@ -94,4 +94,3 @@ export const areaPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=area.js.map

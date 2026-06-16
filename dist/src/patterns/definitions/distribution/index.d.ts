@@ -6,4 +6,3 @@ export { beeswarmPattern } from './beeswarm.js';
 export { violinPattern } from './violin.js';
 export { ridgelinePattern } from './ridgeline.js';
 export { stripPlotPattern } from './strip-plot.js';
-//# sourceMappingURL=index.d.ts.map

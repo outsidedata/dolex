@@ -111,4 +111,3 @@ export const iciclePattern = {
         return spec;
     },
 };
-//# sourceMappingURL=icicle.js.map

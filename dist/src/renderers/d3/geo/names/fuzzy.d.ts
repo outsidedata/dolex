@@ -5,4 +5,3 @@ export interface FuzzySuggestion {
     distance: number;
 }
 export declare function suggestMatch(input: string, candidates: string[], maxDistance?: number): FuzzySuggestion | undefined;
-//# sourceMappingURL=fuzzy.d.ts.map

@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderBoxPlot(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=box-plot.d.ts.map

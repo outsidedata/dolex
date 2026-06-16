@@ -2,7 +2,7 @@
  * Stacked bar chart D3 renderer.
  * Follows bar chart standards: adaptive layout, full-column hover, instant render, value labels.
  */
-import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, truncateLabel, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, shouldShowValueLabels, DARK_BG, TEXT_MUTED, } from '../shared.js';
+import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, escapeHtml, tooltipHtml, truncateLabel, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, shouldShowValueLabels, DARK_BG, TEXT_MUTED, } from '../shared.js';
 export function renderStackedBar(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.x?.field;
@@ -86,9 +86,7 @@ export function renderStackedBar(container, spec) {
         left: 70,
         right: 30,
         top: 40,
-    });
-    // Remove the default background from SVG — container handles it now
-    svg.style('background', 'none').style('border-radius', '0');
+    }, { background: false });
     const tooltip = createTooltip(container);
     // Scales
     const xScale = d3.scaleBand().domain(categories).range([0, dims.innerWidth]).padding(0.2);
@@ -159,16 +157,16 @@ export function renderStackedBar(container, spec) {
             .filter((sd) => sd.data._category === d._category)
             .attr('opacity', 0.8);
         // Build multi-series tooltip
-        let html = `<strong>${d._category}</strong>`;
+        let html = tooltipHtml `<strong>${d._category}</strong>`;
         series.forEach((s) => {
             const val = d[s];
             if (val > 0) {
-                const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorScale(s)};margin-right:4px"></span>`;
-                html += `<br/>${swatch}${s}: ${isNormalized ? val.toFixed(1) + '%' : formatValue(val)}`;
+                const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${escapeHtml(colorScale(s))};margin-right:4px"></span>`;
+                html += `<br/>${swatch}${escapeHtml(s)}: ${isNormalized ? escapeHtml(val.toFixed(1)) + '%' : escapeHtml(formatValue(val))}`;
             }
         });
         if (!isNormalized) {
-            html += `<br/><span style="color:${TEXT_MUTED};font-size:11px">Total: ${formatValue(d._total)}</span>`;
+            html += `<br/><span style="color:${escapeHtml(TEXT_MUTED)};font-size:11px">Total: ${escapeHtml(formatValue(d._total))}</span>`;
         }
         showTooltip(tooltip, html, event);
     })
@@ -252,4 +250,3 @@ export function renderStackedBar(container, spec) {
     // Sort controls (show on hover, top-right corner)
     addSortControls(svg, container, spec, dims, renderStackedBar);
 }
-//# sourceMappingURL=stacked-bar.js.map

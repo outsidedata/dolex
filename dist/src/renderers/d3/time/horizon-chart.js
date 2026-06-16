@@ -1,6 +1,8 @@
-import { createTooltip, showTooltip, hideTooltip, formatValue, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateLabel, styleAxis, getAdaptiveTickCount, truncateTitle, smartTruncateLabels, } from '../shared.js';
-const POSITIVE_RAMP = ['#c6dbef', '#6baed6', '#2171b5', '#08306b'];
-const NEGATIVE_RAMP = ['#fcbba1', '#fb6a4a', '#cb181d', '#67000d'];
+import { createTooltip, showTooltip, hideTooltip, formatValue, parseDate, escapeHtml, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateLabel, styleAxis, getAdaptiveTickCount, truncateTitle, smartTruncateLabels, sequential, diverging, } from '../shared.js';
+import { findNearestDateIndex } from './crosshair-utils.js';
+// Derive 4-step horizon band ramps from design system palettes
+const POSITIVE_RAMP = [sequential.blue[2], sequential.blue[4], sequential.blue[6], sequential.blue[8]];
+const NEGATIVE_RAMP = [diverging.blueRed[5], diverging.blueRed[6], diverging.blueRed[7], diverging.blueRed[8]];
 export function renderHorizonChart(container, spec) {
     const { config, encoding, data } = spec;
     const timeField = config.timeField || encoding.x?.field;
@@ -210,18 +212,6 @@ export function renderHorizonChart(container, spec) {
     styleAxis(xAxis);
     addCrosshairInteraction(svg, seriesNames, seriesDataMap, xScale, labelWidth, topMargin, rowH, rowGap, chartW, timeField, valueField, seriesField, tooltip, isSingleSeries);
 }
-function parseDate(v) {
-    if (v instanceof Date)
-        return v;
-    if (v === null || v === undefined || v === '')
-        return null;
-    const num = typeof v === 'number' ? v : Number(v);
-    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-        return new Date(num, 0, 1);
-    }
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-}
 function calculateLabelWidth(seriesNames) {
     const maxLen = Math.max(...seriesNames.map((s) => String(s).length));
     const estimated = Math.min(maxLen, 16) * 7 + 16;
@@ -269,21 +259,12 @@ function addCrosshairInteraction(svg, seriesNames, seriesDataMap, xScale, labelW
         .on('mousemove', function (event) {
         const [mx] = d3.pointer(event, this);
         const xDate = xScale.invert(mx).getTime();
-        const bisect = d3.bisector((d) => d).left;
-        let idx = bisect(allDates, xDate);
-        if (idx > 0 && idx < allDates.length) {
-            const d0 = allDates[idx - 1];
-            const d1 = allDates[idx];
-            idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-        }
-        else if (idx >= allDates.length) {
-            idx = allDates.length - 1;
-        }
+        const idx = findNearestDateIndex(allDates, xDate);
         const nearestTime = allDates[idx];
         const nearestX = xScale(new Date(nearestTime)) + labelWidth;
         crosshair.attr('x1', nearestX).attr('x2', nearestX).attr('opacity', 1);
         const dateStr = new Date(nearestTime).toLocaleDateString();
-        let html = `<strong>${dateStr}</strong>`;
+        let html = `<strong>${escapeHtml(dateStr)}</strong>`;
         const entries = [];
         seriesNames.forEach((name) => {
             const sd = seriesDataMap.get(name);
@@ -305,14 +286,14 @@ function addCrosshairInteraction(svg, seriesNames, seriesDataMap, xScale, labelW
         entries.slice(0, maxShow).forEach((entry) => {
             const color = entry.value >= 0 ? '#6baed6' : '#fb6a4a';
             if (isSingleSeries) {
-                html += `<br/>${valueField}: ${formatValue(entry.value)}`;
+                html += `<br/>${escapeHtml(valueField)}: ${escapeHtml(formatValue(entry.value))}`;
             }
             else {
-                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${truncateLabel(entry.name, 20)}: ${formatValue(entry.value)}`;
+                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(truncateLabel(entry.name, 20))}: ${escapeHtml(formatValue(entry.value))}`;
             }
         });
         if (entries.length > maxShow) {
-            html += `<br/><span style="color:${TEXT_MUTED};font-size:11px;">+${entries.length - maxShow} more</span>`;
+            html += `<br/><span style="color:${escapeHtml(TEXT_MUTED)};font-size:11px;">+${escapeHtml(String(entries.length - maxShow))} more</span>`;
         }
         showTooltip(tooltip, html, event);
     })
@@ -321,4 +302,3 @@ function addCrosshairInteraction(svg, seriesNames, seriesDataMap, xScale, labelW
         hideTooltip(tooltip);
     });
 }
-//# sourceMappingURL=horizon-chart.js.map

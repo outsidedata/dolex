@@ -14,6 +14,7 @@ import {
   showTooltip,
   hideTooltip,
   positionTooltip,
+  tooltipHtml,
   formatValue,
   styleAxis,
   getAdaptiveTickCount,
@@ -24,6 +25,8 @@ import {
   TEXT_MUTED,
   DEFAULT_PALETTE,
 } from '../shared.js';
+
+import { quartiles } from '../stats.js';
 
 declare const d3: any;
 
@@ -49,26 +52,7 @@ function computeBoxStats(values: number[], whiskerType: 'iqr' | 'minmax'): BoxSt
 
   const min = sorted[0];
   const max = sorted[n - 1];
-
-  const median = n % 2 === 1
-    ? sorted[Math.floor(n / 2)]
-    : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-
-  const lowerHalf = sorted.slice(0, Math.floor(n / 2));
-  const upperHalf = sorted.slice(Math.ceil(n / 2));
-
-  const q1 = lowerHalf.length % 2 === 1
-    ? lowerHalf[Math.floor(lowerHalf.length / 2)]
-    : lowerHalf.length > 0
-      ? (lowerHalf[lowerHalf.length / 2 - 1] + lowerHalf[lowerHalf.length / 2]) / 2
-      : min;
-
-  const q3 = upperHalf.length % 2 === 1
-    ? upperHalf[Math.floor(upperHalf.length / 2)]
-    : upperHalf.length > 0
-      ? (upperHalf[upperHalf.length / 2 - 1] + upperHalf[upperHalf.length / 2]) / 2
-      : max;
-
+  const { q1, median, q3 } = quartiles(sorted);
   const iqr = q3 - q1;
   const mean = values.reduce((s, v) => s + v, 0) / n;
 
@@ -263,15 +247,15 @@ export function renderBoxPlot(container: HTMLElement, spec: VisualizationSpec): 
 
       if (!d.stats) return;
       const s = d.stats;
-      let html = `<strong>${d.group}</strong><br/>` +
-        `n = ${s.values.length}<br/>` +
-        `Median: ${formatValue(s.median)}<br/>` +
-        `Q1: ${formatValue(s.q1)}<br/>` +
-        `Q3: ${formatValue(s.q3)}<br/>` +
-        `IQR: ${formatValue(s.iqr)}`;
-      if (showMean) html += `<br/>Mean: ${formatValue(s.mean)}`;
+      let html = tooltipHtml`<strong>${d.group}</strong><br/>` +
+        tooltipHtml`n = ${s.values.length}<br/>` +
+        tooltipHtml`Median: ${formatValue(s.median)}<br/>` +
+        tooltipHtml`Q1: ${formatValue(s.q1)}<br/>` +
+        tooltipHtml`Q3: ${formatValue(s.q3)}<br/>` +
+        tooltipHtml`IQR: ${formatValue(s.iqr)}`;
+      if (showMean) html += tooltipHtml`<br/>Mean: ${formatValue(s.mean)}`;
       if (showOutliers && s.outliers.length > 0) {
-        html += `<br/>Outliers: ${s.outliers.length}`;
+        html += tooltipHtml`<br/>Outliers: ${s.outliers.length}`;
       }
       showTooltip(tooltip, html, event);
     })

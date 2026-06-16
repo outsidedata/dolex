@@ -27,4 +27,3 @@ export declare function handleScreenshot(): (args: z.infer<typeof screenshotInpu
         mimeType: string;
     }[];
 }>;
-//# sourceMappingURL=screenshot.d.ts.map

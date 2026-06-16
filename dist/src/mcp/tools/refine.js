@@ -367,8 +367,9 @@ export function handleRefine() {
                         stored.alternatives.set(alt.pattern.id, alt.spec);
                     }
                 }
-                catch {
-                    switchNotes.push(`Pattern '${args.switchPattern}' cannot render this data shape. Available: ${[...stored.alternatives.keys()].join(', ')}`);
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    switchNotes.push(`Pattern '${args.switchPattern}' cannot render this data shape (${msg}). Available: ${[...stored.alternatives.keys()].join(', ')}`);
                 }
             }
         }
@@ -385,6 +386,9 @@ export function handleRefine() {
         result.notes.push(...switchNotes);
         const outputHtml = buildOutputHtml(result.spec);
         const newSpecId = specStore.updateSpec(args.specId, result.spec);
+        if (!newSpecId) {
+            return errorResponse(`Spec ${args.specId} has expired. Re-run the original visualize call.`);
+        }
         const body = {
             specId: newSpecId,
             changes: result.changes,
@@ -414,4 +418,3 @@ export function handleRefine() {
         return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     };
 }
-//# sourceMappingURL=refine.js.map

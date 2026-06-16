@@ -38,4 +38,3 @@ export function suggestMatch(input, candidates, maxDistance = 3) {
     }
     return undefined;
 }
-//# sourceMappingURL=fuzzy.js.map

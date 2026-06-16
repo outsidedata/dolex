@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const lollipopPattern: VisualizationPattern;
-//# sourceMappingURL=lollipop.d.ts.map

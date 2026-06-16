@@ -20,4 +20,3 @@ export { stackedBarPattern, wafflePattern, treemapPattern, sunburstPattern, } fr
 export { linePattern, smallMultiplesPattern, sparklineGridPattern, calendarHeatmapPattern, } from './definitions/time/index.js';
 export { scatterPattern, connectedScatterPattern, parallelCoordinatesPattern, radarPattern, } from './definitions/relationship/index.js';
 export { sankeyPattern, alluvialPattern, chordPattern, } from './definitions/flow/index.js';
-//# sourceMappingURL=index.d.ts.map

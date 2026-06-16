@@ -5,4 +5,3 @@ export function SparklineGrid({ spec, width = 800, height = 500, className, onRe
     const containerRef = useChart(spec, renderSparklineGrid, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=SparklineGrid.js.map

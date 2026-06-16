@@ -21,9 +21,36 @@ import type {
   ForeignKey,
 } from '../types.js';
 import type { DataConnector, ConnectedSource, QueryExecutionResult } from './types.js';
+import { resolveManifestPath, readManifest, replayManifest } from '../transforms/manifest.js';
+import { TransformMetadata } from '../transforms/metadata.js';
 
 const SAMPLE_LIMIT = 30;
 const SAMPLE_DISPLAY_LIMIT = 20;
+
+/**
+ * Escape embedded double-quotes in a SQL identifier per SQL standard.
+ * Returns just the escaped name, without surrounding quotes.
+ */
+function escId(name: string): string {
+  return name.replace(/"/g, '""');
+}
+
+/**
+ * Escape and quote a SQL identifier (column/table name) to prevent injection.
+ */
+function escapeIdentifier(name: string): string {
+  return `"${escId(name)}"`;
+}
+
+/** True if a raw CSV cell parses as a finite number (used to decide what to
+ *  store in a NUMERIC-affinity column; non-numeric cells become NULL). */
+function isNumericStr(v: string): boolean {
+  if (typeof v !== 'string') return false;
+  const t = v.trim();
+  if (t === '') return false;
+  const n = Number(t);
+  return Number.isFinite(n);
+}
 
 /**
  * Infer a column's semantic type from its name, sample values, and cardinality.
@@ -165,6 +192,14 @@ function loadCsvs(
   for (const { filePath, tableName } of csvPaths) {
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = Papa.parse(raw, { header: true, skipEmptyLines: true });
+
+    // Report PapaParse errors as warnings
+    if (parsed.errors && parsed.errors.length > 0) {
+      for (const err of parsed.errors) {
+        warnings.push(`CSV parse warning in ${filePath} (row ${err.row}): ${err.message}`);
+      }
+    }
+
     let rows = parsed.data as Record<string, string>[];
 
     if (rows.length === 0) {
@@ -178,61 +213,102 @@ function loadCsvs(
       continue;
     }
 
-    // Create table with all TEXT columns (CSV data is untyped)
-    const safeCols = colNames.map((c) => `"${c}" TEXT`).join(', ');
-    db.exec(`CREATE TABLE IF NOT EXISTS "${tableName}" (${safeCols})`);
+    // Infer each column's type up front (from the parsed rows) so the table can
+    // be created with the correct SQLite affinity. Stored as plain TEXT, numeric
+    // columns would compare LEXICOGRAPHICALLY — MAX('9') > MAX('73'), and
+    // ORDER BY/MIN/< all wrong. NUMERIC affinity makes SQLite store and compare
+    // them as numbers.
+    const colMeta = colNames.map((col) => {
+      const distinct = new Set<string>();
+      const numericDistinct = new Set<string>();
+      const samples: string[] = [];
+      let nullCount = 0; // undefined/null/\N
+      let emptyCount = 0; // ''
+      let nonNumericCount = 0; // non-empty values that are not numbers
+      for (const row of rows) {
+        const v = row[col];
+        if (v === undefined || v === null || v === '\\N') {
+          nullCount++;
+          continue;
+        }
+        if (v === '') {
+          emptyCount++;
+          continue;
+        }
+        if (!distinct.has(v)) {
+          distinct.add(v);
+          if (samples.length < SAMPLE_LIMIT) samples.push(v);
+        }
+        if (isNumericStr(v)) numericDistinct.add(v);
+        else nonNumericCount++;
+      }
+      const type = inferColumnType(col, samples, distinct.size, rows.length);
+      // Zero-padded codes (zip '00501', '007') look numeric but must stay TEXT
+      // so the padding survives — they're identifiers, not measures.
+      const hasLeadingZeroCode = samples.some((s) => /^0\d/.test(s));
+      const numericAffinity = type === 'numeric' && !hasLeadingZeroCode;
+      // In a numeric column, any non-numeric cell (empty, "N/A", text) is a
+      // missing value → stored as NULL. Left as TEXT it would re-poison MAX/
+      // ORDER BY (SQLite ranks text above all numbers). Counts reflect that.
+      const finalNullCount = numericAffinity ? nullCount + emptyCount + nonNumericCount : nullCount;
+      const finalUnique = numericAffinity ? numericDistinct.size : distinct.size;
+      return { col, type, samples, distinctCount: finalUnique, nullCount: finalNullCount, numericAffinity };
+    });
 
-    // Batch insert
+    const numericCols = new Set(colMeta.filter((m) => m.numericAffinity).map((m) => m.col));
+
+    // Create table with NUMERIC affinity for numeric columns, TEXT otherwise.
+    // Use escapeIdentifier to prevent SQL injection via column names with embedded quotes.
+    const safeCols = colMeta
+      .map((m) => `${escapeIdentifier(m.col)} ${m.numericAffinity ? 'NUMERIC' : 'TEXT'}`)
+      .join(', ');
+    db.exec(`CREATE TABLE IF NOT EXISTS ${escapeIdentifier(tableName)} (${safeCols})`);
+
+    // Batch insert (NUMERIC-affinity columns coerce numeric strings to numbers)
     const placeholders = colNames.map(() => '?').join(', ');
     const insert = db.prepare(
-      `INSERT INTO "${tableName}" VALUES (${placeholders})`
+      `INSERT INTO ${escapeIdentifier(tableName)} VALUES (${placeholders})`
     );
     const insertMany = db.transaction((batch: Record<string, string>[]) => {
       for (const row of batch) {
         insert.run(...colNames.map((c) => {
           const val = row[c];
           if (val === undefined || val === null || val === '\\N') return null;
+          // In a numeric column, any non-numeric cell ('', 'N/A', text) → NULL.
+          // Left as TEXT it would store above all numbers and break MAX/ORDER BY.
+          if (numericCols.has(c) && !isNumericStr(val)) return null;
           return val;
         }));
       }
     });
     insertMany(rows);
 
-    // Analyze each column
+    // Profile each column. Type/samples/counts come from the pre-pass above;
+    // only numeric stats and categorical top values need the loaded DB.
     const columns: DataColumn[] = [];
-    for (const col of colNames) {
-      const sampleStmt = db.prepare(
-        `SELECT DISTINCT "${col}" FROM "${tableName}" WHERE "${col}" IS NOT NULL AND "${col}" != '' LIMIT ${SAMPLE_LIMIT}`
-      );
-      const samples = sampleStmt.all().map((r: any) => r[col] as string);
+    for (const meta of colMeta) {
+      const col = meta.col;
+      const type = meta.type;
 
-      const countStmt = db.prepare(
-        `SELECT COUNT(DISTINCT "${col}") as cnt, COUNT(*) - COUNT("${col}") as nulls, COUNT(*) as total FROM "${tableName}"`
-      );
-      const stats = countStmt.get() as { cnt: number; nulls: number; total: number };
-
-      const type = inferColumnType(col, samples, stats.cnt, rows.length);
-
-      // Rich profiling
       let columnStats: DataColumn['stats'] = undefined;
       let topValues: DataColumn['topValues'] = undefined;
 
       if (type === 'numeric') {
         const numStmt = db.prepare(`
           SELECT
-            MIN(CAST("${col}" AS REAL)) as min_val,
-            MAX(CAST("${col}" AS REAL)) as max_val,
-            AVG(CAST("${col}" AS REAL)) as mean_val
-          FROM "${tableName}"
-          WHERE "${col}" IS NOT NULL AND "${col}" != ''
+            MIN(CAST("${escId(col)}" AS REAL)) as min_val,
+            MAX(CAST("${escId(col)}" AS REAL)) as max_val,
+            AVG(CAST("${escId(col)}" AS REAL)) as mean_val
+          FROM "${escId(tableName)}"
+          WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != ''
         `);
         const numStats = numStmt.get() as any;
 
         const sortedStmt = db.prepare(`
-          SELECT CAST("${col}" AS REAL) as val
-          FROM "${tableName}"
-          WHERE "${col}" IS NOT NULL AND "${col}" != ''
-          ORDER BY CAST("${col}" AS REAL)
+          SELECT CAST("${escId(col)}" AS REAL) as val
+          FROM "${escId(tableName)}"
+          WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != ''
+          ORDER BY CAST("${escId(col)}" AS REAL)
         `);
         const sorted = sortedStmt.all().map((r: any) => r.val as number);
         const n = sorted.length;
@@ -261,10 +337,10 @@ function loadCsvs(
         }
       } else if (type === 'categorical' || type === 'date') {
         const topStmt = db.prepare(`
-          SELECT "${col}" as value, COUNT(*) as count
-          FROM "${tableName}"
-          WHERE "${col}" IS NOT NULL AND "${col}" != ''
-          GROUP BY "${col}"
+          SELECT "${escId(col)}" as value, COUNT(*) as count
+          FROM "${escId(tableName)}"
+          WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != ''
+          GROUP BY "${escId(col)}"
           ORDER BY COUNT(*) DESC
           LIMIT 10
         `);
@@ -274,10 +350,10 @@ function loadCsvs(
       const column: DataColumn = {
         name: col,
         type,
-        sampleValues: samples.slice(0, SAMPLE_DISPLAY_LIMIT),
-        uniqueCount: stats.cnt,
-        nullCount: stats.nulls,
-        totalCount: stats.total,
+        sampleValues: meta.samples.slice(0, SAMPLE_DISPLAY_LIMIT),
+        uniqueCount: meta.distinctCount,
+        nullCount: meta.nullCount,
+        totalCount: rows.length,
         stats: columnStats,
         topValues,
       };
@@ -378,12 +454,12 @@ class CsvConnectedSource implements ConnectedSource {
 
   private profileNewColumn(tableName: string, col: string, rowCount: number): DataColumn {
     const sampleStmt = this.db.prepare(
-      `SELECT DISTINCT "${col}" FROM "${tableName}" WHERE "${col}" IS NOT NULL AND "${col}" != '' LIMIT ${SAMPLE_LIMIT}`
+      `SELECT DISTINCT "${escId(col)}" FROM "${escId(tableName)}" WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != '' LIMIT ${SAMPLE_LIMIT}`
     );
     const samples = sampleStmt.all().map((r: any) => String(r[col]));
 
     const countStmt = this.db.prepare(
-      `SELECT COUNT(DISTINCT "${col}") as cnt, COUNT(*) - COUNT("${col}") as nulls, COUNT(*) as total FROM "${tableName}"`
+      `SELECT COUNT(DISTINCT "${escId(col)}") as cnt, COUNT(*) - COUNT("${escId(col)}") as nulls, COUNT(*) as total FROM "${escId(tableName)}"`
     );
     const stats = countStmt.get() as { cnt: number; nulls: number; total: number };
     const type = inferColumnType(col, samples, stats.cnt, rowCount);
@@ -393,13 +469,13 @@ class CsvConnectedSource implements ConnectedSource {
 
     if (type === 'numeric') {
       const numStmt = this.db.prepare(`
-        SELECT MIN(CAST("${col}" AS REAL)) as min_val, MAX(CAST("${col}" AS REAL)) as max_val, AVG(CAST("${col}" AS REAL)) as mean_val
-        FROM "${tableName}" WHERE "${col}" IS NOT NULL AND "${col}" != ''
+        SELECT MIN(CAST("${escId(col)}" AS REAL)) as min_val, MAX(CAST("${escId(col)}" AS REAL)) as max_val, AVG(CAST("${escId(col)}" AS REAL)) as mean_val
+        FROM "${escId(tableName)}" WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != ''
       `);
       const numStats = numStmt.get() as any;
       const sortedStmt = this.db.prepare(`
-        SELECT CAST("${col}" AS REAL) as val FROM "${tableName}"
-        WHERE "${col}" IS NOT NULL AND "${col}" != '' ORDER BY CAST("${col}" AS REAL)
+        SELECT CAST("${escId(col)}" AS REAL) as val FROM "${escId(tableName)}"
+        WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != '' ORDER BY CAST("${escId(col)}" AS REAL)
       `);
       const sorted = sortedStmt.all().map((r: any) => r.val as number);
       const n = sorted.length;
@@ -421,8 +497,8 @@ class CsvConnectedSource implements ConnectedSource {
       }
     } else if (type === 'categorical' || type === 'date') {
       const topStmt = this.db.prepare(`
-        SELECT "${col}" as value, COUNT(*) as count FROM "${tableName}"
-        WHERE "${col}" IS NOT NULL AND "${col}" != '' GROUP BY "${col}" ORDER BY COUNT(*) DESC LIMIT 10
+        SELECT "${escId(col)}" as value, COUNT(*) as count FROM "${escId(tableName)}"
+        WHERE "${escId(col)}" IS NOT NULL AND "${escId(col)}" != '' GROUP BY "${escId(col)}" ORDER BY COUNT(*) DESC LIMIT 10
       `);
       topValues = topStmt.all() as { value: string; count: number }[];
     }
@@ -440,16 +516,16 @@ class CsvConnectedSource implements ConnectedSource {
     if (total === 0) return [];
 
     if (total <= count) {
-      const stmt = this.db.prepare(`SELECT * FROM "${tableName}"`);
+      const stmt = this.db.prepare(`SELECT * FROM "${escId(tableName)}"`);
       return stmt.all() as Record<string, any>[];
     }
 
     const stmt = this.db.prepare(`
-      SELECT * FROM "${tableName}"
+      SELECT * FROM "${escId(tableName)}"
       WHERE rowid IN (
         SELECT rowid FROM (
           SELECT rowid, NTILE(${count}) OVER (ORDER BY rowid) as bucket
-          FROM "${tableName}"
+          FROM "${escId(tableName)}"
         ) GROUP BY bucket
       )
       LIMIT ${count}
@@ -579,6 +655,38 @@ export const csvConnector: DataConnector = {
       },
     };
 
-    return new CsvConnectedSource(id, sourceName, db, schema);
+    const source = new CsvConnectedSource(id, sourceName, db, schema);
+
+    // Restore any persisted derived columns from the .dolex.json manifest so
+    // they survive process restarts (used by both the MCP server and the CLI).
+    applyManifest(db, csvConfig, tables.map((t) => t.name), source);
+
+    return source;
   },
 };
+
+/**
+ * Read the source's .dolex.json manifest (if any) and replay its derived
+ * columns into the live database, refreshing the schema for any that materialize.
+ * Best-effort: a missing or invalid manifest is a no-op.
+ */
+function applyManifest(
+  db: Database.Database,
+  config: CsvSourceConfig,
+  tableNames: string[],
+  source: CsvConnectedSource,
+): void {
+  const manifest = readManifest(resolveManifestPath(config));
+  if (!manifest) return;
+
+  const metadata = new TransformMetadata(db);
+  metadata.init();
+
+  let restoredAny = false;
+  for (const tableName of tableNames) {
+    const { replayed } = replayManifest(db, metadata, manifest, tableName);
+    if (replayed.length > 0) restoredAny = true;
+  }
+
+  if (restoredAny) source.invalidateSchema();
+}

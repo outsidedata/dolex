@@ -4,7 +4,7 @@
  * Circular layout with arcs for groups and ribbons for flows
  * between groups. Uses d3.chord() and d3.ribbon().
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, createLegend, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, } from '../shared.js';
+import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, createLegend, tooltipHtml, escapeHtml, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, } from '../shared.js';
 export function renderChord(container, spec) {
     const { config, encoding, data } = spec;
     const sourceField = config.sourceField || encoding.source?.field;
@@ -138,11 +138,11 @@ export function renderChord(container, spec) {
         const sourceName = entities[d.source.index];
         const targetName = entities[d.target.index];
         const val = d.source.value;
-        let html = `<strong>${sourceName} \u2192 ${targetName}</strong><br/>Value: ${formatValue(val)}`;
+        let html = `<strong>${escapeHtml(sourceName)} \u2192 ${escapeHtml(targetName)}</strong><br/>Value: ${formatValue(val)}`;
         if (d.source.index !== d.target.index) {
             const reverseVal = matrix[d.target.index][d.source.index];
             if (reverseVal > 0) {
-                html += `<br/>${targetName} \u2192 ${sourceName}: ${formatValue(reverseVal)}`;
+                html += `<br/>${escapeHtml(targetName)} \u2192 ${escapeHtml(sourceName)}: ${formatValue(reverseVal)}`;
             }
         }
         showTooltip(tooltip, html, event);
@@ -174,7 +174,7 @@ export function renderChord(container, spec) {
             ? Math.min(ribbonOpacity + 0.25, 0.9)
             : ribbonOpacity * 0.2);
         const total = d.value;
-        showTooltip(tooltip, `<strong>${entities[d.index]}</strong><br/>Total flow: ${formatValue(total)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${entities[d.index]}</strong><br/>Total flow: ${formatValue(total)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -232,4 +232,3 @@ export function renderChord(container, spec) {
         });
     }
 }
-//# sourceMappingURL=chord.js.map

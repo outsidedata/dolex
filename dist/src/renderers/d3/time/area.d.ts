@@ -5,4 +5,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderArea(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=area.d.ts.map

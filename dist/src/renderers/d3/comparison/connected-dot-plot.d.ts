@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderConnectedDotPlot(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=connected-dot-plot.d.ts.map

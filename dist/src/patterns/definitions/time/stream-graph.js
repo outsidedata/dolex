@@ -119,4 +119,3 @@ export const streamGraphPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=stream-graph.js.map

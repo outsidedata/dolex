@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderCirclePack(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=circle-pack.d.ts.map

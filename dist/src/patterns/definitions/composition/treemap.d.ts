@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const treemapPattern: VisualizationPattern;
-//# sourceMappingURL=treemap.d.ts.map

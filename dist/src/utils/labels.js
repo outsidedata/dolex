@@ -205,4 +205,3 @@ export function labelStrategy(labels, availableWidth, fontSize = 12) {
     // Strategy 6: Hide labels (too many to show)
     return { mode: 'hidden', labels: [], fontSize };
 }
-//# sourceMappingURL=labels.js.map

@@ -15,6 +15,7 @@ import {
   showTooltip,
   hideTooltip,
   positionTooltip,
+  tooltipHtml,
   formatValue,
   styleAxis,
   getAdaptiveTickCount,
@@ -24,72 +25,10 @@ import {
   TEXT_MUTED,
 } from '../shared.js';
 
+import type { DensityPoint } from '../stats.js';
+import { kde, silvermanBandwidth, quartiles } from '../stats.js';
+
 declare const d3: any;
-
-// ─── KDE HELPERS ──────────────────────────────────────────────────────────────
-
-interface DensityPoint {
-  value: number;
-  density: number;
-}
-
-/** Gaussian kernel function. */
-function gaussianKernel(u: number): number {
-  return (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
-}
-
-/** Compute standard deviation of a numeric array. */
-function stdDev(values: number[]): number {
-  const n = values.length;
-  if (n < 2) return 1;
-  const mean = values.reduce((s, v) => s + v, 0) / n;
-  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1);
-  return Math.sqrt(variance);
-}
-
-/** Compute KDE for a set of values at the given sample points. */
-function kde(
-  values: number[],
-  samplePoints: number[],
-  bandwidth: number
-): DensityPoint[] {
-  const n = values.length;
-  return samplePoints.map((x) => {
-    const density =
-      values.reduce((sum, xi) => sum + gaussianKernel((x - xi) / bandwidth), 0) /
-      (n * bandwidth);
-    return { value: x, density };
-  });
-}
-
-/** Silverman's rule of thumb for bandwidth selection. */
-function silvermanBandwidth(values: number[]): number {
-  const sd = stdDev(values);
-  const n = values.length;
-  const bw = 1.06 * sd * Math.pow(n, -0.2);
-  if (bw > 0) return bw;
-  const range = (Math.max(...values) - Math.min(...values));
-  return range > 0 ? range * 0.1 : 1;
-}
-
-/** Compute quartiles + median from sorted values. */
-function quartiles(sorted: number[]): { q1: number; median: number; q3: number } {
-  const n = sorted.length;
-  if (n === 0) return { q1: 0, median: 0, q3: 0 };
-  if (n === 1) return { q1: sorted[0], median: sorted[0], q3: sorted[0] };
-  const median = n % 2 === 1 ? sorted[Math.floor(n / 2)] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-  const lowerHalf = sorted.slice(0, Math.floor(n / 2));
-  const upperHalf = sorted.slice(Math.ceil(n / 2));
-  const q1 =
-    lowerHalf.length % 2 === 1
-      ? lowerHalf[Math.floor(lowerHalf.length / 2)]
-      : (lowerHalf[lowerHalf.length / 2 - 1] + lowerHalf[lowerHalf.length / 2]) / 2;
-  const q3 =
-    upperHalf.length % 2 === 1
-      ? upperHalf[Math.floor(upperHalf.length / 2)]
-      : (upperHalf[upperHalf.length / 2 - 1] + upperHalf[upperHalf.length / 2]) / 2;
-  return { q1, median, q3 };
-}
 
 // ─── RENDERER ─────────────────────────────────────────────────────────────────
 
@@ -229,11 +168,7 @@ export function renderViolin(container: HTMLElement, spec: VisualizationSpec): v
 
       showTooltip(
         tooltip,
-        `<strong>${d.group}</strong><br/>` +
-          `Count: ${d.values.length}<br/>` +
-          `Median: ${formatValue(d.stats.median)}<br/>` +
-          `Q1: ${formatValue(d.stats.q1)}<br/>` +
-          `Q3: ${formatValue(d.stats.q3)}`,
+        tooltipHtml`<strong>${d.group}</strong><br/>Count: ${d.values.length}<br/>Median: ${formatValue(d.stats.median)}<br/>Q1: ${formatValue(d.stats.q1)}<br/>Q3: ${formatValue(d.stats.q3)}`,
         event
       );
     })

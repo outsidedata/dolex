@@ -68,9 +68,8 @@ export function handleClearCache(deps) {
         return {
             content: [{
                     type: 'text',
-                    text: cleared.join('\n'),
+                    text: JSON.stringify({ cleared }, null, 2),
                 }],
         };
     };
 }
-//# sourceMappingURL=server-privacy.js.map

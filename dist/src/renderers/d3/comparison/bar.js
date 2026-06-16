@@ -1,7 +1,7 @@
 /**
  * Bar chart D3 renderer with adaptive sizing and smart hover targets.
  */
-import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, renderEmptyState, isAllZeros, TEXT_MUTED, } from '../shared.js';
+import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, escapeHtml, styleAxis, getAdaptiveTickCount, calculateLeftMargin, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, renderEmptyState, isAllZeros, TEXT_MUTED, } from '../shared.js';
 export function renderBar(container, spec) {
     const { config, encoding, data } = spec;
     const isHorizontal = config.orientation === 'horizontal';
@@ -140,7 +140,7 @@ function renderHorizontalBar(g, data, originalData, encoding, config, dims, tool
         g.selectAll('.bar')
             .filter((bd) => bd[yField] === d[yField])
             .attr('opacity', 0.8);
-        showTooltip(tooltip, `<strong>${d[yField]}</strong><br/>${xField}: ${formatValue(Number(d[xField]))}`, event);
+        showTooltip(tooltip, `<strong>${escapeHtml(d[yField])}</strong><br/>${escapeHtml(xField)}: ${formatValue(Number(d[xField]))}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -270,7 +270,7 @@ function renderVerticalBar(g, data, originalData, encoding, config, dims, toolti
         g.selectAll('.bar')
             .filter((bd) => bd[xField] === d[xField])
             .attr('opacity', 0.8);
-        showTooltip(tooltip, `<strong>${d[xField]}</strong><br/>${yField}: ${formatValue(Number(d[yField]))}`, event);
+        showTooltip(tooltip, `<strong>${escapeHtml(d[xField])}</strong><br/>${escapeHtml(yField)}: ${formatValue(Number(d[yField]))}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -326,4 +326,3 @@ function renderVerticalBar(g, data, originalData, encoding, config, dims, toolti
         // Animation disabled for snappy rendering (was: .transition().delay(600).duration(200))
     }
 }
-//# sourceMappingURL=bar.js.map

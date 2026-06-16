@@ -35,4 +35,3 @@ export interface EvalResult {
     stats: TransformStats;
 }
 export declare function evaluateExpression(expr: string, rows: Record<string, any>[], options?: EvalOptions): EvalResult;
-//# sourceMappingURL=evaluator.d.ts.map

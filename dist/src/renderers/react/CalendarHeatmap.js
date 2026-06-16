@@ -5,4 +5,3 @@ export function CalendarHeatmap({ spec, width = 800, height = 500, className, on
     const containerRef = useChart(spec, renderCalendarHeatmap, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=CalendarHeatmap.js.map

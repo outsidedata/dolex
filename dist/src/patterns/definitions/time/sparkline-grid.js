@@ -120,4 +120,3 @@ export const sparklineGridPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=sparkline-grid.js.map

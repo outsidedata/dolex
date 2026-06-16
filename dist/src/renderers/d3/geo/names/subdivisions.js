@@ -329,7 +329,7 @@ addRegion('JP', [
     ['Miyagi'],
     ['Miyazaki'],
     ['Nagano'],
-    ['Naoasaki', 'Nagasaki'],
+    ['Nagasaki'],
     ['Nara'],
     ['Niigata'],
     ['Oita'],
@@ -619,4 +619,3 @@ export function resolveSubdivisionName(region, input) {
 export function getSubdivisionNames(region) {
     return CANONICAL_NAMES[region.toUpperCase()] ?? [];
 }
-//# sourceMappingURL=subdivisions.js.map

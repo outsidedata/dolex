@@ -5,7 +5,7 @@
  * sequential stages. Stages are connected (no gaps) with rounded outer corners.
  * Labels and values on the right, conversion deltas on the left.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, contrastText, renderEmptyState, isAllZeros, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, contrastText, renderEmptyState, isAllZeros, tooltipHtml, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
 export function renderFunnel(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.y?.field || encoding.color?.field;
@@ -115,7 +115,6 @@ export function renderFunnel(container, spec) {
             .attr('pointer-events', 'none');
     }
     else if (style === 'tapered') {
-        const path = d3.path();
         const stageWidths = stages.map((s) => widthScale(s.value));
         stages.forEach((stage, i) => {
             const yTop = i * barHeight;
@@ -264,25 +263,17 @@ export function renderFunnel(container, spec) {
     });
 }
 function buildTooltipHtml(stage, index, stages) {
-    let html = `<strong>${stage.label}</strong><br/>Value: ${formatValue(stage.value)}`;
+    let html = tooltipHtml `<strong>${stage.label}</strong><br/>Value: ${formatValue(stage.value)}`;
     if (stage.percentage < 100) {
-        html += `<br/>Of top: ${stage.percentage.toFixed(1)}%`;
+        html += tooltipHtml `<br/>Of top: ${stage.percentage.toFixed(1)}%`;
     }
     if (stage.conversionFromPrev !== null) {
-        html += `<br/>From prev: ${stage.conversionFromPrev.toFixed(1)}%`;
+        html += tooltipHtml `<br/>From prev: ${stage.conversionFromPrev.toFixed(1)}%`;
     }
     if (index === 0 && stages.length > 1) {
         const lastStage = stages[stages.length - 1];
         const overallConversion = stage.value > 0 ? (lastStage.value / stage.value) * 100 : 0;
-        html += `<br/>Overall: ${overallConversion.toFixed(1)}% to end`;
+        html += tooltipHtml `<br/>Overall: ${overallConversion.toFixed(1)}% to end`;
     }
     return html;
 }
-function getConversionColor(rate) {
-    if (rate >= 80)
-        return '#10b981';
-    if (rate >= 50)
-        return '#f59e0b';
-    return '#ef4444';
-}
-//# sourceMappingURL=funnel.js.map

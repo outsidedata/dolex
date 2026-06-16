@@ -5,4 +5,3 @@
 export function isCompoundSpec(spec) {
     return 'compound' in spec && spec.compound === true;
 }
-//# sourceMappingURL=types.js.map

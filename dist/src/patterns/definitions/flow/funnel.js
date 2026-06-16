@@ -66,4 +66,3 @@ export const funnelPattern = {
         };
     },
 };
-//# sourceMappingURL=funnel.js.map

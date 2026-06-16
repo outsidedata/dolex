@@ -12,6 +12,7 @@ import {
   showTooltip,
   hideTooltip,
   positionTooltip,
+  tooltipHtml,
   formatValue,
   contrastText,
   truncateLabel,
@@ -21,8 +22,10 @@ import {
   DARK_BG,
   TEXT_MUTED,
   TEXT_COLOR,
+  sequential,
+  diverging,
+  categorical,
 } from './shared.js';
-import { sequential, diverging, categorical } from '../../theme/colors.js';
 
 declare const d3: any;
 
@@ -162,7 +165,7 @@ export function renderHeatmap(container: HTMLElement, spec: VisualizationSpec): 
     .attr('fill', (d: any) => colorScale(Number(d[valueField])))
     .on('mouseenter', function (event: MouseEvent, d: any) {
       d3.select(this).attr('opacity', 0.8);
-      const html = `<strong>${rowField}:</strong> ${d[rowField]}<br/><strong>${colField}:</strong> ${d[colField]}<br/><strong>${valueField}:</strong> ${formatValue(Number(d[valueField]))}`;
+      const html = tooltipHtml`<strong>${rowField}:</strong> ${d[rowField]}<br/><strong>${colField}:</strong> ${d[colField]}<br/><strong>${valueField}:</strong> ${formatValue(Number(d[valueField]))}`;
       showTooltip(tooltip, html, event);
     })
     .on('mousemove', function (event: MouseEvent) {

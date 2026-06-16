@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const proportionalSymbolPattern: VisualizationPattern;
-//# sourceMappingURL=proportional-symbol.d.ts.map

@@ -8,8 +8,7 @@
  * Modeled on the strip-plot renderer: Delaunay hover, flex legend with
  * interactive highlighting, adaptive dot radius, instant rendering.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, createLegend, DARK_BG, } from '../shared.js';
-import { categorical } from '../../../theme/colors.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, escapeHtml, tooltipHtml, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, createLegend, DARK_BG, categorical, } from '../shared.js';
 // ─── DODGE ALGORITHM ─────────────────────────────────────────────────────────
 /**
  * Simple dodge algorithm for beeswarm layout.
@@ -217,8 +216,8 @@ function renderGroupedBeeswarm(g, data, valueField, categoryField, encoding, con
             .filter((_, j) => j === p.i)
             .attr('r', p.r * 1.6)
             .attr('opacity', 1);
-        let html = `<strong>${p.d[categoryField]}</strong>`;
-        html += `<br/>${encoding.x?.title || valueField}: ${formatValue(Number(p.d[valueField]))}`;
+        let html = `<strong>${escapeHtml(p.d[categoryField])}</strong>`;
+        html += `<br/>${escapeHtml(encoding.x?.title || valueField)}: ${escapeHtml(formatValue(Number(p.d[valueField])))}`;
         showTooltip(tooltip, html, event);
     })
         .on('mouseleave', function () {
@@ -321,7 +320,7 @@ function renderSingleBeeswarm(g, data, valueField, encoding, xScale, colorScale,
             .filter((_, j) => j === p.i)
             .attr('r', p.r * 1.6)
             .attr('opacity', 1);
-        const html = `<strong>${encoding.x?.title || valueField}</strong>: ${formatValue(Number(p.d[valueField]))}`;
+        const html = tooltipHtml `<strong>${encoding.x?.title || valueField}</strong>: ${formatValue(Number(p.d[valueField]))}`;
         showTooltip(tooltip, html, event);
     })
         .on('mouseleave', function () {
@@ -351,4 +350,3 @@ function renderSingleBeeswarm(g, data, valueField, encoding, xScale, colorScale,
         .attr('stroke-width', 0.8)
         .attr('pointer-events', 'none');
 }
-//# sourceMappingURL=beeswarm.js.map

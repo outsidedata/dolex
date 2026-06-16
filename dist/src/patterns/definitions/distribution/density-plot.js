@@ -109,4 +109,3 @@ export const densityPlotPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=density-plot.js.map

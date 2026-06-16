@@ -7,4 +7,3 @@
 export { csvConnector } from './csv.js';
 // ─── Manager ────────────────────────────────────────────────────────────────
 export { SourceManager } from './manager.js';
-//# sourceMappingURL=index.js.map

@@ -120,4 +120,3 @@ export const chordPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=chord.js.map

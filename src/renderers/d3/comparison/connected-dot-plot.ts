@@ -22,6 +22,7 @@ import {
   calculateLeftMargin,
   renderEmptyState,
   isAllZeros,
+  tooltipHtml,
   DEFAULT_PALETTE,
   GRID_COLOR,
   TEXT_MUTED,
@@ -190,7 +191,7 @@ export function renderConnectedDotPlot(container: HTMLElement, spec: Visualizati
 
       showTooltip(
         tooltip,
-        `<strong>${cat}</strong><br/>${startLabel}: ${formatValue(startVal)}<br/>${endLabel}: ${formatValue(endVal)}<br/>Difference: ${diff >= 0 ? '+' : ''}${formatValue(diff)}`,
+        tooltipHtml`<strong>${cat}</strong><br/>${startLabel}: ${formatValue(startVal)}<br/>${endLabel}: ${formatValue(endVal)}<br/>Difference: ${diff >= 0 ? '+' : ''}${formatValue(diff)}`,
         event
       );
     })

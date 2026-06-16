@@ -4,4 +4,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderDonut(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=donut.d.ts.map

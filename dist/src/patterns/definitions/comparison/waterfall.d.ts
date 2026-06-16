@@ -3,4 +3,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const waterfallPattern: VisualizationPattern;
-//# sourceMappingURL=waterfall.d.ts.map

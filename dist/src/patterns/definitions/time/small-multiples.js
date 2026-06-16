@@ -96,4 +96,3 @@ export const smallMultiplesPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=small-multiples.js.map

@@ -5,4 +5,3 @@ export function DensityPlot({ spec, width = 800, height = 500, className, onRead
     const containerRef = useChart(spec, renderDensityPlot, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=DensityPlot.js.map

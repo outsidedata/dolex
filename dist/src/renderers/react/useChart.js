@@ -42,4 +42,3 @@ export function useChart(spec, renderFn, width, height, onReady) {
     }, [spec, renderFn, width, height, onReady]);
     return containerRef;
 }
-//# sourceMappingURL=useChart.js.map

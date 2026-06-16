@@ -9,4 +9,3 @@ export declare class TokenizeError extends Error {
     constructor(message: string, pos: number);
 }
 export declare function tokenize(input: string): Token[];
-//# sourceMappingURL=tokenizer.d.ts.map

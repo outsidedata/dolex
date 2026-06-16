@@ -4,4 +4,3 @@
 export { sankeyPattern } from './sankey.js';
 export { alluvialPattern } from './alluvial.js';
 export { chordPattern } from './chord.js';
-//# sourceMappingURL=index.js.map

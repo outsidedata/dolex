@@ -3,4 +3,3 @@ export { resolveCountryName, getAllCountryNames, getCountryAlpha2Codes } from '.
 export { resolveSubdivisionName, getSubdivisionNames } from './subdivisions.js';
 export { levenshtein, suggestMatch } from './fuzzy.js';
 export type { FuzzySuggestion } from './fuzzy.js';
-//# sourceMappingURL=index.d.ts.map

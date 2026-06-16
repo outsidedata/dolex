@@ -15,10 +15,12 @@ import {
   formatValue,
   contrastText,
   contrastTextMuted,
+  tooltipHtml,
   DARK_BG,
   TEXT_COLOR,
   truncateTitle,
 } from '../shared.js';
+import { buildHierarchy } from './hierarchy-utils.js';
 
 declare const d3: any;
 
@@ -70,7 +72,13 @@ export function renderCirclePack(container: HTMLElement, spec: VisualizationSpec
   const tooltip = createTooltip(container);
 
   // Build hierarchy
-  const root = buildHierarchy(data, categoryField, valueField, parentField, config);
+  const root = buildHierarchy({
+    data,
+    categoryField,
+    valueField,
+    parentField: parentField || undefined,
+    childField: config.childField,
+  });
 
   // Guard: if total value is 0, assign equal weights so pack layout works
   if (root.value === 0) {
@@ -128,7 +136,7 @@ export function renderCirclePack(container: HTMLElement, spec: VisualizationSpec
         : '';
       showTooltip(
         tooltip,
-        `<strong>${parentName}${d.data.name}</strong><br/>${valueField}: ${formatValue(d.value)}`,
+        tooltipHtml`<strong>${parentName}${d.data.name}</strong><br/>${valueField}: ${formatValue(d.value)}`,
         event
       );
     })
@@ -201,46 +209,3 @@ export function renderCirclePack(container: HTMLElement, spec: VisualizationSpec
   }
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function buildHierarchy(
-  data: Record<string, any>[],
-  categoryField: string,
-  valueField: string,
-  parentField: string | null,
-  config: VisualizationSpec['config']
-): any {
-  // Compute min-visible threshold: 2% of max ensures extreme-range items stay visible
-  const allVals = data.map((d) => Number(d[valueField]) || 0).filter((v) => v > 0);
-  const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0;
-  const minVisible = maxVal * 0.02;
-  const clampVal = (v: number) => (v > 0 && v < minVisible ? minVisible : v);
-
-  if (parentField) {
-    const parents = [...new Set(data.map((d) => d[parentField]))];
-    const hierarchy = {
-      name: 'root',
-      children: parents.map((p) => ({
-        name: p,
-        children: data
-          .filter((d) => d[parentField] === p)
-          .map((d) => ({
-            name: d[categoryField] || d[config.childField] || d[parentField],
-            value: clampVal(Number(d[valueField]) || 0),
-            _data: d,
-          })),
-      })),
-    };
-    return d3.hierarchy(hierarchy).sum((d: any) => d.value).sort((a: any, b: any) => b.value - a.value);
-  }
-
-  const hierarchy = {
-    name: 'root',
-    children: data.map((d) => ({
-      name: d[categoryField],
-      value: clampVal(Number(d[valueField]) || 0),
-      _data: d,
-    })),
-  };
-  return d3.hierarchy(hierarchy).sum((d: any) => d.value).sort((a: any, b: any) => b.value - a.value);
-}

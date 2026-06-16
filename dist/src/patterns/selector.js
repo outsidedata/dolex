@@ -483,4 +483,3 @@ export function scoreSpecificPattern(patternId, data, columns, intent) {
         reasoning: scored.reasoning,
     };
 }
-//# sourceMappingURL=selector.js.map

@@ -7,8 +7,7 @@
  *
  * Standards: HTML legend below SVG, line-level hover, adaptive tick counts.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, truncateLabel, createLegend, renderEmptyState, TEXT_COLOR, } from './shared.js';
-import { categorical } from '../../theme/colors.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, truncateLabel, createLegend, renderEmptyState, escapeHtml, tooltipHtml, TEXT_COLOR, categorical, } from './shared.js';
 // ─── PARALLEL COORDINATES ────────────────────────────────────────────────────
 export function renderParallelCoordinates(container, spec) {
     const { config, encoding, data } = spec;
@@ -133,18 +132,18 @@ export function renderParallelCoordinates(container, spec) {
         // Build tooltip with entity label + all dimension values
         let html = '';
         if (labelField && d[labelField]) {
-            html += `<strong>${d[labelField]}</strong>`;
+            html += tooltipHtml `<strong>${d[labelField]}</strong>`;
             if (colorField && colorField !== labelField) {
-                html += ` <span style="color:#9ca3af">${d[colorField]}</span>`;
+                html += tooltipHtml ` <span style="color:#9ca3af">${d[colorField]}</span>`;
             }
             html += '<br/>';
         }
         else if (colorField) {
-            html += `<strong>${d[colorField]}</strong><br/>`;
+            html += tooltipHtml `<strong>${d[colorField]}</strong><br/>`;
         }
         html += dimensions.map((dim) => {
             const val = Number(d[dim]);
-            return `${dim}: ${isNaN(val) ? d[dim] : formatValue(val)}`;
+            return `${escapeHtml(dim)}: ${isNaN(val) ? escapeHtml(d[dim]) : escapeHtml(formatValue(val))}`;
         }).join('<br/>');
         showTooltip(tooltip, html, event);
     })
@@ -178,4 +177,3 @@ export function renderParallelCoordinates(container, spec) {
         container.appendChild(legendDiv);
     }
 }
-//# sourceMappingURL=parallel-coordinates.js.map

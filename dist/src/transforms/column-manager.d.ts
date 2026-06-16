@@ -32,4 +32,3 @@ export declare class ColumnManager {
     private profileTopValues;
     private writeValues;
 }
-//# sourceMappingURL=column-manager.d.ts.map

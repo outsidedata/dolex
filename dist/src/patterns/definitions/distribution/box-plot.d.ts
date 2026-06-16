@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const boxPlotPattern: VisualizationPattern;
-//# sourceMappingURL=box-plot.d.ts.map

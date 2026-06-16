@@ -2,7 +2,7 @@
  * Donut/Pie chart D3 renderer.
  * Composition chart: circular part-to-whole with configurable inner radius.
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, contrastText, isAllZeros, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, } from '../shared.js';
+import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, escapeHtml, contrastText, isAllZeros, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, } from '../shared.js';
 export function renderDonut(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.color?.field || encoding.x?.field;
@@ -123,7 +123,7 @@ export function renderDonut(container, spec) {
         .on('mouseover', function (event, d) {
         g.selectAll('.donut-slice').attr('opacity', (s) => s.data.category === d.data.category ? 1 : 0.3);
         d3.select(g.selectAll('.donut-slice').nodes()[d.index]).attr('d', arcHover);
-        showTooltip(tooltip, `<strong>${d.data.category}</strong><br/>${formatValue(d.data.value)}<br/>${d.data.percentage.toFixed(1)}%`, event);
+        showTooltip(tooltip, `<strong>${escapeHtml(d.data.category)}</strong><br/>${formatValue(d.data.value)}<br/>${d.data.percentage.toFixed(1)}%`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -187,4 +187,3 @@ export function renderDonut(container, spec) {
             .text(`${negativeCount} item${negativeCount > 1 ? 's' : ''} with negative values excluded`);
     }
 }
-//# sourceMappingURL=donut.js.map

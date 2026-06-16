@@ -19,4 +19,3 @@ export declare const analyzeSourceInputSchema: z.ZodObject<{
 export declare function handleAnalyzeSource(deps: {
     sourceManager: any;
 }): (args: z.infer<typeof analyzeSourceInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=analyze.d.ts.map

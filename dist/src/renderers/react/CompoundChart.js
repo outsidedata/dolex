@@ -77,4 +77,3 @@ export function CompoundChart({ spec, width = 1200, height = 800, className, cha
     }
     return (_jsx("div", { style: gridStyle, className: className, children: spec.views.map((view, i) => renderView(view, i)) }));
 }
-//# sourceMappingURL=CompoundChart.js.map

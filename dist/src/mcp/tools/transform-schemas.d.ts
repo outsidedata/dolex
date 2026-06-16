@@ -11,11 +11,11 @@ export declare const transformDataBaseSchema: z.ZodObject<{
         create: z.ZodString;
         expr: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        create: string;
         expr: string;
+        create: string;
     }, {
-        create: string;
         expr: string;
+        create: string;
     }>, "many">>;
     type: z.ZodOptional<z.ZodEnum<["numeric", "categorical", "date", "boolean"]>>;
     filter: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -41,13 +41,13 @@ export declare const transformDataBaseSchema: z.ZodObject<{
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }, {
     table: string;
     sourceId: string;
@@ -57,13 +57,13 @@ export declare const transformDataBaseSchema: z.ZodObject<{
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }>;
 export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     sourceId: z.ZodString;
@@ -74,11 +74,11 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         create: z.ZodString;
         expr: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        create: string;
         expr: string;
+        create: string;
     }, {
-        create: string;
         expr: string;
+        create: string;
     }>, "many">>;
     type: z.ZodOptional<z.ZodEnum<["numeric", "categorical", "date", "boolean"]>>;
     filter: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -104,13 +104,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }, {
     table: string;
     sourceId: string;
@@ -120,13 +120,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }>, {
     table: string;
     sourceId: string;
@@ -136,13 +136,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }, {
     table: string;
     sourceId: string;
@@ -152,13 +152,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }>, {
     table: string;
     sourceId: string;
@@ -168,13 +168,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }, {
     table: string;
     sourceId: string;
@@ -184,13 +184,13 @@ export declare const transformDataSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<
         op: "=" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "not_in" | "between" | "is_null" | "is_not_null";
         value?: any;
     }[] | undefined;
-    create?: string | undefined;
     expr?: string | undefined;
-    transforms?: {
-        create: string;
-        expr: string;
-    }[] | undefined;
     partitionBy?: string | undefined;
+    create?: string | undefined;
+    transforms?: {
+        expr: string;
+        create: string;
+    }[] | undefined;
 }>;
 export declare const promoteColumnsSchema: z.ZodObject<{
     sourceId: z.ZodString;
@@ -231,4 +231,3 @@ export declare const dropColumnsSchema: z.ZodObject<{
     sourceId: string;
     layer?: "derived" | "working" | undefined;
 }>;
-//# sourceMappingURL=transform-schemas.d.ts.map

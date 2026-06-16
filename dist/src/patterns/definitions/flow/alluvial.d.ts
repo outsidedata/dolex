@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const alluvialPattern: VisualizationPattern;
-//# sourceMappingURL=alluvial.d.ts.map

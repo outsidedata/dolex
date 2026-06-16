@@ -67,4 +67,3 @@ export declare function getSupportedPatterns(): string[];
  */
 export declare function isPatternSupported(pattern: string): boolean;
 export { renderBar, renderDivergingBar, renderSlopeChart, renderConnectedDotPlot, renderBumpChart, renderHistogram, renderBeeswarm, renderStripPlot, renderViolin, renderRidgeline, renderBoxPlot, renderStackedBar, renderWaffle, renderTreemap, renderSunburst, renderCirclePack, renderMetric, renderDonut, renderLine, renderArea, renderSmallMultiples, renderSparklineGrid, renderCalendarHeatmap, renderScatter, renderRadar, renderConnectedScatter, renderParallelCoordinates, renderHeatmap, renderSankey, renderAlluvial, renderChord, renderFunnel, renderLollipop, renderBullet, renderDensityPlot, renderMarimekko, renderIcicle, renderStreamGraph, renderHorizonChart, renderChoropleth, renderProportionalSymbol, renderGroupedBar, renderWaterfall, renderPlaceholder, };
-//# sourceMappingURL=index.d.ts.map

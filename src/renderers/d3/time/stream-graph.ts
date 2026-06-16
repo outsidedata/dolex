@@ -15,13 +15,16 @@ import {
   createLegend,
   highlightLegendItem,
   formatValue,
+  parseDate,
   renderEmptyState,
   isAllZeros,
+  escapeHtml,
   TEXT_MUTED,
   DARK_BG,
   styleAxis,
   getAdaptiveTickCount,
 } from '../shared.js';
+import { findNearestDateIndex, createCrosshairGroup } from './crosshair-utils.js';
 
 declare const d3: any;
 
@@ -244,17 +247,6 @@ export function renderStreamGraph(container: HTMLElement, spec: VisualizationSpe
   }
 }
 
-function parseDate(v: any): Date | null {
-  if (v instanceof Date) return v;
-  if (v === null || v === undefined || v === '') return null;
-  const num = typeof v === 'number' ? v : Number(v);
-  if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-    return new Date(num, 0, 1);
-  }
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
-}
-
 function addStreamInteraction(
   g: any,
   streams: any,
@@ -273,21 +265,7 @@ function addStreamInteraction(
 ): void {
   const sortedDates = wideData.map((d: any) => d._date.getTime());
 
-  const crosshairLine = g
-    .append('line')
-    .attr('class', 'crosshair')
-    .attr('y1', 0)
-    .attr('y2', dims.innerHeight)
-    .attr('stroke', TEXT_MUTED)
-    .attr('stroke-width', 1)
-    .attr('stroke-dasharray', '4,3')
-    .attr('pointer-events', 'none')
-    .attr('opacity', 0);
-
-  const highlightDots = g
-    .append('g')
-    .attr('class', 'highlight-dots')
-    .attr('pointer-events', 'none');
+  const { crosshairLine, highlightDots, hoverArea } = createCrosshairGroup(g, dims);
 
   streams
     .attr('cursor', 'pointer')
@@ -305,15 +283,7 @@ function addStreamInteraction(
       const xDate = xScale.invert(mx).getTime();
       const hoveredKey = d.key;
 
-      const bisect = d3.bisector((t: number) => t).left;
-      let idx = bisect(sortedDates, xDate);
-      if (idx > 0 && idx < sortedDates.length) {
-        const d0 = sortedDates[idx - 1];
-        const d1 = sortedDates[idx];
-        idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-      } else if (idx >= sortedDates.length) {
-        idx = sortedDates.length - 1;
-      }
+      const idx = findNearestDateIndex(sortedDates, xDate);
 
       const nearestX = xScale(wideData[idx]._date);
       crosshairLine.attr('x1', nearestX).attr('x2', nearestX).attr('opacity', 1);
@@ -336,14 +306,14 @@ function addStreamInteraction(
 
       const dateStr = wideData[idx]._date.toLocaleDateString();
       const val = wideData[idx][hoveredKey] || 0;
-      let html = `<strong>${hoveredKey}</strong><br/>`;
-      html += `<span style="color:${TEXT_MUTED}">${dateStr}</span><br/>`;
-      html += `${valueField}: ${formatValue(val)}`;
+      let html = `<strong>${escapeHtml(hoveredKey)}</strong><br/>`;
+      html += `<span style="color:${escapeHtml(TEXT_MUTED)}">${escapeHtml(dateStr)}</span><br/>`;
+      html += `${escapeHtml(valueField)}: ${escapeHtml(formatValue(val))}`;
 
       if (offsetMode === 'expand') {
         const total = seriesNames.reduce((s: number, k: string) => s + (wideData[idx][k] || 0), 0);
         if (total > 0) {
-          const pct = ((val / total) * 100).toFixed(1);
+          const pct = escapeHtml(((val / total) * 100).toFixed(1));
           html += ` (${pct}%)`;
         }
       }
@@ -358,26 +328,15 @@ function addStreamInteraction(
       highlightLegendItem(legendDiv, null);
     });
 
-  g.append('rect')
-    .attr('class', 'hover-area')
-    .attr('width', dims.innerWidth)
-    .attr('height', dims.innerHeight)
-    .attr('fill', 'transparent')
+  // Reuse hover area as background (behind streams) for non-stream hover
+  hoverArea
     .style('pointer-events', 'all')
     .lower()
     .on('mousemove', function (event: MouseEvent) {
       const [mx] = d3.pointer(event, g.node());
       const xDate = xScale.invert(mx).getTime();
 
-      const bisect = d3.bisector((t: number) => t).left;
-      let idx = bisect(sortedDates, xDate);
-      if (idx > 0 && idx < sortedDates.length) {
-        const d0 = sortedDates[idx - 1];
-        const d1 = sortedDates[idx];
-        idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-      } else if (idx >= sortedDates.length) {
-        idx = sortedDates.length - 1;
-      }
+      const idx = findNearestDateIndex(sortedDates, xDate);
 
       const nearestX = xScale(wideData[idx]._date);
       crosshairLine.attr('x1', nearestX).attr('x2', nearestX).attr('opacity', 1);
@@ -385,15 +344,15 @@ function addStreamInteraction(
       highlightDots.selectAll('circle').remove();
 
       const dateStr = wideData[idx]._date.toLocaleDateString();
-      let html = `<strong>${dateStr}</strong>`;
+      let html = `<strong>${escapeHtml(dateStr)}</strong>`;
 
       const sorted = [...seriesNames]
         .map((name) => ({ name, value: wideData[idx][name] || 0 }))
         .sort((a, b) => b.value - a.value);
 
       sorted.forEach((s) => {
-        const color = colorScale(s.name);
-        html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${s.name}: ${formatValue(s.value)}`;
+        const color = escapeHtml(colorScale(s.name));
+        html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(s.name)}: ${escapeHtml(formatValue(s.value))}`;
       });
 
       showTooltip(tooltip, html, event);

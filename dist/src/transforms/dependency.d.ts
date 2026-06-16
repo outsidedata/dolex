@@ -18,4 +18,3 @@ export declare function hasCircularDependency(newColumn: string, newExpr: string
 };
 /** Sort records in dependency-safe order (dependencies before dependents). */
 export declare function topologicalSort(records: TransformRecord[]): TransformRecord[];
-//# sourceMappingURL=dependency.d.ts.map

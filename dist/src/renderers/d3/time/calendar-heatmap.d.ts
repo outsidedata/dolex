@@ -8,4 +8,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderCalendarHeatmap(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=calendar-heatmap.d.ts.map

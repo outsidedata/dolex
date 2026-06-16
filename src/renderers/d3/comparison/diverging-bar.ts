@@ -21,6 +21,7 @@ import {
   shouldShowValueLabels,
   renderEmptyState,
   isAllZeros,
+  tooltipHtml,
   TEXT_MUTED,
   AXIS_COLOR,
   GRID_COLOR,
@@ -136,7 +137,7 @@ function renderHorizontal(
       const val = Number(d[yField]);
       showTooltip(
         tooltip,
-        `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`,
+        tooltipHtml`<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`,
         event
       );
     })
@@ -310,7 +311,7 @@ function renderVertical(
       const val = Number(d[yField]);
       showTooltip(
         tooltip,
-        `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`,
+        tooltipHtml`<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`,
         event
       );
     })

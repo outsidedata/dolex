@@ -45,4 +45,3 @@ export function resultCacheStats() {
     }
     return { entries: cache.size, maxEntries: MAX_ENTRIES, ttlMs: TTL_MS, totalRows };
 }
-//# sourceMappingURL=result-cache.js.map

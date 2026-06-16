@@ -39,4 +39,3 @@ export declare function downloadSvg(svgElement: SVGSVGElement, filename?: string
  * @returns Promise resolving to a PNG data URL string
  */
 export declare function svgToPng(svgElement: SVGSVGElement, scale?: number): Promise<string>;
-//# sourceMappingURL=export.d.ts.map

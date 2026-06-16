@@ -140,4 +140,3 @@ export const animation = {
     /** Slow/dramatic: layout shifts, data updates */
     slow: { duration: 600, easing: 'ease-in-out' },
 };
-//# sourceMappingURL=spacing.js.map

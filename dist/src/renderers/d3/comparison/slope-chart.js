@@ -1,7 +1,7 @@
 /**
  * Slope chart D3 renderer.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, TEXT_COLOR, GRID_COLOR, DARK_BG, } from '../shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, tooltipHtml, TEXT_COLOR, GRID_COLOR, DARK_BG, } from '../shared.js';
 /**
  * Push overlapping labels apart vertically with bounds clamping.
  * Labels must be sorted by y before calling.
@@ -125,7 +125,7 @@ export function renderSlopeChart(container, spec) {
                 .attr('cursor', 'pointer')
                 .on('mouseover', function (event) {
                 d3.select(this).attr('r', 8);
-                showTooltip(tooltip, `<strong>${d.category}</strong><br/>${singlePeriod}: ${formatValue(d.value)}`, event);
+                showTooltip(tooltip, tooltipHtml `<strong>${d.category}</strong><br/>${singlePeriod}: ${formatValue(d.value)}`, event);
             })
                 .on('mousemove', (event) => {
                 positionTooltip(tooltip, event);
@@ -173,7 +173,7 @@ export function renderSlopeChart(container, spec) {
     })
         .filter(Boolean);
     // Invisible wide hover targets (drawn first, behind everything)
-    lineData.forEach((d) => {
+    lineData.forEach((d, idx) => {
         g.append('line')
             .attr('class', 'slope-hover-target')
             .attr('x1', xScale(periods[0]))
@@ -184,25 +184,25 @@ export function renderSlopeChart(container, spec) {
             .attr('stroke-width', 16)
             .attr('cursor', 'pointer')
             .on('mouseover', function (event) {
-            g.select(`.slope-line-${CSS.escape(d.category)}`).attr('stroke-width', 4).attr('opacity', 1);
-            g.selectAll(`.slope-dot-${CSS.escape(d.category)}`).attr('r', 6);
+            g.select(`.slope-line-${idx}`).attr('stroke-width', 4).attr('opacity', 1);
+            g.selectAll(`.slope-dot-${idx}`).attr('r', 6);
             const change = d.vals[periods[1]] - d.vals[periods[0]];
             const pctChange = ((change / d.vals[periods[0]]) * 100).toFixed(1);
-            showTooltip(tooltip, `<strong>${d.category}</strong><br/>${periods[0]}: ${formatValue(d.vals[periods[0]])}<br/>${periods[1]}: ${formatValue(d.vals[periods[1]])}<br/>Change: ${change >= 0 ? '+' : ''}${pctChange}%`, event);
+            showTooltip(tooltip, tooltipHtml `<strong>${d.category}</strong><br/>${periods[0]}: ${formatValue(d.vals[periods[0]])}<br/>${periods[1]}: ${formatValue(d.vals[periods[1]])}<br/>Change: ${change >= 0 ? '+' : ''}${pctChange}%`, event);
         })
             .on('mousemove', (event) => {
             positionTooltip(tooltip, event);
         })
             .on('mouseout', function () {
-            g.select(`.slope-line-${CSS.escape(d.category)}`).attr('stroke-width', 2.5).attr('opacity', 0.8);
-            g.selectAll(`.slope-dot-${CSS.escape(d.category)}`).attr('r', 5);
+            g.select(`.slope-line-${idx}`).attr('stroke-width', 2.5).attr('opacity', 0.8);
+            g.selectAll(`.slope-dot-${idx}`).attr('r', 5);
             hideTooltip(tooltip);
         });
     });
     // Draw visible slope lines
-    lineData.forEach((d) => {
+    lineData.forEach((d, idx) => {
         g.append('line')
-            .attr('class', `slope-line-${d.category}`)
+            .attr('class', `slope-line-${idx}`)
             .attr('x1', xScale(periods[0]))
             .attr('y1', d.y1)
             .attr('x2', xScale(periods[1]))
@@ -214,7 +214,7 @@ export function renderSlopeChart(container, spec) {
         // Dots at endpoints
         [periods[0], periods[1]].forEach((period) => {
             g.append('circle')
-                .attr('class', `slope-dot-${d.category}`)
+                .attr('class', `slope-dot-${idx}`)
                 .attr('cx', xScale(period))
                 .attr('cy', yScale(d.vals[period]))
                 .attr('r', 5)
@@ -269,4 +269,3 @@ export function renderSlopeChart(container, spec) {
         });
     }
 }
-//# sourceMappingURL=slope-chart.js.map

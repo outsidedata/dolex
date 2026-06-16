@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const marimekkoPattern: VisualizationPattern;
-//# sourceMappingURL=marimekko.d.ts.map

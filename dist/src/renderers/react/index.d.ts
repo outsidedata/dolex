@@ -57,4 +57,3 @@ export { Chord } from './Chord.js';
 export { Funnel } from './Funnel.js';
 export { Choropleth } from './Choropleth.js';
 export { ProportionalSymbol } from './ProportionalSymbol.js';
-//# sourceMappingURL=index.d.ts.map

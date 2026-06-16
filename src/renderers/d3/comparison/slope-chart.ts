@@ -12,6 +12,7 @@ import {
   positionTooltip,
   formatValue,
   truncateLabel,
+  tooltipHtml,
   TEXT_COLOR,
   GRID_COLOR,
   DARK_BG,
@@ -159,7 +160,7 @@ export function renderSlopeChart(container: HTMLElement, spec: VisualizationSpec
           d3.select(this).attr('r', 8);
           showTooltip(
             tooltip,
-            `<strong>${d.category}</strong><br/>${singlePeriod}: ${formatValue(d.value)}`,
+            tooltipHtml`<strong>${d.category}</strong><br/>${singlePeriod}: ${formatValue(d.value)}`,
             event
           );
         })
@@ -213,7 +214,7 @@ export function renderSlopeChart(container: HTMLElement, spec: VisualizationSpec
     .filter(Boolean) as { category: string; vals: Record<string, number>; y1: number; y2: number; color: string }[];
 
   // Invisible wide hover targets (drawn first, behind everything)
-  lineData.forEach((d) => {
+  lineData.forEach((d, idx) => {
     g.append('line')
       .attr('class', 'slope-hover-target')
       .attr('x1', xScale(periods[0]))
@@ -224,13 +225,13 @@ export function renderSlopeChart(container: HTMLElement, spec: VisualizationSpec
       .attr('stroke-width', 16)
       .attr('cursor', 'pointer')
       .on('mouseover', function (event: MouseEvent) {
-        g.select(`.slope-line-${CSS.escape(d.category)}`).attr('stroke-width', 4).attr('opacity', 1);
-        g.selectAll(`.slope-dot-${CSS.escape(d.category)}`).attr('r', 6);
+        g.select(`.slope-line-${idx}`).attr('stroke-width', 4).attr('opacity', 1);
+        g.selectAll(`.slope-dot-${idx}`).attr('r', 6);
         const change = d.vals[periods[1]] - d.vals[periods[0]];
         const pctChange = ((change / d.vals[periods[0]]) * 100).toFixed(1);
         showTooltip(
           tooltip,
-          `<strong>${d.category}</strong><br/>${periods[0]}: ${formatValue(d.vals[periods[0]])}<br/>${periods[1]}: ${formatValue(d.vals[periods[1]])}<br/>Change: ${change >= 0 ? '+' : ''}${pctChange}%`,
+          tooltipHtml`<strong>${d.category}</strong><br/>${periods[0]}: ${formatValue(d.vals[periods[0]])}<br/>${periods[1]}: ${formatValue(d.vals[periods[1]])}<br/>Change: ${change >= 0 ? '+' : ''}${pctChange}%`,
           event
         );
       })
@@ -238,16 +239,16 @@ export function renderSlopeChart(container: HTMLElement, spec: VisualizationSpec
         positionTooltip(tooltip, event);
       })
       .on('mouseout', function () {
-        g.select(`.slope-line-${CSS.escape(d.category)}`).attr('stroke-width', 2.5).attr('opacity', 0.8);
-        g.selectAll(`.slope-dot-${CSS.escape(d.category)}`).attr('r', 5);
+        g.select(`.slope-line-${idx}`).attr('stroke-width', 2.5).attr('opacity', 0.8);
+        g.selectAll(`.slope-dot-${idx}`).attr('r', 5);
         hideTooltip(tooltip);
       });
   });
 
   // Draw visible slope lines
-  lineData.forEach((d) => {
+  lineData.forEach((d, idx) => {
     g.append('line')
-      .attr('class', `slope-line-${d.category}`)
+      .attr('class', `slope-line-${idx}`)
       .attr('x1', xScale(periods[0]))
       .attr('y1', d.y1)
       .attr('x2', xScale(periods[1]))
@@ -260,7 +261,7 @@ export function renderSlopeChart(container: HTMLElement, spec: VisualizationSpec
     // Dots at endpoints
     [periods[0], periods[1]].forEach((period) => {
       g.append('circle')
-        .attr('class', `slope-dot-${d.category}`)
+        .attr('class', `slope-dot-${idx}`)
         .attr('cx', xScale(period))
         .attr('cy', yScale(d.vals[period]))
         .attr('r', 5)

@@ -9,4 +9,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderHistogram(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=histogram.d.ts.map

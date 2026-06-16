@@ -8,4 +8,3 @@
  */
 import type { DataConnector } from './types.js';
 export declare const csvConnector: DataConnector;
-//# sourceMappingURL=csv.d.ts.map

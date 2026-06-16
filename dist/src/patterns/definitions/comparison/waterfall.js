@@ -82,4 +82,3 @@ export const waterfallPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=waterfall.js.map

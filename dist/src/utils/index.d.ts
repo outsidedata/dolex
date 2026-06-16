@@ -6,4 +6,3 @@ export type { LabelPosition, ResolvedLabel, LabelStrategyMode, LabelStrategyResu
 export { getContainerMode, responsiveMargins, responsiveFontSize, responsiveTicks, } from './responsive.js';
 export type { ContainerMode, ChartMargins, } from './responsive.js';
 export { svgToString, inlineStyles, downloadSvg, svgToPng, } from './export.js';
-//# sourceMappingURL=index.d.ts.map

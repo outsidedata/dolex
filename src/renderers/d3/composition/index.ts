@@ -1,5 +1,5 @@
 /**
- * Composition renderers — stacked-bar, waffle, treemap, sunburst.
+ * Composition renderers — stacked-bar, waffle, treemap, sunburst, circle-pack, metric, donut, marimekko, icicle.
  */
 
 export { renderStackedBar } from './stacked-bar.js';

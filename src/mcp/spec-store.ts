@@ -78,15 +78,39 @@ export class SpecStore {
     return entry;
   }
 
+  /**
+   * Insert an entry under a caller-supplied id, freshening its `createdAt` so
+   * it does not immediately expire. Used by the CLI to hydrate the store from
+   * a disk-persisted spec before reusing the in-memory refine logic.
+   */
+  restore(
+    specId: string,
+    entry: {
+      spec: VisualizationSpec | CompoundVisualizationSpec;
+      columns: DataColumn[];
+      alternatives?: Map<string, VisualizationSpec>;
+      originalData?: Record<string, any>[];
+    },
+  ): void {
+    this.store.set(specId, {
+      spec: entry.spec,
+      columns: entry.columns,
+      alternatives: entry.alternatives ?? new Map(),
+      originalData: entry.originalData,
+      createdAt: Date.now(),
+    });
+  }
+
   updateSpec(
     specId: string,
     newSpec: VisualizationSpec | CompoundVisualizationSpec,
-  ): string {
-    const existing = this.store.get(specId);
-    const columns = existing?.columns ?? [];
-    const alternatives = existing?.alternatives ?? new Map<string, VisualizationSpec>();
-    const originalData = existing?.originalData;
-    return this.save(newSpec, columns, alternatives, originalData);
+  ): string | null {
+    const existing = this.get(specId); // Use get() which handles expiry
+    if (!existing) {
+      // Spec expired or not found — caller should handle this
+      return null;
+    }
+    return this.save(newSpec, existing.columns, existing.alternatives, existing.originalData);
   }
 
   getAlternative(specId: string, patternId: string): VisualizationSpec | null {

@@ -118,8 +118,8 @@ export declare const visualizeCliInputSchema: z.ZodObject<{
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
-    resultId?: string | undefined;
     sourceId?: string | undefined;
+    resultId?: string | undefined;
     sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
@@ -159,8 +159,8 @@ export declare const visualizeCliInputSchema: z.ZodObject<{
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
-    resultId?: string | undefined;
     sourceId?: string | undefined;
+    resultId?: string | undefined;
     sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
@@ -181,4 +181,3 @@ export declare const visualizeCliInputSchema: z.ZodObject<{
 export declare function handleVisualizeCli(selectPatterns: (input: VisualizeInput) => VisualizeOutput, deps?: {
     sourceManager?: any;
 }): (args: z.infer<typeof visualizeCliInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=visualize-cli.d.ts.map

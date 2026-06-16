@@ -15,4 +15,3 @@ import type { CompoundVisualizationSpec } from '../../../types.js';
  * the table view in a CSS grid layout with interaction wiring.
  */
 export declare function buildCompoundHtml(spec: CompoundVisualizationSpec): string;
-//# sourceMappingURL=compound.d.ts.map

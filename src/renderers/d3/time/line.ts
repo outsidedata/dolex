@@ -12,6 +12,8 @@ import {
   showTooltip,
   hideTooltip,
   formatValue,
+  escapeHtml,
+  parseDate,
   styleAxis,
   getAdaptiveTickCount,
   createLegend,
@@ -21,6 +23,7 @@ import {
   DARK_BG,
   DEFAULT_PALETTE,
 } from '../shared.js';
+import { findNearestDateIndex, createCrosshairGroup } from './crosshair-utils.js';
 
 declare const d3: any;
 
@@ -73,8 +76,7 @@ export function renderLine(container: HTMLElement, spec: VisualizationSpec): voi
   const { svg, g, dims } = createSvg(chartWrapper, spec, {
     right: 30,
     top: 40,
-  });
-  svg.style('background', 'none');
+  }, { background: false });
   const tooltip = createTooltip(chartWrapper);
 
   // Check if all values are zero
@@ -198,17 +200,6 @@ export function renderLine(container: HTMLElement, spec: VisualizationSpec): voi
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseDate(v: any): Date | null {
-  if (v instanceof Date) return v;
-  if (v === null || v === undefined || v === '') return null;
-  const num = typeof v === 'number' ? v : Number(v);
-  if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-    return new Date(num, 0, 1);
-  }
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
-}
-
 function drawMultiSeries(
   g: any,
   parsedData: Record<string, any>[],
@@ -313,7 +304,7 @@ function drawSingleSeries(
 
 /**
  * Crosshair-style hover: vertical line + dots at intersections + tooltip with all series values.
- * Uses bisector to find the nearest data point to the cursor x position.
+ * Uses shared bisector + crosshair utilities from crosshair-utils.
  */
 function addCrosshairHover(
   g: any,
@@ -338,41 +329,14 @@ function addCrosshairHover(
   });
   const sortedDates = [...dateMap.keys()].sort((a, b) => a - b);
 
-  // Crosshair vertical line (hidden by default)
-  const crosshairLine = g.append('line')
-    .attr('class', 'crosshair')
-    .attr('y1', 0)
-    .attr('y2', dims.innerHeight)
-    .attr('stroke', TEXT_MUTED)
-    .attr('stroke-width', 1)
-    .attr('stroke-dasharray', '4,3')
-    .attr('pointer-events', 'none')
-    .attr('opacity', 0);
+  const { crosshairLine, highlightDots, hoverArea } = createCrosshairGroup(g, dims);
 
-  // Highlight dots group
-  const highlightDots = g.append('g').attr('class', 'highlight-dots').attr('pointer-events', 'none');
-
-  // Invisible rect for mouse events
-  g.append('rect')
-    .attr('class', 'hover-area')
-    .attr('width', dims.innerWidth)
-    .attr('height', dims.innerHeight)
-    .attr('fill', 'transparent')
-    .attr('cursor', 'crosshair')
+  hoverArea
     .on('mousemove', function (event: MouseEvent) {
       const [mx] = d3.pointer(event, this);
       const xDate = xScale.invert(mx).getTime();
 
-      // Bisect to find nearest date
-      const bisect = d3.bisector((d: number) => d).left;
-      let idx = bisect(sortedDates, xDate);
-      if (idx > 0 && idx < sortedDates.length) {
-        const d0 = sortedDates[idx - 1];
-        const d1 = sortedDates[idx];
-        idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-      } else if (idx >= sortedDates.length) {
-        idx = sortedDates.length - 1;
-      }
+      const idx = findNearestDateIndex(sortedDates, xDate);
 
       const nearestTime = sortedDates[idx];
       const nearestX = xScale(new Date(nearestTime));
@@ -399,17 +363,17 @@ function addCrosshairHover(
 
       // Build tooltip
       const dateLabel = points[0]?.[timeField] ?? new Date(nearestTime).toLocaleDateString();
-      let html = `<strong>${dateLabel}</strong>`;
+      let html = `<strong>${escapeHtml(dateLabel)}</strong>`;
 
       if (isMultiSeries) {
         // Sort by value descending for readability
         const sorted = [...points].sort((a, b) => b._value - a._value);
         sorted.forEach((d) => {
-          const color = colorScale(d[seriesField!]);
-          html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${d[seriesField!]}: ${formatValue(d._value)}`;
+          const color = escapeHtml(colorScale(d[seriesField!]));
+          html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(d[seriesField!])}: ${escapeHtml(formatValue(d._value))}`;
         });
       } else {
-        html += `<br/>${valueField}: ${formatValue(points[0]?._value)}`;
+        html += `<br/>${escapeHtml(valueField)}: ${escapeHtml(formatValue(points[0]?._value))}`;
       }
 
       showTooltip(tooltip, html, event);

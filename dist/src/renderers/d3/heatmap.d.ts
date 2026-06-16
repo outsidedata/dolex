@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../types.js';
 export declare function renderHeatmap(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=heatmap.d.ts.map

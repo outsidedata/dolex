@@ -96,6 +96,35 @@ function assignLayers(nodes) {
         });
     }
 }
+/**
+ * Position a column of nodes vertically: scale by value, enforce min height, compress if needed.
+ * Shared between sankey and alluvial layouts.
+ */
+export function layoutColumnY(nodes, height, padding) {
+    const totalValue = nodes.reduce((s, n) => s + n.value, 0);
+    const totalPadding = Math.max(0, (nodes.length - 1) * padding);
+    const availableHeight = height - totalPadding;
+    const scale = totalValue > 0 ? availableHeight / totalValue : 1;
+    const MIN_NODE_HEIGHT = 3;
+    let y = 0;
+    for (const node of nodes) {
+        node.y0 = y;
+        node.y1 = y + Math.max(node.value * scale, MIN_NODE_HEIGHT);
+        y = node.y1 + padding;
+    }
+    // Compress if exceeding height
+    const excess = y - padding - height;
+    if (excess > 0 && nodes.length > 0) {
+        const compressionFactor = height / (y - padding);
+        let cy = 0;
+        for (const node of nodes) {
+            const h = (node.y1 - node.y0) * compressionFactor;
+            node.y0 = cy;
+            node.y1 = cy + h;
+            cy += h + padding * compressionFactor;
+        }
+    }
+}
 function positionNodes(nodes, width, height, nodeWidth, nodePadding) {
     const maxLayer = d3.max(nodes, (n) => n.layer) || 0;
     const layerGap = maxLayer > 0 ? (width - nodeWidth) / maxLayer : 0;
@@ -111,29 +140,7 @@ function positionNodes(nodes, width, height, nodeWidth, nodePadding) {
     }
     layers.forEach((layerNodes) => {
         layerNodes.sort((a, b) => b.value - a.value);
-        const totalValue = layerNodes.reduce((s, n) => s + n.value, 0);
-        const totalPadding = (layerNodes.length - 1) * nodePadding;
-        const availableHeight = height - totalPadding;
-        const scale = totalValue > 0 ? availableHeight / totalValue : 1;
-        const MIN_NODE_HEIGHT = 3;
-        let y = 0;
-        layerNodes.forEach((node) => {
-            node.y0 = y;
-            node.y1 = y + Math.max(node.value * scale, MIN_NODE_HEIGHT);
-            y = node.y1 + nodePadding;
-        });
-        // Compress if exceeding height
-        const excess = y - nodePadding - height;
-        if (excess > 0 && layerNodes.length > 0) {
-            const compressionFactor = height / (y - nodePadding);
-            let cy = 0;
-            layerNodes.forEach((node) => {
-                const h = (node.y1 - node.y0) * compressionFactor;
-                node.y0 = cy;
-                node.y1 = cy + h;
-                cy += h + nodePadding * compressionFactor;
-            });
-        }
+        layoutColumnY(layerNodes, height, nodePadding);
     });
 }
 function computeLinkPositions(nodes, links) {
@@ -162,4 +169,3 @@ function computeLinkPositions(nodes, links) {
         });
     });
 }
-//# sourceMappingURL=sankey-layout.js.map

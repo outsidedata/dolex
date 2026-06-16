@@ -6,4 +6,3 @@ export { divergingBarPattern } from './diverging-bar.js';
 export { slopeChartPattern } from './slope-chart.js';
 export { connectedDotPlotPattern } from './connected-dot-plot.js';
 export { bumpChartPattern } from './bump-chart.js';
-//# sourceMappingURL=index.js.map

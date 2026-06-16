@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const streamGraphPattern: VisualizationPattern;
-//# sourceMappingURL=stream-graph.d.ts.map

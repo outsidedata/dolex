@@ -16,6 +16,8 @@ import {
   showTooltip,
   hideTooltip,
   positionTooltip,
+  escapeHtml,
+  tooltipHtml,
   formatValue,
   styleAxis,
   getAdaptiveTickCount,
@@ -24,9 +26,9 @@ import {
   createLegend,
   DARK_BG,
   TEXT_MUTED,
+  categorical,
 } from '../shared.js';
 import type { LegendCallbacks } from '../shared.js';
-import { categorical } from '../../../theme/colors.js';
 
 declare const d3: any;
 
@@ -242,8 +244,8 @@ function renderGrouped(
         .attr('r', p.r * 1.6)
         .attr('opacity', 1);
 
-      let html = `<strong>${p.d[groupField]}</strong>`;
-      html += `<br/>${encoding.x?.title || valueField}: ${formatValue(Number(p.d[valueField]))}`;
+      let html = `<strong>${escapeHtml(p.d[groupField])}</strong>`;
+      html += `<br/>${escapeHtml(encoding.x?.title || valueField)}: ${escapeHtml(formatValue(Number(p.d[valueField])))}`;
       showTooltip(tooltip, html, event);
     })
     .on('mouseleave', function () {
@@ -343,7 +345,7 @@ function renderSingle(
         .attr('r', p.r * 1.6)
         .attr('opacity', 1);
 
-      const html = `<strong>${encoding.x?.title || valueField}</strong>: ${formatValue(Number(p.d[valueField]))}`;
+      const html = tooltipHtml`<strong>${encoding.x?.title || valueField}</strong>: ${formatValue(Number(p.d[valueField]))}`;
       showTooltip(tooltip, html, event);
     })
     .on('mouseleave', function () {

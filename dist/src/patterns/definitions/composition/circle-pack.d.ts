@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const circlePackPattern: VisualizationPattern;
-//# sourceMappingURL=circle-pack.d.ts.map

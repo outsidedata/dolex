@@ -36,7 +36,36 @@ export interface SqlQueryResult {
 
 function isReadOnlySelect(sql: string): boolean {
   const trimmed = sql.trim().replace(/^\/\*.*?\*\//gs, '').trim();
-  return /^(SELECT|WITH)\b/i.test(trimmed);
+
+  // Simple SELECT is safe
+  if (/^SELECT\b/i.test(trimmed)) {
+    return true;
+  }
+
+  // WITH clause (CTE) — must verify the final statement is SELECT, not DELETE/INSERT/UPDATE
+  if (/^WITH\b/i.test(trimmed)) {
+    // Find the main statement after CTEs by looking for the final SELECT/INSERT/UPDATE/DELETE
+    // CTEs are: WITH name AS (...), name AS (...) <final statement>
+    // Strip string literals and comments to avoid false matches inside quoted content
+    const stripped = trimmed
+      .replace(/'[^']*'/g, "''")  // Remove string literals
+      .replace(/"[^"]*"/g, '""')  // Remove quoted identifiers
+      .replace(/--.*$/gm, '')     // Remove line comments
+      .replace(/\/\*[\s\S]*?\*\//g, '');  // Remove block comments
+
+    // The final statement starts after the last unmatched ) before the statement keyword
+    // We need to find where the CTEs end and the main query begins
+    // Look for DELETE/INSERT/UPDATE/SELECT after WITH ... AS (...) sequences
+    const mainStatementMatch = stripped.match(/\)\s*(SELECT|INSERT|UPDATE|DELETE)\b/i);
+    if (mainStatementMatch) {
+      return mainStatementMatch[1].toUpperCase() === 'SELECT';
+    }
+
+    // Fallback: if structure is unclear, reject (safer than allowing potential write)
+    return false;
+  }
+
+  return false;
 }
 
 function wrapWithLimit(sql: string, maxRows: number): string {
@@ -62,10 +91,16 @@ function getConnectorForType(type: DataSourceType): typeof csvConnector | undefi
 /**
  * Check if a query result contains an error encoded in the rows.
  * Some connectors return errors this way instead of throwing.
+ * Only matches if the row has ONLY an 'error' property (not a data row with an 'error' column).
  */
 function hasErrorRow(result: QueryExecutionResult): string | null {
-  if (result.rows.length === 1 && result.rows[0]?.error) {
-    return result.rows[0].error;
+  if (result.rows.length === 1) {
+    const row = result.rows[0];
+    const keys = Object.keys(row);
+    // Only treat as error if 'error' is the ONLY key (not a data row with an 'error' column)
+    if (keys.length === 1 && keys[0] === 'error' && typeof row.error === 'string') {
+      return row.error;
+    }
   }
   return null;
 }
@@ -75,6 +110,7 @@ function hasErrorRow(result: QueryExecutionResult): string | null {
 export class SourceManager {
   private registry: Map<string, SourceRegistryEntry> = new Map();
   private connections: Map<string, ConnectedSource> = new Map();
+  private pendingConnections: Map<string, Promise<{ ok: boolean; source?: ConnectedSource; error?: string }>> = new Map();
   private persistPath: string | null;
 
   /**
@@ -109,7 +145,14 @@ export class SourceManager {
     if (!this.persistPath) return;
     try {
       const entries = Array.from(this.registry.values());
-      fs.writeFileSync(this.persistPath, JSON.stringify(entries, null, 2), 'utf-8');
+      // Atomic write: a concurrent reader (another CLI process or the MCP
+      // server sharing ~/.dolex/sources.json) never observes a half-written
+      // file. The temp name includes the pid so concurrent writers don't
+      // collide on a shared temp path. (Note: this prevents corruption, not
+      // last-writer-wins lost updates between simultaneous registry mutations.)
+      const tmpPath = `${this.persistPath}.${process.pid}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(entries, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, this.persistPath);
     } catch {
       // Persistence failure is non-fatal
     }
@@ -189,9 +232,17 @@ export class SourceManager {
       return { ok: false, error: `Source not found: ${idOrName}` };
     }
 
+    // Return existing connection if available
     const existing = this.connections.get(entry.id);
     if (existing) {
       return { ok: true, source: existing };
+    }
+
+    // If a connection attempt is already in progress, wait for it
+    // This prevents race conditions where concurrent calls both create connections
+    const pending = this.pendingConnections.get(entry.id);
+    if (pending) {
+      return pending;
     }
 
     const connector = getConnectorForType(entry.type);
@@ -199,15 +250,24 @@ export class SourceManager {
       return { ok: false, error: `No connector for type: ${entry.type}` };
     }
 
-    try {
-      const connected = await connector.connect(entry.config);
-      this.connections.set(entry.id, connected);
-      entry.connectedAt = new Date().toISOString();
-      this.saveRegistry();
-      return { ok: true, source: connected };
-    } catch (err: any) {
-      return { ok: false, error: `Connection failed: ${err.message}` };
-    }
+    // Create the connection promise and store it to deduplicate concurrent calls
+    const connectPromise = (async () => {
+      try {
+        const connected = await connector.connect(entry.config);
+        this.connections.set(entry.id, connected);
+        entry.connectedAt = new Date().toISOString();
+        this.saveRegistry();
+        return { ok: true, source: connected };
+      } catch (err: any) {
+        return { ok: false, error: `Connection failed: ${err.message}` };
+      } finally {
+        // Clean up pending promise after completion
+        this.pendingConnections.delete(entry.id);
+      }
+    })();
+
+    this.pendingConnections.set(entry.id, connectPromise);
+    return connectPromise;
   }
 
   async disconnect(idOrName: string): Promise<{ ok: boolean; error?: string }> {
@@ -268,6 +328,11 @@ export class SourceManager {
     idOrName: string,
     sql: string
   ): Promise<{ ok: boolean; result?: QueryExecutionResult; error?: string }> {
+    // Enforce read-only queries to prevent SQL injection attacks
+    if (!isReadOnlySelect(sql)) {
+      return { ok: false, error: 'Only SELECT queries are allowed.' };
+    }
+
     const resolved = await this.resolveSource(idOrName);
     if (!resolved.ok) return resolved;
 
@@ -308,12 +373,16 @@ export class SourceManager {
         return { ok: false, error: enriched };
       }
 
+      // Only mark as truncated if we hit our limit AND the user didn't have an explicit LIMIT
+      const userHasLimit = /\bLIMIT\s+\d+/i.test(sql);
+      const hitOurLimit = result.rows.length >= Math.min(maxRows, MAX_RESULT_ROWS);
+
       return {
         ok: true,
         rows: result.rows,
         columns: result.columns,
         totalRows: result.rows.length,
-        truncated: result.rows.length >= Math.min(maxRows, MAX_RESULT_ROWS),
+        truncated: hitOurLimit && !userHasLimit,
       };
     } catch (err: any) {
       const enriched = await this.enrichSqlError(idOrName, err.message);

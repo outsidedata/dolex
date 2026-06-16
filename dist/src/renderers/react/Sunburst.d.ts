@@ -4,4 +4,3 @@
  */
 import type { ChartProps } from './types.js';
 export declare function Sunburst({ spec, width, height, className, onReady, }: ChartProps): import("react/jsx-runtime").JSX.Element;
-//# sourceMappingURL=Sunburst.d.ts.map

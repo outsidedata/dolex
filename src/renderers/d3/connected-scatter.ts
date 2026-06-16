@@ -18,11 +18,12 @@ import {
   styleAxis,
   getAdaptiveTickCount,
   createLegend,
+  tooltipHtml,
   DARK_BG,
   TEXT_MUTED,
+  categorical,
 } from './shared.js';
 import type { LegendCallbacks } from './shared.js';
-import { categorical } from '../../theme/colors.js';
 
 declare const d3: any;
 
@@ -385,10 +386,10 @@ export function renderConnectedScatter(container: HTMLElement, spec: Visualizati
 
       // Tooltip
       let html = '';
-      if (p.entity) html += `<strong>${p.entity}</strong><br/>`;
-      html += `${p.orderLabel}<br/>`;
-      html += `<strong>${encoding.x?.title || xField}:</strong> ${formatValue(p.d._x)}<br/>`;
-      html += `<strong>${encoding.y?.title || yField}:</strong> ${formatValue(p.d._y)}`;
+      if (p.entity) html += tooltipHtml`<strong>${p.entity}</strong><br/>`;
+      html += tooltipHtml`${p.orderLabel}<br/>`;
+      html += tooltipHtml`<strong>${encoding.x?.title || xField}:</strong> ${formatValue(p.d._x)}<br/>`;
+      html += tooltipHtml`<strong>${encoding.y?.title || yField}:</strong> ${formatValue(p.d._y)}`;
       showTooltip(tooltip, html, event);
     })
     .on('mouseleave', function () {

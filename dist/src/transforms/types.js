@@ -16,4 +16,3 @@ export const manifestSchema = z.object({
     tables: z.record(z.string(), z.array(manifestEntrySchema)),
 });
 export const COLUMN_TYPES = ['numeric', 'categorical', 'date', 'boolean'];
-//# sourceMappingURL=types.js.map

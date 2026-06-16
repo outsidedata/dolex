@@ -14,6 +14,8 @@ import {
   positionTooltip,
   formatValue,
   createLegend,
+  tooltipHtml,
+  escapeHtml,
   DARK_BG,
   TEXT_COLOR,
   TEXT_MUTED,
@@ -180,11 +182,11 @@ export function renderChord(container: HTMLElement, spec: VisualizationSpec): vo
       const sourceName = entities[d.source.index];
       const targetName = entities[d.target.index];
       const val = d.source.value;
-      let html = `<strong>${sourceName} \u2192 ${targetName}</strong><br/>Value: ${formatValue(val)}`;
+      let html = `<strong>${escapeHtml(sourceName)} \u2192 ${escapeHtml(targetName)}</strong><br/>Value: ${formatValue(val)}`;
       if (d.source.index !== d.target.index) {
         const reverseVal = matrix[d.target.index][d.source.index];
         if (reverseVal > 0) {
-          html += `<br/>${targetName} \u2192 ${sourceName}: ${formatValue(reverseVal)}`;
+          html += `<br/>${escapeHtml(targetName)} \u2192 ${escapeHtml(sourceName)}: ${formatValue(reverseVal)}`;
         }
       }
       showTooltip(tooltip, html, event);
@@ -221,7 +223,7 @@ export function renderChord(container: HTMLElement, spec: VisualizationSpec): vo
           : ribbonOpacity * 0.2,
       );
       const total = d.value;
-      showTooltip(tooltip, `<strong>${entities[d.index]}</strong><br/>Total flow: ${formatValue(total)}`, event);
+      showTooltip(tooltip, tooltipHtml`<strong>${entities[d.index]}</strong><br/>Total flow: ${formatValue(total)}`, event);
     })
     .on('mousemove', (event: MouseEvent) => {
       positionTooltip(tooltip, event);

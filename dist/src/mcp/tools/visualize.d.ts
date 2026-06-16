@@ -168,8 +168,8 @@ export declare const visualizeInputSchema: z.ZodObject<{
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
-    resultId?: string | undefined;
     sourceId?: string | undefined;
+    resultId?: string | undefined;
     sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
@@ -208,8 +208,8 @@ export declare const visualizeInputSchema: z.ZodObject<{
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     geoRegion?: string | undefined;
-    resultId?: string | undefined;
     sourceId?: string | undefined;
+    resultId?: string | undefined;
     sql?: string | undefined;
     dataShapeHints?: {
         dateColumnCount?: number | undefined;
@@ -275,4 +275,3 @@ export declare function handleVisualize(selectPatterns: (input: VisualizeInput) 
         text: string;
     }[];
 }>;
-//# sourceMappingURL=visualize.d.ts.map

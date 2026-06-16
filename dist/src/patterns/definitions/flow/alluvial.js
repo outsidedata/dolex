@@ -104,4 +104,3 @@ export const alluvialPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=alluvial.js.map

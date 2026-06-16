@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderBumpChart(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=bump-chart.d.ts.map

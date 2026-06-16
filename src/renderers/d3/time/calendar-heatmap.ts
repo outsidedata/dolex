@@ -14,13 +14,16 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  parseDate,
   isAllZeros,
+  tooltipHtml,
   DARK_BG,
   TEXT_COLOR,
   TEXT_MUTED,
   truncateTitle,
+  sequential,
+  diverging,
 } from '../shared.js';
-import { sequential, diverging } from '../../../theme/colors.js';
 
 declare const d3: any;
 
@@ -302,7 +305,7 @@ export function renderCalendarHeatmap(container: HTMLElement, spec: Visualizatio
       });
       showTooltip(
         tooltip,
-        `<strong>${dateStr}</strong><br/>${valueField}: ${d.value !== 0 ? formatValue(d.value) : 'No data'}`,
+        tooltipHtml`<strong>${dateStr}</strong><br/>${valueField}: ${d.value !== 0 ? formatValue(d.value) : 'No data'}`,
         event
       );
     })
@@ -339,17 +342,6 @@ export function renderCalendarHeatmap(container: HTMLElement, spec: Visualizatio
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function parseDate(v: any): Date | null {
-  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
-  if (v === null || v === undefined || v === '') return null;
-  const num = typeof v === 'number' ? v : Number(v);
-  if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-    return new Date(num, 0, 1);
-  }
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
-}
 
 function formatDateKey(d: Date): string {
   const y = d.getFullYear();

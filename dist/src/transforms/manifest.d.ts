@@ -16,4 +16,3 @@ export declare function replayManifest(db: Database.Database, metadata: Transfor
         reason: string;
     }[];
 };
-//# sourceMappingURL=manifest.d.ts.map

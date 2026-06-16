@@ -15,4 +15,3 @@ export const ALL_PALETTE_NAMES = [
     'blueRed', 'greenPurple', 'tealOrange', 'redGreen',
     'traffic-light', 'profit-loss', 'temperature',
 ];
-//# sourceMappingURL=sql-schemas.js.map

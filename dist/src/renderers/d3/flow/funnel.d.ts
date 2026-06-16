@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderFunnel(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=funnel.d.ts.map

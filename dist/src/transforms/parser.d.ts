@@ -19,4 +19,3 @@ export declare class ParseError extends Error {
     constructor(message: string, pos: number, source?: string | undefined);
 }
 export declare function parse(input: string): AstNode;
-//# sourceMappingURL=parser.d.ts.map

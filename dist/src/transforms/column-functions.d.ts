@@ -16,4 +16,3 @@ export declare function findColumnWiseCalls(ast: AstNode): {
 }[];
 /** Pre-compute all column-wise stats needed by an AST */
 export declare function precompute(ast: AstNode, allRows: Record<string, any>[], partitionBy?: string): PrecomputedStats;
-//# sourceMappingURL=column-functions.d.ts.map

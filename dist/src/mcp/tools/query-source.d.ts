@@ -19,4 +19,3 @@ export declare const querySourceInputSchema: z.ZodObject<{
 export declare function handleQuerySource(deps: {
     sourceManager: any;
 }): (args: z.infer<typeof querySourceInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=query-source.d.ts.map

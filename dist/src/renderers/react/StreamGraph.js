@@ -5,4 +5,3 @@ export function StreamGraph({ spec, width = 800, height = 500, className, onRead
     const containerRef = useChart(spec, renderStreamGraph, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=StreamGraph.js.map

@@ -125,4 +125,3 @@ export declare const AXIS_COLOR: "#4b5563";
 export declare const GRID_COLOR: "#1f2937";
 export declare const TEXT_COLOR: "#e2e5eb";
 export declare const TEXT_MUTED: "#9ca3af";
-//# sourceMappingURL=colors.d.ts.map

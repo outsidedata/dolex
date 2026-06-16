@@ -3,7 +3,8 @@
  * Handles single-series area, stacked area, and normalized (100%) stacked area
  * charts over time. Line stroke on top of fill for clarity.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, formatValue, styleAxis, getAdaptiveTickCount, createLegend, renderEmptyState, TEXT_MUTED, DARK_BG, DEFAULT_PALETTE, } from '../shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, formatValue, escapeHtml, parseDate, styleAxis, getAdaptiveTickCount, createLegend, renderEmptyState, TEXT_MUTED, DARK_BG, DEFAULT_PALETTE, } from '../shared.js';
+import { findNearestDateIndex, createCrosshairGroup } from './crosshair-utils.js';
 export function renderArea(container, spec) {
     const { config, encoding, data } = spec;
     const timeField = config.timeField || encoding.x?.field;
@@ -43,8 +44,7 @@ export function renderArea(container, spec) {
         right: 30,
         top: 40,
         bottom: 70,
-    });
-    svg.style('background', 'none');
+    }, { background: false });
     const tooltip = createTooltip(chartWrapper);
     // Check if all values are zero
     if (parsedData.every((d) => d._value === 0 || d._value === null)) {
@@ -54,7 +54,7 @@ export function renderArea(container, spec) {
     const curveMap = {
         linear: d3.curveLinear,
         monotone: d3.curveMonotoneX,
-        curve: d3.curveBasis,
+        basis: d3.curveBasis,
         step: d3.curveStepAfter,
         cardinal: d3.curveCardinal,
         catmullRom: d3.curveCatmullRom,
@@ -96,18 +96,6 @@ export function renderArea(container, spec) {
     else {
         drawSingleArea(g, parsedData, curve, dims, tooltip, timeField, valueField, fillOpacity);
     }
-}
-function parseDate(v) {
-    if (v instanceof Date)
-        return v;
-    if (v === null || v === undefined || v === '')
-        return null;
-    const num = typeof v === 'number' ? v : Number(v);
-    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-        return new Date(num, 0, 1);
-    }
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
 }
 function drawSingleArea(g, parsedData, curve, dims, tooltip, timeField, valueField, fillOpacity) {
     const sorted = [...parsedData].sort((a, b) => a._date.getTime() - b._date.getTime());
@@ -294,35 +282,12 @@ function addCrosshairHover(g, parsedData, seriesField, seriesNames, timeField, v
         dateMap.get(key).push(d);
     });
     const sortedDates = [...dateMap.keys()].sort((a, b) => a - b);
-    const crosshairLine = g.append('line')
-        .attr('class', 'crosshair')
-        .attr('y1', 0)
-        .attr('y2', dims.innerHeight)
-        .attr('stroke', TEXT_MUTED)
-        .attr('stroke-width', 1)
-        .attr('stroke-dasharray', '4,3')
-        .attr('pointer-events', 'none')
-        .attr('opacity', 0);
-    const highlightDots = g.append('g').attr('class', 'highlight-dots').attr('pointer-events', 'none');
-    g.append('rect')
-        .attr('class', 'hover-area')
-        .attr('width', dims.innerWidth)
-        .attr('height', dims.innerHeight)
-        .attr('fill', 'transparent')
-        .attr('cursor', 'crosshair')
+    const { crosshairLine, highlightDots, hoverArea } = createCrosshairGroup(g, dims);
+    hoverArea
         .on('mousemove', function (event) {
         const [mx] = d3.pointer(event, this);
         const xDate = xScale.invert(mx).getTime();
-        const bisect = d3.bisector((d) => d).left;
-        let idx = bisect(sortedDates, xDate);
-        if (idx > 0 && idx < sortedDates.length) {
-            const d0 = sortedDates[idx - 1];
-            const d1 = sortedDates[idx];
-            idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-        }
-        else if (idx >= sortedDates.length) {
-            idx = sortedDates.length - 1;
-        }
+        const idx = findNearestDateIndex(sortedDates, xDate);
         const nearestTime = sortedDates[idx];
         const nearestX = xScale(new Date(nearestTime));
         const points = dateMap.get(nearestTime) || [];
@@ -339,16 +304,16 @@ function addCrosshairHover(g, parsedData, seriesField, seriesNames, timeField, v
                 .attr('stroke-width', 2);
         });
         const dateLabel = points[0]?.[timeField] ?? new Date(nearestTime).toLocaleDateString();
-        let html = `<strong>${dateLabel}</strong>`;
+        let html = `<strong>${escapeHtml(dateLabel)}</strong>`;
         if (isMultiSeries) {
             const sorted = [...points].sort((a, b) => b._value - a._value);
             sorted.forEach((d) => {
-                const color = colorScale(d[seriesField]);
-                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${d[seriesField]}: ${formatValue(d._value)}`;
+                const color = escapeHtml(colorScale(d[seriesField]));
+                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(d[seriesField])}: ${escapeHtml(formatValue(d._value))}`;
             });
         }
         else {
-            html += `<br/>${valueField}: ${formatValue(points[0]?._value)}`;
+            html += `<br/>${escapeHtml(valueField)}: ${escapeHtml(formatValue(points[0]?._value))}`;
         }
         showTooltip(tooltip, html, event);
     })
@@ -360,40 +325,17 @@ function addCrosshairHover(g, parsedData, seriesField, seriesNames, timeField, v
 }
 function addStackedCrosshairHover(g, wideData, stacked, seriesNames, timeField, valueField, colorScale, xScale, yScale, dims, tooltip, normalized) {
     const sortedDates = wideData.map((d) => d._date.getTime());
-    const crosshairLine = g.append('line')
-        .attr('class', 'crosshair')
-        .attr('y1', 0)
-        .attr('y2', dims.innerHeight)
-        .attr('stroke', TEXT_MUTED)
-        .attr('stroke-width', 1)
-        .attr('stroke-dasharray', '4,3')
-        .attr('pointer-events', 'none')
-        .attr('opacity', 0);
-    const highlightDots = g.append('g').attr('class', 'highlight-dots').attr('pointer-events', 'none');
-    g.append('rect')
-        .attr('class', 'hover-area')
-        .attr('width', dims.innerWidth)
-        .attr('height', dims.innerHeight)
-        .attr('fill', 'transparent')
-        .attr('cursor', 'crosshair')
+    const { crosshairLine, highlightDots, hoverArea } = createCrosshairGroup(g, dims);
+    hoverArea
         .on('mousemove', function (event) {
         const [mx] = d3.pointer(event, this);
         const xDate = xScale.invert(mx).getTime();
-        const bisect = d3.bisector((d) => d).left;
-        let idx = bisect(sortedDates, xDate);
-        if (idx > 0 && idx < sortedDates.length) {
-            const d0 = sortedDates[idx - 1];
-            const d1 = sortedDates[idx];
-            idx = xDate - d0 > d1 - xDate ? idx : idx - 1;
-        }
-        else if (idx >= sortedDates.length) {
-            idx = sortedDates.length - 1;
-        }
+        const idx = findNearestDateIndex(sortedDates, xDate);
         const nearestX = xScale(wideData[idx]._date);
         crosshairLine.attr('x1', nearestX).attr('x2', nearestX).attr('opacity', 1);
         highlightDots.selectAll('circle').remove();
         const dateStr = wideData[idx]._date.toLocaleDateString();
-        let html = `<strong>${dateStr}</strong>`;
+        let html = `<strong>${escapeHtml(dateStr)}</strong>`;
         const reversedNames = [...seriesNames].reverse();
         reversedNames.forEach((name) => {
             const layer = stacked.find((l) => l.key === name);
@@ -402,20 +344,20 @@ function addStackedCrosshairHover(g, wideData, stacked, seriesNames, timeField, 
             const pt = layer[idx];
             const val = pt.data[name];
             const stackedY = yScale(pt[1]);
-            const color = colorScale(name);
+            const color = escapeHtml(colorScale(name));
             highlightDots.append('circle')
                 .attr('cx', nearestX)
                 .attr('cy', stackedY)
                 .attr('r', 4)
-                .attr('fill', color)
+                .attr('fill', colorScale(name))
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 2);
             if (normalized) {
-                const pct = ((pt[1] - pt[0]) * 100).toFixed(1);
-                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${name}: ${formatValue(val)} (${pct}%)`;
+                const pct = escapeHtml(((pt[1] - pt[0]) * 100).toFixed(1));
+                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(name)}: ${escapeHtml(formatValue(val))} (${pct}%)`;
             }
             else {
-                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${name}: ${formatValue(val)}`;
+                html += `<br/><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>${escapeHtml(name)}: ${escapeHtml(formatValue(val))}`;
             }
         });
         showTooltip(tooltip, html, event);
@@ -426,4 +368,3 @@ function addStackedCrosshairHover(g, wideData, stacked, seriesNames, timeField, 
         hideTooltip(tooltip);
     });
 }
-//# sourceMappingURL=area.js.map

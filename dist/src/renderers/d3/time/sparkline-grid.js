@@ -4,7 +4,7 @@
  * Renders a compact grid of minimal line charts (sparklines).
  * Each sparkline shows the trend of one series without axes or gridlines.
  */
-import { createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, isAllZeros, TEXT_COLOR, TEXT_MUTED, truncateTitle, smartTruncateLabels, } from '../shared.js';
+import { createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, isAllZeros, tooltipHtml, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateTitle, smartTruncateLabels, } from '../shared.js';
 export function renderSparklineGrid(container, spec) {
     const { config, encoding, data } = spec;
     const timeField = config.timeField || encoding.x?.field;
@@ -35,7 +35,7 @@ export function renderSparklineGrid(container, spec) {
         .append('svg')
         .attr('width', width)
         .attr('height', height)
-        .style('background', '#0f1117')
+        .style('background', DARK_BG)
         .style('border-radius', '8px');
     // Title
     if (spec.title) {
@@ -180,9 +180,7 @@ export function renderSparklineGrid(container, spec) {
             .on('mouseover', (event) => {
             const change = latestValue - previousValue;
             const changePercent = previousValue !== 0 ? (change / previousValue * 100).toFixed(1) : '0';
-            showTooltip(tooltip, `<strong>${seriesName}</strong><br/>` +
-                `Latest: ${formatValue(latestValue)}<br/>` +
-                `Change: ${change >= 0 ? '+' : ''}${formatValue(change)} (${changePercent}%)`, event);
+            showTooltip(tooltip, tooltipHtml `<strong>${seriesName}</strong><br/>Latest: ${formatValue(latestValue)}<br/>Change: ${change >= 0 ? '+' : ''}${formatValue(change)} (${changePercent}%)`, event);
         })
             .on('mousemove', (event) => {
             positionTooltip(tooltip, event);
@@ -190,4 +188,3 @@ export function renderSparklineGrid(container, spec) {
             .on('mouseout', () => hideTooltip(tooltip));
     });
 }
-//# sourceMappingURL=sparkline-grid.js.map

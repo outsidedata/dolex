@@ -121,4 +121,3 @@ export function svgToPng(svgElement, scale = 2) {
         img.src = url;
     });
 }
-//# sourceMappingURL=export.js.map

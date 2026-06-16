@@ -1,7 +1,7 @@
 /**
  * Sankey diagram D3 renderer.
  */
-import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, renderEmptyState, isAllZeros, DEFAULT_PALETTE, TEXT_COLOR, truncateLabel, } from '../shared.js';
+import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, tooltipHtml, renderEmptyState, isAllZeros, DEFAULT_PALETTE, TEXT_COLOR, truncateLabel, } from '../shared.js';
 import { computeSankeyLayout } from './sankey-layout.js';
 export function renderSankey(container, spec) {
     const { config, encoding, data } = spec;
@@ -69,7 +69,7 @@ function drawLinks(g, links, colorScale, linkOpacity, tooltip) {
         .attr('stroke', 'none')
         .on('mouseover', function (event, d) {
         d3.select(this).attr('opacity', linkOpacity + 0.3);
-        showTooltip(tooltip, `<strong>${d.source.name} → ${d.target.name}</strong><br/>Value: ${formatValue(d.value)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.source.name} → ${d.target.name}</strong><br/>Value: ${formatValue(d.value)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -96,11 +96,11 @@ function drawNodes(g, nodes, colorScale, dims, tooltip) {
         d3.select(this).attr('opacity', 0.8);
         const inflow = d.targetLinks.reduce((s, l) => s + l.value, 0);
         const outflow = d.sourceLinks.reduce((s, l) => s + l.value, 0);
-        let html = `<strong>${d.name}</strong><br/>Total: ${formatValue(d.value)}`;
+        let html = tooltipHtml `<strong>${d.name}</strong><br/>Total: ${formatValue(d.value)}`;
         if (inflow > 0)
-            html += `<br/>Inflow: ${formatValue(inflow)}`;
+            html += tooltipHtml `<br/>Inflow: ${formatValue(inflow)}`;
         if (outflow > 0)
-            html += `<br/>Outflow: ${formatValue(outflow)}`;
+            html += tooltipHtml `<br/>Outflow: ${formatValue(outflow)}`;
         showTooltip(tooltip, html, event);
     })
         .on('mousemove', (event) => {
@@ -138,4 +138,3 @@ function drawNodeLabels(g, nodes, config, dims) {
         return label;
     });
 }
-//# sourceMappingURL=sankey.js.map

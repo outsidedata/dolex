@@ -8,4 +8,3 @@ export { renderViolin } from './violin.js';
 export { renderRidgeline } from './ridgeline.js';
 export { renderBoxPlot } from './box-plot.js';
 export { renderDensityPlot } from './density-plot.js';
-//# sourceMappingURL=index.js.map

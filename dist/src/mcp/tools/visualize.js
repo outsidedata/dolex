@@ -89,7 +89,8 @@ export function handleVisualizeCore(selectPatterns, toolName = 'visualize') {
             const colorResult = applyColorPreferences(result.recommended.spec, colorPrefs, data);
             notes.push(...colorResult.notes);
         }
-        const spec = result.recommended.spec;
+        // Clone spec to avoid mutating the original selector result
+        const spec = { ...result.recommended.spec };
         if (args.title)
             spec.title = args.title;
         if (args.subtitle)
@@ -184,4 +185,3 @@ export function handleVisualize(selectPatterns, deps) {
         return core(resolved.data, args, resolved.queryMeta, resolved.extraMeta);
     };
 }
-//# sourceMappingURL=visualize.js.map

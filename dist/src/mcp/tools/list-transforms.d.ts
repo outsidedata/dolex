@@ -8,4 +8,3 @@ import type { listTransformsSchema } from './transform-schemas.js';
 export declare function handleListTransforms(deps: {
     sourceManager: any;
 }): (args: z.infer<typeof listTransformsSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=list-transforms.d.ts.map

@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const connectedDotPlotPattern: VisualizationPattern;
-//# sourceMappingURL=connected-dot-plot.d.ts.map

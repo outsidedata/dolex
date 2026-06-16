@@ -29,4 +29,3 @@ export { linePattern, smallMultiplesPattern, sparklineGridPattern, calendarHeatm
 export { scatterPattern, connectedScatterPattern, parallelCoordinatesPattern, radarPattern, } from './definitions/relationship/index.js';
 // Flow
 export { sankeyPattern, alluvialPattern, chordPattern, } from './definitions/flow/index.js';
-//# sourceMappingURL=index.js.map

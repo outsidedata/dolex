@@ -4,4 +4,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderDivergingBar(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=diverging-bar.d.ts.map

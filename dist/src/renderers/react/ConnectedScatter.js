@@ -5,4 +5,3 @@ export function ConnectedScatter({ spec, width = 800, height = 500, className, o
     const containerRef = useChart(spec, renderConnectedScatter, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=ConnectedScatter.js.map

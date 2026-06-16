@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderTreemap(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=treemap.d.ts.map

@@ -63,4 +63,3 @@ export { Funnel } from './Funnel.js';
 // ─── GEO ─────────────────────────────────────────────────────────────────────
 export { Choropleth } from './Choropleth.js';
 export { ProportionalSymbol } from './ProportionalSymbol.js';
-//# sourceMappingURL=index.js.map

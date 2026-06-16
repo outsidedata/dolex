@@ -80,4 +80,3 @@ export const theme = darkThemeComposed;
 export function getTheme(mode) {
     return mode === 'light' ? lightThemeComposed : darkThemeComposed;
 }
-//# sourceMappingURL=index.js.map

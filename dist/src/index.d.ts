@@ -21,4 +21,3 @@ export { measureText, truncateLabel, abbreviate, avoidCollisions, labelStrategy,
 export { buildChartHtml, getSupportedHtmlPatterns, isHtmlPatternSupported, buildHtml, } from './renderers/html/index.js';
 export { buildCompoundHtml } from './renderers/html/builders/compound.js';
 export { shouldCompound, buildCompoundSpec } from './renderers/html/compound.js';
-//# sourceMappingURL=index.d.ts.map

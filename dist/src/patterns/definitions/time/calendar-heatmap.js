@@ -106,4 +106,3 @@ export const calendarHeatmapPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=calendar-heatmap.js.map

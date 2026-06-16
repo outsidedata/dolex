@@ -350,4 +350,3 @@ export function inferEncoding(columnNames, columns) {
     }
     return { x, y, color, size };
 }
-//# sourceMappingURL=utils.js.map

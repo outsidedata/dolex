@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const radarPattern: VisualizationPattern;
-//# sourceMappingURL=radar.d.ts.map

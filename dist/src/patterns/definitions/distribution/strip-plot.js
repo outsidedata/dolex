@@ -99,4 +99,3 @@ export const stripPlotPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=strip-plot.js.map

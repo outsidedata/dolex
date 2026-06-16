@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const stackedBarPattern: VisualizationPattern;
-//# sourceMappingURL=stacked-bar.d.ts.map

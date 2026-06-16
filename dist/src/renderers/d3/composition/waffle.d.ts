@@ -5,4 +5,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderWaffle(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=waffle.d.ts.map

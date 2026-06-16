@@ -3,4 +3,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderLollipop(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=lollipop.d.ts.map

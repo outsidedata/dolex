@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { specStore } from '../spec-store.js';
 import { errorResponse, buildOutputHtml } from './shared.js';
+import { importOptional, MissingOptionalDependencyError } from '../../utils/optional-deps.js';
 
 export const screenshotInputSchema = z.object({
   specId: z.string().describe('Spec ID from a previous visualize or refine call'),
@@ -35,7 +36,12 @@ async function getBrowser(): Promise<PlaywrightBrowser> {
   if (browserInstance && browserInstance.isConnected()) {
     return browserInstance;
   }
-  const pw = await import('playwright');
+  // Playwright is optional — importOptional throws a friendly, actionable
+  // MissingOptionalDependencyError (relayed to the agent) if it isn't installed.
+  const pw = await importOptional<{ chromium: { launch(): Promise<PlaywrightBrowser> } }>(
+    'playwright',
+    'png',
+  );
   browserInstance = await pw.chromium.launch();
   return browserInstance;
 }
@@ -65,8 +71,19 @@ export function handleScreenshot() {
     let browser: PlaywrightBrowser;
     try {
       browser = await getBrowser();
-    } catch {
-      return errorResponse('Playwright is not installed. Run: npm install playwright && npx playwright install chromium');
+    } catch (e) {
+      // Missing package vs. missing browser binary — both get an actionable
+      // message the agent can relay to the user. Check the typed error FIRST:
+      // the package-missing message also contains "playwright install", so a
+      // message regex alone would mis-route it to the browser-only branch.
+      if (e instanceof MissingOptionalDependencyError) {
+        return errorResponse(e.message);
+      }
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/Executable doesn't exist|download new browsers|Looks like .* install/i.test(msg)) {
+        return errorResponse('PNG export needs the Chromium browser. Run: npx playwright install chromium');
+      }
+      return errorResponse(msg);
     }
 
     const page = await browser.newPage({ viewport: { width, height } });
@@ -84,7 +101,11 @@ export function handleScreenshot() {
         }],
       };
     } finally {
-      await page.close();
+      try {
+        await page?.close();
+      } catch {
+        // Ignore close errors — page may already be closed
+      }
     }
   };
 }

@@ -12,6 +12,7 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  escapeHtml,
   styleAxis,
   getAdaptiveTickCount,
   calculateLeftMargin,
@@ -199,7 +200,7 @@ function renderHorizontalBar(
 
       showTooltip(
         tooltip,
-        `<strong>${d[yField]}</strong><br/>${xField}: ${formatValue(Number(d[xField]))}`,
+        `<strong>${escapeHtml(d[yField])}</strong><br/>${escapeHtml(xField)}: ${formatValue(Number(d[xField]))}`,
         event
       );
     })
@@ -359,7 +360,7 @@ function renderVerticalBar(
 
       showTooltip(
         tooltip,
-        `<strong>${d[xField]}</strong><br/>${yField}: ${formatValue(Number(d[yField]))}`,
+        `<strong>${escapeHtml(d[xField])}</strong><br/>${escapeHtml(yField)}: ${formatValue(Number(d[yField]))}`,
         event
       );
     })

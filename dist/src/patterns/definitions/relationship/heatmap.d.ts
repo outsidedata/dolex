@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const heatmapPattern: VisualizationPattern;
-//# sourceMappingURL=heatmap.d.ts.map

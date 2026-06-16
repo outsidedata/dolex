@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderSparklineGrid(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=sparkline-grid.d.ts.map

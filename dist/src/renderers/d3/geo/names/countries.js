@@ -222,4 +222,3 @@ export function getAllCountryNames() {
 export function getCountryAlpha2Codes() {
     return Object.keys(CANONICAL_NAMES);
 }
-//# sourceMappingURL=countries.js.map

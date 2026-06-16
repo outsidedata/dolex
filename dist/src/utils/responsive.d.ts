@@ -52,4 +52,3 @@ export declare function responsiveFontSize(width: number, role?: 'title' | 'axis
  * @returns Recommended tick count
  */
 export declare function responsiveTicks(axisLength: number, isCategory?: boolean): number;
-//# sourceMappingURL=responsive.d.ts.map

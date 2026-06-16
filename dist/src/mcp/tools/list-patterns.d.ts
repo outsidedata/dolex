@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../types.js';
 export declare function handleListPatterns(getPatterns: () => VisualizationPattern[]): () => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=list-patterns.d.ts.map

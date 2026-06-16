@@ -123,4 +123,3 @@ export function getPreferredHeight(spec, containerWidth) {
     // ── Default: standard chart height ────────────────────────────────
     return 500;
 }
-//# sourceMappingURL=sizing.js.map

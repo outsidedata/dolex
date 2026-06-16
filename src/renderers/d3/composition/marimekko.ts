@@ -13,6 +13,8 @@ import {
   contrastText,
   renderEmptyState,
   isAllZeros,
+  escapeHtml,
+  tooltipHtml,
   DARK_BG,
   TEXT_MUTED,
   AXIS_COLOR,
@@ -100,9 +102,7 @@ export function renderMarimekko(container: HTMLElement, spec: VisualizationSpec)
     left: 20,
     right: 30,
     top: 40,
-  });
-
-  svg.style('background', 'none').style('border-radius', '0');
+  }, { background: false });
 
   const tooltip = createTooltip(container);
 
@@ -187,12 +187,12 @@ export function renderMarimekko(container: HTMLElement, spec: VisualizationSpec)
       );
 
       const colPct = grandTotal > 0 ? ((d.total / grandTotal) * 100).toFixed(1) : '0.0';
-      let html = `<strong>${d.primaryKey}</strong>`;
-      html += `<br/><span style="color:${TEXT_MUTED};font-size:11px">Column total: ${formatValue(d.total)} (${colPct}%)</span>`;
+      let html = tooltipHtml`<strong>${d.primaryKey}</strong>`;
+      html += `<br/><span style="color:${escapeHtml(TEXT_MUTED)};font-size:11px">Column total: ${escapeHtml(formatValue(d.total))} (${escapeHtml(colPct)}%)</span>`;
 
       d.segments.filter(s => s.value > 0).forEach((seg) => {
-        const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorScale(seg.secondaryKey)};margin-right:4px"></span>`;
-        html += `<br/>${swatch}${seg.secondaryKey}: ${formatValue(seg.value)} (${seg.pctOfColumn.toFixed(0)}%)`;
+        const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${escapeHtml(colorScale(seg.secondaryKey))};margin-right:4px"></span>`;
+        html += `<br/>${swatch}${escapeHtml(seg.secondaryKey)}: ${escapeHtml(formatValue(seg.value))} (${escapeHtml(seg.pctOfColumn.toFixed(0))}%)`;
       });
 
       showTooltip(tooltip, html, event);

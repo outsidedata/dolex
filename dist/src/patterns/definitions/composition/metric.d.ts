@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const metricPattern: VisualizationPattern;
-//# sourceMappingURL=metric.d.ts.map

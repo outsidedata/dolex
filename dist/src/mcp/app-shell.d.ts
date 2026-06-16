@@ -12,4 +12,3 @@
 export declare const CHART_RESOURCE_URI = "ui://dolex/chart.html";
 /** Returns the complete HTML string for the MCP App shell. */
 export declare function getAppShellHtml(): string;
-//# sourceMappingURL=app-shell.d.ts.map

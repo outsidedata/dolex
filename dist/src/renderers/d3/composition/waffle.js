@@ -3,7 +3,7 @@
  * Composition chart: 10×10 grid of squares showing part-of-whole.
  * Follows preflight standards: HTML legend, category hover, auto-sizing, instant render.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, renderEmptyState, isAllZeros, DARK_BG, } from '../shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, renderEmptyState, isAllZeros, tooltipHtml, DARK_BG, } from '../shared.js';
 export function renderWaffle(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.color?.field;
@@ -58,9 +58,7 @@ export function renderWaffle(container, spec) {
         left: 20,
         right: 20,
         bottom: 20,
-    });
-    // Remove default background — container handles it
-    svg.style('background', 'none').style('border-radius', '0');
+    }, { background: false });
     const tooltip = createTooltip(container);
     // Check if all values are zero
     if (isAllZeros(data, valueField)) {
@@ -117,7 +115,7 @@ export function renderWaffle(container, spec) {
         g.selectAll('.waffle-square')
             .attr('opacity', (sq) => sq.category === d.category ? 1 : 0.3);
         const item = items.find((i) => i.category === d.category);
-        showTooltip(tooltip, `<strong>${d.category}</strong><br/>${formatValue(item?.value ?? 0)}<br/>${item?.percentage.toFixed(1)}%`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.category}</strong><br/>${formatValue(item?.value ?? 0)}<br/>${item?.percentage.toFixed(1)}%`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -127,4 +125,3 @@ export function renderWaffle(container, spec) {
         hideTooltip(tooltip);
     });
 }
-//# sourceMappingURL=waffle.js.map

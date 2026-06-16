@@ -18,6 +18,8 @@ import {
   formatValue,
   truncateLabel,
   createLegend,
+  tooltipHtml,
+  escapeHtml,
   DARK_BG,
   TEXT_MUTED,
   GRID_COLOR,
@@ -250,11 +252,11 @@ export function renderRadar(container: HTMLElement, spec: VisualizationSpec): vo
         // Build entity summary tooltip
         const dimValues = dimensions.map((dim: string) => {
           const val = Number(row[dim]) || 0;
-          return `${truncateLabel(dim, 14)}: ${formatValue(val)}`;
+          return `${escapeHtml(truncateLabel(dim, 14))}: ${formatValue(val)}`;
         }).join('<br/>');
         showTooltip(
           tooltip,
-          `<strong>${entity}</strong><br/>${dimValues}`,
+          `<strong>${escapeHtml(entity)}</strong><br/>${dimValues}`,
           event,
         );
       })
@@ -288,7 +290,7 @@ export function renderRadar(container: HTMLElement, spec: VisualizationSpec): vo
               .attr('r', effectiveDotRadius * 1.5);
             showTooltip(
               tooltip,
-              `<strong>${entity}</strong><br/>${dim}: ${formatValue(val)}`,
+              tooltipHtml`<strong>${entity}</strong><br/>${dim}: ${formatValue(val)}`,
               event,
             );
           })

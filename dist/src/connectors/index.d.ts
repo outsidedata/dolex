@@ -6,4 +6,3 @@
 export type { DataConnector, ConnectedSource, QueryExecutionResult, ConnectorResult, SourceRegistryEntry, } from './types.js';
 export { csvConnector } from './csv.js';
 export { SourceManager } from './manager.js';
-//# sourceMappingURL=index.d.ts.map

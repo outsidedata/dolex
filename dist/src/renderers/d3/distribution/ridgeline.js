@@ -4,46 +4,8 @@
  * Stacked density curves — each group is a row with an overlapping
  * filled area chart. Groups listed vertically, value axis horizontal.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, createLegend, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, TEXT_MUTED, DARK_BG, } from '../shared.js';
-/** Gaussian kernel function. */
-function gaussianKernel(u) {
-    return (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
-}
-/** Compute standard deviation of a numeric array. */
-function stdDev(values) {
-    const n = values.length;
-    if (n < 2)
-        return 1;
-    const mean = values.reduce((s, v) => s + v, 0) / n;
-    const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1);
-    return Math.sqrt(variance);
-}
-/** Compute KDE for a set of values at the given sample points. */
-function kde(values, samplePoints, bandwidth) {
-    const n = values.length;
-    return samplePoints.map((x) => {
-        const density = values.reduce((sum, xi) => sum + gaussianKernel((x - xi) / bandwidth), 0) /
-            (n * bandwidth);
-        return { value: x, density };
-    });
-}
-/** Silverman's rule of thumb for bandwidth selection. */
-function silvermanBandwidth(values) {
-    const sd = stdDev(values);
-    const n = values.length;
-    const bw = 1.06 * sd * Math.pow(n, -0.2);
-    if (bw > 0)
-        return bw;
-    const range = (Math.max(...values) - Math.min(...values));
-    return range > 0 ? range * 0.1 : 1;
-}
-/** Compute median from sorted values. */
-function median(sorted) {
-    const n = sorted.length;
-    if (n === 0)
-        return 0;
-    return n % 2 === 1 ? sorted[Math.floor(n / 2)] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-}
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, tooltipHtml, createLegend, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, TEXT_MUTED, DARK_BG, } from '../shared.js';
+import { kde, silvermanBandwidth, median } from '../stats.js';
 // ─── RENDERER ─────────────────────────────────────────────────────────────────
 export function renderRidgeline(container, spec) {
     const { config, encoding, data } = spec;
@@ -161,11 +123,7 @@ export function renderRidgeline(container, spec) {
             const med = groupValues.length > 0 ? median(groupValues) : 0;
             const min = groupValues.length > 0 ? groupValues[0] : 0;
             const max = groupValues.length > 0 ? groupValues[groupValues.length - 1] : 0;
-            showTooltip(tooltip, `<strong>${group}</strong><br/>` +
-                `Count: ${groupValues.length}<br/>` +
-                `Median: ${formatValue(med)}<br/>` +
-                `Min: ${formatValue(min)}<br/>` +
-                `Max: ${formatValue(max)}`, event);
+            showTooltip(tooltip, tooltipHtml `<strong>${group}</strong><br/>Count: ${groupValues.length}<br/>Median: ${formatValue(med)}<br/>Min: ${formatValue(min)}<br/>Max: ${formatValue(max)}`, event);
         })
             .on('mousemove', (event) => {
             positionTooltip(tooltip, event);
@@ -227,4 +185,3 @@ export function renderRidgeline(container, spec) {
         }
     }
 }
-//# sourceMappingURL=ridgeline.js.map

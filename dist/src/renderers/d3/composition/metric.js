@@ -221,4 +221,3 @@ export function renderMetric(container, spec) {
     wrapper.appendChild(grid);
     container.appendChild(wrapper);
 }
-//# sourceMappingURL=metric.js.map

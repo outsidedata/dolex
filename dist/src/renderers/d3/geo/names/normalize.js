@@ -7,4 +7,3 @@ export function normalizeGeoName(input) {
         .replace(/\s+/g, ' ')
         .replace(/^the\s+/, '');
 }
-//# sourceMappingURL=normalize.js.map

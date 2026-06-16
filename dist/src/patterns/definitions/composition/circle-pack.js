@@ -100,4 +100,3 @@ export const circlePackPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=circle-pack.js.map

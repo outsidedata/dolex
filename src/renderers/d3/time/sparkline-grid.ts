@@ -14,8 +14,10 @@ import {
   positionTooltip,
   formatValue,
   isAllZeros,
+  tooltipHtml,
   TEXT_COLOR,
   TEXT_MUTED,
+  DARK_BG,
   truncateTitle,
   smartTruncateLabels,
 } from '../shared.js';
@@ -61,7 +63,7 @@ export function renderSparklineGrid(container: HTMLElement, spec: VisualizationS
     .append('svg')
     .attr('width', width)
     .attr('height', height)
-    .style('background', '#0f1117')
+    .style('background', DARK_BG)
     .style('border-radius', '8px');
 
   // Title
@@ -226,9 +228,7 @@ export function renderSparklineGrid(container: HTMLElement, spec: VisualizationS
         const changePercent = previousValue !== 0 ? (change / previousValue * 100).toFixed(1) : '0';
         showTooltip(
           tooltip,
-          `<strong>${seriesName}</strong><br/>` +
-          `Latest: ${formatValue(latestValue)}<br/>` +
-          `Change: ${change >= 0 ? '+' : ''}${formatValue(change)} (${changePercent}%)`,
+          tooltipHtml`<strong>${seriesName}</strong><br/>Latest: ${formatValue(latestValue)}<br/>Change: ${change >= 0 ? '+' : ''}${formatValue(change)} (${changePercent}%)`,
           event
         );
       })

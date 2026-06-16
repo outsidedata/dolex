@@ -125,4 +125,3 @@ export function DataTable({ data, tableSpec, width, height, className, highlight
                                 borderTop: '1px solid #2d3041',
                             }, children: ["Showing ", displayData.length, " of ", data.length, " rows"] }) }) }))] }) }));
 }
-//# sourceMappingURL=DataTable.js.map

@@ -117,4 +117,3 @@ export const sankeyPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=sankey.js.map

@@ -4,7 +4,8 @@
  * Uses d3.pack() for layout, SVG circles for geometry, and centered
  * text labels with contrastText() for readability on any fill color.
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, contrastTextMuted, DARK_BG, TEXT_COLOR, truncateTitle, } from '../shared.js';
+import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, contrastTextMuted, tooltipHtml, DARK_BG, TEXT_COLOR, truncateTitle, } from '../shared.js';
+import { buildHierarchy } from './hierarchy-utils.js';
 export function renderCirclePack(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.color?.field || encoding.label?.field;
@@ -46,7 +47,13 @@ export function renderCirclePack(container, spec) {
     const g = svg.append('g').attr('transform', `translate(${offsetX},${offsetY})`);
     const tooltip = createTooltip(container);
     // Build hierarchy
-    const root = buildHierarchy(data, categoryField, valueField, parentField, config);
+    const root = buildHierarchy({
+        data,
+        categoryField,
+        valueField,
+        parentField: parentField || undefined,
+        childField: config.childField,
+    });
     // Guard: if total value is 0, assign equal weights so pack layout works
     if (root.value === 0) {
         root.each((node) => {
@@ -96,7 +103,7 @@ export function renderCirclePack(container, spec) {
         const parentName = parentField && d.parent?.data?.name && d.parent.data.name !== 'root'
             ? d.parent.data.name + ' > '
             : '';
-        showTooltip(tooltip, `<strong>${parentName}${d.data.name}</strong><br/>${valueField}: ${formatValue(d.value)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${parentName}${d.data.name}</strong><br/>${valueField}: ${formatValue(d.value)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -159,38 +166,3 @@ export function renderCirclePack(container, spec) {
         });
     }
 }
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-function buildHierarchy(data, categoryField, valueField, parentField, config) {
-    // Compute min-visible threshold: 2% of max ensures extreme-range items stay visible
-    const allVals = data.map((d) => Number(d[valueField]) || 0).filter((v) => v > 0);
-    const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0;
-    const minVisible = maxVal * 0.02;
-    const clampVal = (v) => (v > 0 && v < minVisible ? minVisible : v);
-    if (parentField) {
-        const parents = [...new Set(data.map((d) => d[parentField]))];
-        const hierarchy = {
-            name: 'root',
-            children: parents.map((p) => ({
-                name: p,
-                children: data
-                    .filter((d) => d[parentField] === p)
-                    .map((d) => ({
-                    name: d[categoryField] || d[config.childField] || d[parentField],
-                    value: clampVal(Number(d[valueField]) || 0),
-                    _data: d,
-                })),
-            })),
-        };
-        return d3.hierarchy(hierarchy).sum((d) => d.value).sort((a, b) => b.value - a.value);
-    }
-    const hierarchy = {
-        name: 'root',
-        children: data.map((d) => ({
-            name: d[categoryField],
-            value: clampVal(Number(d[valueField]) || 0),
-            _data: d,
-        })),
-    };
-    return d3.hierarchy(hierarchy).sum((d) => d.value).sort((a, b) => b.value - a.value);
-}
-//# sourceMappingURL=circle-pack.js.map

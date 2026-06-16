@@ -78,4 +78,3 @@ export const proportionalSymbolPattern = {
         };
     },
 };
-//# sourceMappingURL=proportional-symbol.js.map

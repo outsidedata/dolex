@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderIcicle(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=icicle.d.ts.map

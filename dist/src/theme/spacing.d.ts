@@ -167,4 +167,3 @@ export declare const animation: {
         readonly easing: "ease-in-out";
     };
 };
-//# sourceMappingURL=spacing.d.ts.map

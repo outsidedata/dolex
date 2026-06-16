@@ -27,4 +27,3 @@
  *   refine_visualization_cli_only — CLI ONLY: refine + write to disk (no HTML in response)
  */
 export {};
-//# sourceMappingURL=index.d.ts.map

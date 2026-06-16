@@ -6,4 +6,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const areaPattern: VisualizationPattern;
-//# sourceMappingURL=area.d.ts.map

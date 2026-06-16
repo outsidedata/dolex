@@ -1,7 +1,7 @@
 /**
  * Small multiples D3 renderer.
  */
-import { buildColorScale, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateTitle, } from '../shared.js';
+import { buildColorScale, parseDate, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateTitle, } from '../shared.js';
 import { renderLine } from './line.js';
 export function renderSmallMultiples(container, spec) {
     const { config, encoding, data } = spec;
@@ -152,16 +152,3 @@ export function renderSmallMultiples(container, spec) {
         }
     });
 }
-function parseDate(v) {
-    if (v instanceof Date)
-        return v;
-    if (v === null || v === undefined || v === '')
-        return null;
-    const num = typeof v === 'number' ? v : Number(v);
-    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-        return new Date(num, 0, 1);
-    }
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-}
-//# sourceMappingURL=small-multiples.js.map

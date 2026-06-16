@@ -33,4 +33,3 @@ export function logOperation(entry) {
     }
     catch { }
 }
-//# sourceMappingURL=operation-log.js.map

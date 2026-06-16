@@ -37,7 +37,7 @@ export declare function applyColorPreferences(spec: VisualizationSpec, prefs?: {
     notes: string[];
 };
 export declare function buildOutputHtml(spec: VisualizationSpec | CompoundVisualizationSpec): string | undefined;
-export declare function writeHtmlToDisk(html: string, writeTo: string): {
+export declare function writeHtmlToDisk(html: string, writeTo: string, allowedRoot?: string): {
     ok: true;
     message: string;
 } | {
@@ -92,4 +92,3 @@ export declare function connectAndValidateTable(deps: {
 /** Type guard: checks if a connectAndValidateTable result is an error response. */
 export declare function isTransformError(result: TransformContext | McpResponse): result is McpResponse;
 export {};
-//# sourceMappingURL=shared.d.ts.map

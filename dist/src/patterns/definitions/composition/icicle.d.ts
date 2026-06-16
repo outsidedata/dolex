@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const iciclePattern: VisualizationPattern;
-//# sourceMappingURL=icicle.d.ts.map

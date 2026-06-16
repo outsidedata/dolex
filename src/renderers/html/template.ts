@@ -639,11 +639,12 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch(e) {}
     } catch (err) {
       console.error('Render error:', err);
+      // Only show error message, not stack trace (security: avoid information disclosure)
       container.innerHTML =
         '<div style="color:#ef4444;padding:20px;font-family:monospace;">' +
         '<p><strong>Render error:</strong> ' + spec.pattern + '</p>' +
         '<pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">' +
-        err.message + '\\n' + err.stack + '</pre></div>';
+        (err.message || 'Unknown error') + '</pre></div>';
     }
   }
 
@@ -748,11 +749,12 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch(e) {}
     } catch (err) {
       console.error('Render error:', err);
+      // Only show error message, not stack trace (security: avoid information disclosure)
       container.innerHTML =
         '<div style="color:#ef4444;padding:20px;font-family:monospace;">' +
         '<p><strong>Render error:</strong> ' + spec.pattern + '</p>' +
         '<pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">' +
-        err.message + '\\n' + err.stack + '</pre></div>';
+        (err.message || 'Unknown error') + '</pre></div>';
     }
   }
 

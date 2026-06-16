@@ -227,4 +227,3 @@ const ALL_PATTERNS = [
 for (const pattern of ALL_PATTERNS) {
     registry.register(pattern);
 }
-//# sourceMappingURL=registry.js.map

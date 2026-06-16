@@ -8,7 +8,7 @@
  */
 
 import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, resolve, isAbsolute } from 'path';
 import type {
   DataColumn,
   VisualizationSpec,
@@ -55,7 +55,14 @@ export function htmlResponse(body: unknown, html: string): McpResponse {
 
 export function inferColumns(data: Record<string, any>[]): DataColumn[] {
   if (data.length === 0) return [];
-  const keys = Object.keys(data[0]);
+  // Collect keys from all rows (not just first) in case of sparse data
+  const keySet = new Set<string>();
+  for (const row of data) {
+    for (const key of Object.keys(row)) {
+      keySet.add(key);
+    }
+  }
+  const keys = [...keySet];
   return keys.map(key => {
     const values = data.map(r => r[key]).filter(v => v != null);
     const stringValues = values.map(String);
@@ -186,11 +193,30 @@ export function buildOutputHtml(spec: VisualizationSpec | CompoundVisualizationS
   return undefined;
 }
 
-export function writeHtmlToDisk(html: string, writeTo: string): { ok: true; message: string } | { ok: false; error: string } {
+export function writeHtmlToDisk(html: string, writeTo: string, allowedRoot?: string): { ok: true; message: string } | { ok: false; error: string } {
   try {
-    mkdirSync(dirname(writeTo), { recursive: true });
-    writeFileSync(writeTo, html, 'utf-8');
-    return { ok: true, message: `Wrote ${html.length} bytes to ${writeTo}` };
+    // Resolve to absolute path and validate against path traversal
+    const resolvedPath = resolve(writeTo);
+
+    // If allowedRoot is specified, ensure path is within it
+    if (allowedRoot) {
+      const resolvedRoot = resolve(allowedRoot);
+      if (!resolvedPath.startsWith(resolvedRoot + '/') && resolvedPath !== resolvedRoot) {
+        return { ok: false, error: `Path traversal blocked: ${writeTo} is outside allowed root` };
+      }
+    }
+
+    // Block writes to sensitive system directories
+    const blockedPaths = ['/etc', '/usr', '/bin', '/sbin', '/var', '/tmp', '/root', '/home'];
+    for (const blocked of blockedPaths) {
+      if (resolvedPath.startsWith(blocked + '/') || resolvedPath === blocked) {
+        return { ok: false, error: `Write to system directory blocked: ${resolvedPath}` };
+      }
+    }
+
+    mkdirSync(dirname(resolvedPath), { recursive: true });
+    writeFileSync(resolvedPath, html, 'utf-8');
+    return { ok: true, message: `Wrote ${html.length} bytes to ${resolvedPath}` };
   } catch (err) {
     return { ok: false, error: `Failed to write to ${writeTo}: ${err instanceof Error ? err.message : String(err)}` };
   }
@@ -257,7 +283,7 @@ export async function resolveData(
 
 /** Type guard: checks if a resolveData result is an error response. */
 export function isErrorResponse(result: ResolvedData | McpResponse): result is McpResponse {
-  return 'content' in result && 'isError' in result;
+  return 'content' in result && (result as McpResponse).isError === true;
 }
 
 // ─── TRANSFORM TOOL HELPERS ─────────────────────────────────────────────────
@@ -288,7 +314,13 @@ export async function connectAndValidateTable(
     return errorResponse('Source does not support transforms (no database handle)');
   }
 
-  const schema = await source.getSchema();
+  let schema;
+  try {
+    schema = await source.getSchema();
+  } catch (err) {
+    return errorResponse(`Schema introspection failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
   const table = schema.tables.find((t: any) => t.name === tableName);
   if (!table) {
     const available = schema.tables.map((t: any) => t.name);

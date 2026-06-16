@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const parallelCoordinatesPattern: VisualizationPattern;
-//# sourceMappingURL=parallel-coordinates.d.ts.map

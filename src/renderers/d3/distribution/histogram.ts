@@ -15,6 +15,7 @@ import {
   showTooltip,
   hideTooltip,
   positionTooltip,
+  tooltipHtml,
   formatValue,
   styleAxis,
   getAdaptiveTickCount,
@@ -23,8 +24,8 @@ import {
   isAllZeros,
   DEFAULT_PALETTE,
   TEXT_MUTED,
+  sequential,
 } from '../shared.js';
-import { sequential } from '../../../theme/colors.js';
 
 declare const d3: any;
 
@@ -207,7 +208,7 @@ function renderPreBinnedHistogram(
         .attr('opacity', 0.8);
       showTooltip(
         tooltip,
-        `<strong>${d.binLabel || formatValue(d.binStart) + ' – ' + formatValue(d.binEnd)}</strong><br/>Count: ${formatValue(d.count)}`,
+        tooltipHtml`<strong>${d.binLabel || formatValue(d.binStart) + ' – ' + formatValue(d.binEnd)}</strong><br/>Count: ${formatValue(d.count)}`,
         event
       );
     })
@@ -391,7 +392,7 @@ function renderRawHistogram(
         .attr('opacity', 0.8);
       showTooltip(
         tooltip,
-        `<strong>${formatValue(d.x0)} – ${formatValue(d.x1)}</strong><br/>Count: ${formatValue(d.length)}`,
+        tooltipHtml`<strong>${formatValue(d.x0)} – ${formatValue(d.x1)}</strong><br/>Count: ${formatValue(d.length)}`,
         event
       );
     })

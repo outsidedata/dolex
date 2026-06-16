@@ -15,7 +15,7 @@ describe('classifyColumns', () => {
     expect(result[0].role).toBe('measure');
   });
 
-  it('classifies numeric columns with uniqueCount == totalCount as id', () => {
+  it('classifies an all-distinct *_id-named numeric column as id (by name, not by cardinality alone)', () => {
     const result = classifyColumns([col('user_id', 'numeric', { uniqueCount: 100, totalCount: 100 })]);
     expect(result[0].role).toBe('id');
   });
@@ -114,6 +114,34 @@ describe('classifyColumns', () => {
 
     it('handles dot-separated names like "item.id"', () => {
       const result = classifyColumns([col('item.id', 'numeric', { uniqueCount: 50, totalCount: 100 })]);
+      expect(result[0].role).toBe('id');
+    });
+  });
+
+  describe('all-distinct numeric measures are not mistaken for ids', () => {
+    it('classifies an all-distinct measure in a SMALL table as measure (regression: analyze dead-end)', () => {
+      // revenue with 12 distinct values across 12 rows — a normal small dataset,
+      // NOT an identifier. Previously misclassified as 'id', which left the
+      // analysis planner with zero measures → "No analyzable columns".
+      const result = classifyColumns([col('revenue', 'numeric', { uniqueCount: 12, totalCount: 12 })]);
+      expect(result[0].role).toBe('measure');
+    });
+
+    it('classifies an all-distinct measure in a LARGE table as measure when values are not row indices', () => {
+      const stats = { min: 8700, max: 24500, mean: 14650, median: 13400, stddev: 4000, p25: 11000, p75: 18000 };
+      const result = classifyColumns([col('revenue', 'numeric', { uniqueCount: 1000, totalCount: 1000, stats })]);
+      expect(result[0].role).toBe('measure');
+    });
+
+    it('does not treat a tiny all-distinct ordinal-like column (1..12) as an id', () => {
+      const stats = { min: 1, max: 12, mean: 6.5, median: 6.5, stddev: 3.4, p25: 3, p75: 9 };
+      const result = classifyColumns([col('month', 'numeric', { uniqueCount: 12, totalCount: 12, stats })]);
+      expect(result[0].role).toBe('measure');
+    });
+
+    it('still detects an unnamed sequential surrogate key (1..N) in a sizable table as id', () => {
+      const stats = { min: 1, max: 1000, mean: 500, median: 500, stddev: 288, p25: 250, p75: 750 };
+      const result = classifyColumns([col('n', 'numeric', { uniqueCount: 1000, totalCount: 1000, stats })]);
       expect(result[0].role).toBe('id');
     });
   });

@@ -5,7 +5,7 @@
  * based on the spec.pattern field. Unimplemented patterns show a
  * placeholder with data summary.
  */
-import { renderPlaceholder } from './shared.js';
+import { renderPlaceholder, escapeHtml } from './shared.js';
 // Comparison
 import { renderBar } from './comparison/bar.js';
 import { renderDivergingBar } from './comparison/diverging-bar.js';
@@ -136,8 +136,8 @@ export function renderSpec(container, spec) {
             console.error(`Renderer error for pattern "${spec.pattern}":`, err);
             container.innerHTML = `
         <div style="color:#ef4444;padding:20px;font-family:monospace;">
-          <p><strong>Render error:</strong> ${spec.pattern}</p>
-          <pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">${err.message}\n${err.stack}</pre>
+          <p><strong>Render error:</strong> ${escapeHtml(spec.pattern)}</p>
+          <pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">${escapeHtml(err.message)}\n${escapeHtml(err.stack)}</pre>
         </div>
       `;
         }
@@ -160,4 +160,3 @@ export function isPatternSupported(pattern) {
 }
 // Re-export individual renderers for direct use
 export { renderBar, renderDivergingBar, renderSlopeChart, renderConnectedDotPlot, renderBumpChart, renderHistogram, renderBeeswarm, renderStripPlot, renderViolin, renderRidgeline, renderBoxPlot, renderStackedBar, renderWaffle, renderTreemap, renderSunburst, renderCirclePack, renderMetric, renderDonut, renderLine, renderArea, renderSmallMultiples, renderSparklineGrid, renderCalendarHeatmap, renderScatter, renderRadar, renderConnectedScatter, renderParallelCoordinates, renderHeatmap, renderSankey, renderAlluvial, renderChord, renderFunnel, renderLollipop, renderBullet, renderDensityPlot, renderMarimekko, renderIcicle, renderStreamGraph, renderHorizonChart, renderChoropleth, renderProportionalSymbol, renderGroupedBar, renderWaterfall, renderPlaceholder, };
-//# sourceMappingURL=index.js.map

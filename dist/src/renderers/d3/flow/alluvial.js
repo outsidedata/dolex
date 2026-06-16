@@ -5,7 +5,8 @@
  * with curved ribbons showing how quantities redistribute between
  * categories across stages. Like a multi-column Sankey.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, renderEmptyState, isAllZeros, DEFAULT_PALETTE, DARK_BG, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
+import { layoutColumnY } from './sankey-layout.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, renderEmptyState, isAllZeros, tooltipHtml, escapeHtml, DEFAULT_PALETTE, DARK_BG, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
 // ─── RENDERER ────────────────────────────────────────────────────────────────
 export function renderAlluvial(container, spec) {
     const { config, encoding, data } = spec;
@@ -87,31 +88,11 @@ export function renderAlluvial(container, spec) {
         const nodes = stageNodes[si];
         const x0 = si * columnGap;
         const x1 = x0 + nodeWidth;
-        const totalValue = nodes.reduce((s, n) => s + n.value, 0);
-        const totalPadding = Math.max(0, (nodes.length - 1) * nodePadding);
-        const availableHeight = dims.innerHeight - totalPadding;
-        const scale = totalValue > 0 ? availableHeight / totalValue : 1;
-        const MIN_NODE_HEIGHT = 3;
-        let y = 0;
         for (const node of nodes) {
             node.x0 = x0;
             node.x1 = x1;
-            node.y0 = y;
-            node.y1 = y + Math.max(node.value * scale, MIN_NODE_HEIGHT);
-            y = node.y1 + nodePadding;
         }
-        // Compress if exceeding height
-        const excess = y - nodePadding - dims.innerHeight;
-        if (excess > 0 && nodes.length > 0) {
-            const compressionFactor = dims.innerHeight / (y - nodePadding);
-            let cy = 0;
-            for (const node of nodes) {
-                const h = (node.y1 - node.y0) * compressionFactor;
-                node.y0 = cy;
-                node.y1 = cy + h;
-                cy += h + nodePadding * compressionFactor;
-            }
-        }
+        layoutColumnY(nodes, dims.innerHeight, nodePadding);
     }
     // ── Build flows between adjacent stages ──
     const allFlows = [];
@@ -242,7 +223,7 @@ function drawFlows(g, flows, colorScale, flowOpacity, colorBy, tooltip) {
         .attr('stroke', 'none')
         .on('mouseover', function (event, d) {
         d3.select(this).attr('opacity', Math.min(flowOpacity + 0.3, 0.9));
-        showTooltip(tooltip, `<strong>${d.sourceCategory} → ${d.targetCategory}</strong><br/>Value: ${formatValue(d.value)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.sourceCategory} → ${d.targetCategory}</strong><br/>Value: ${formatValue(d.value)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -280,7 +261,7 @@ function drawNodes(g, nodes, allFlows, colorScale, flowOpacity, tooltip) {
         const outflows = allFlows.filter(f => f.sourceNode.stage === d.stage && f.sourceCategory === d.category);
         const inflowTotal = inflows.reduce((s, f) => s + f.value, 0);
         const outflowTotal = outflows.reduce((s, f) => s + f.value, 0);
-        let html = `<strong>${d.category}</strong><br/>Total: ${formatValue(d.value)}`;
+        let html = `<strong>${escapeHtml(d.category)}</strong><br/>Total: ${formatValue(d.value)}`;
         if (inflowTotal > 0)
             html += `<br/>Inflow: ${formatValue(inflowTotal)}`;
         if (outflowTotal > 0)
@@ -349,4 +330,3 @@ function drawLabels(g, stageNodes, stageFields, showValues, numStages, dims) {
         return label;
     });
 }
-//# sourceMappingURL=alluvial.js.map

@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderChord(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=chord.d.ts.map

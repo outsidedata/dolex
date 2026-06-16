@@ -205,4 +205,3 @@ function validateColumnName(name) {
         throw new Error(`Column name '${name}' must contain only letters, digits, and underscores`);
     }
 }
-//# sourceMappingURL=pipeline.js.map

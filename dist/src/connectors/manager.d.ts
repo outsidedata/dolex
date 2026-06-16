@@ -21,6 +21,7 @@ export interface SqlQueryResult {
 export declare class SourceManager {
     private registry;
     private connections;
+    private pendingConnections;
     private persistPath;
     /**
      * @param persistPath Optional JSON file for persisting the registry.
@@ -93,4 +94,3 @@ export declare class SourceManager {
      */
     private findEntry;
 }
-//# sourceMappingURL=manager.d.ts.map

@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const scatterPattern: VisualizationPattern;
-//# sourceMappingURL=scatter.d.ts.map

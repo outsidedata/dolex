@@ -74,4 +74,3 @@ export declare function inferEncoding(columnNames: string[], columns: DataColumn
     color: string | null;
     size: string | null;
 };
-//# sourceMappingURL=utils.d.ts.map

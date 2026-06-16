@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderRidgeline(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=ridgeline.d.ts.map

@@ -101,4 +101,3 @@ export const stackedBarPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=stacked-bar.js.map

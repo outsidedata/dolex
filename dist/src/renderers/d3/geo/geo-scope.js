@@ -254,4 +254,3 @@ export function applyGeoScope(data, geoField, options) {
         topojsonData: regionConfig ? loadTopojson(regionConfig.topoPath) : undefined,
     };
 }
-//# sourceMappingURL=geo-scope.js.map

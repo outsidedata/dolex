@@ -15,4 +15,3 @@ export declare function getGeoConfig(region: string): GeoRegionConfig | undefine
 export declare function getAllGeoRegions(): string[];
 export declare function getSubdivisionRegions(): string[];
 export declare function getCountryRegions(): string[];
-//# sourceMappingURL=geo-registry.d.ts.map

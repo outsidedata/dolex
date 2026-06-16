@@ -20,6 +20,7 @@ import {
   calculateLeftMargin,
   renderEmptyState,
   isAllZeros,
+  tooltipHtml,
   TEXT_COLOR,
   TEXT_MUTED,
 } from '../shared.js';
@@ -166,7 +167,6 @@ export function renderFunnel(container: HTMLElement, spec: VisualizationSpec): v
       .attr('rx', cornerRadius)
       .attr('pointer-events', 'none');
   } else if (style === 'tapered') {
-    const path = d3.path();
     const stageWidths = stages.map((s) => widthScale(s.value));
 
     stages.forEach((stage, i) => {
@@ -328,27 +328,22 @@ export function renderFunnel(container: HTMLElement, spec: VisualizationSpec): v
 }
 
 function buildTooltipHtml(stage: FunnelStage, index: number, stages: FunnelStage[]): string {
-  let html = `<strong>${stage.label}</strong><br/>Value: ${formatValue(stage.value)}`;
+  let html = tooltipHtml`<strong>${stage.label}</strong><br/>Value: ${formatValue(stage.value)}`;
 
   if (stage.percentage < 100) {
-    html += `<br/>Of top: ${stage.percentage.toFixed(1)}%`;
+    html += tooltipHtml`<br/>Of top: ${stage.percentage.toFixed(1)}%`;
   }
 
   if (stage.conversionFromPrev !== null) {
-    html += `<br/>From prev: ${stage.conversionFromPrev.toFixed(1)}%`;
+    html += tooltipHtml`<br/>From prev: ${stage.conversionFromPrev.toFixed(1)}%`;
   }
 
   if (index === 0 && stages.length > 1) {
     const lastStage = stages[stages.length - 1];
     const overallConversion = stage.value > 0 ? (lastStage.value / stage.value) * 100 : 0;
-    html += `<br/>Overall: ${overallConversion.toFixed(1)}% to end`;
+    html += tooltipHtml`<br/>Overall: ${overallConversion.toFixed(1)}% to end`;
   }
 
   return html;
 }
 
-function getConversionColor(rate: number): string {
-  if (rate >= 80) return '#10b981';
-  if (rate >= 50) return '#f59e0b';
-  return '#ef4444';
-}

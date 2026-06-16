@@ -290,4 +290,3 @@ export declare const theme: Theme;
  * @returns The corresponding composed theme object
  */
 export declare function getTheme(mode: 'dark' | 'light'): Theme;
-//# sourceMappingURL=index.d.ts.map

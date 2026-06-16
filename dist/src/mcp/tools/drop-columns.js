@@ -106,4 +106,3 @@ function resolveWildcard(columns, layer, metadata, table) {
         return `No ${layer} columns to drop`;
     return resolved;
 }
-//# sourceMappingURL=drop-columns.js.map

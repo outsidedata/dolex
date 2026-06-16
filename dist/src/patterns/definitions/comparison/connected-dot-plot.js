@@ -96,4 +96,3 @@ export const connectedDotPlotPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=connected-dot-plot.js.map

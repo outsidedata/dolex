@@ -20,4 +20,3 @@ export declare const exportHtmlInputSchema: z.ZodObject<{
     writeTo?: string | undefined;
 }>;
 export declare function handleExportHtml(): (args: z.infer<typeof exportHtmlInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=export-html.d.ts.map

@@ -5,7 +5,8 @@
  * Depth maps to position along one axis, size maps to extent along the other.
  * Supports horizontal (depth left-to-right) and vertical (depth top-to-bottom).
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, isAllZeros, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateLabel, createLegend, } from '../shared.js';
+import { buildColorScale, DEFAULT_PALETTE, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, isAllZeros, tooltipHtml, TEXT_COLOR, TEXT_MUTED, DARK_BG, truncateLabel, createLegend, } from '../shared.js';
+import { buildHierarchy, getAncestorPath, getNodeColor, } from './hierarchy-utils.js';
 export function renderIcicle(container, spec) {
     const { config, encoding, data } = spec;
     const levelFields = config.levelFields || [];
@@ -57,16 +58,12 @@ export function renderIcicle(container, spec) {
         container.appendChild(emptyDiv);
         return;
     }
-    const root = buildHierarchyFromFields(data, levelFields, valueField);
+    const root = buildHierarchy({ data, levelFields, valueField });
     const totalValue = root.value || 1;
     const topLevelNames = root.children ? root.children.map((c) => c.data.name) : [];
     const colorScale = encoding.color
         ? buildColorScale(encoding.color, data)
-        : d3.scaleOrdinal().domain(topLevelNames).range([
-            '#6280c1', '#c99a3e', '#48a882', '#c46258', '#5ea4c8',
-            '#9e74bf', '#c88450', '#3ea898', '#b85e78', '#85a63e',
-            '#807cba', '#b09838',
-        ]);
+        : d3.scaleOrdinal().domain(topLevelNames).range(DEFAULT_PALETTE);
     const showLegend = topLevelNames.length > 1 && height > 200;
     const legendHeight = showLegend ? 28 : 0;
     const chartWrapper = document.createElement('div');
@@ -116,7 +113,7 @@ export function renderIcicle(container, spec) {
         const h = isHorizontal ? d.x1 - d.x0 : d.y1 - d.y0;
         return Math.max(0, h);
     })
-        .attr('fill', (d) => getNodeColor(d, colorScale))
+        .attr('fill', (d) => getNodeColor(d, colorScale, 0.1, 0.35))
         .attr('rx', 2)
         .attr('ry', 2)
         .attr('stroke', DARK_BG)
@@ -135,7 +132,7 @@ export function renderIcicle(container, spec) {
             .attr('stroke-width', 2);
         const path = getAncestorPath(d);
         const pct = ((d.value / totalValue) * 100).toFixed(1);
-        showTooltip(tooltip, `<strong>${path}</strong><br/>${valueField}: ${formatValue(d.value)}<br/>${pct}% of total`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${path}</strong><br/>${valueField}: ${formatValue(d.value)}<br/>${pct}% of total`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -235,7 +232,7 @@ function positionLabelAt(el, d, px, py, rectW, rectH, isHorizontal, colorScale, 
         return;
     }
     el.attr('visibility', 'visible');
-    const fillColor = getNodeColor(d, colorScale);
+    const fillColor = getNodeColor(d, colorScale, 0.1, 0.35);
     const textColor = contrastText(fillColor);
     const fontSize = Math.max(9, Math.min(12, availH * 0.35, availW * 0.08));
     if (isHorizontal) {
@@ -269,94 +266,6 @@ function positionLabel(el, d, isHorizontal, colorScale, showValues, valueField) 
     const py = isHorizontal ? d.x0 : d.y0;
     positionLabelAt(el, d, px, py, rectW, rectH, isHorizontal, colorScale, showValues, valueField);
 }
-function buildHierarchyFromFields(data, levelFields, valueField) {
-    if (!levelFields.length) {
-        return d3.hierarchy({ name: 'root', children: [] }).sum((d) => d.value || 0);
-    }
-    // Compute min-visible threshold: 2% of max ensures extreme-range items stay visible
-    const allVals = data.map((d) => Number(d[valueField]) || 0).filter((v) => v > 0);
-    const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0;
-    const minVisible = maxVal * 0.02;
-    const clampVal = (v) => (v > 0 && v < minVisible ? minVisible : v);
-    if (levelFields.length === 1) {
-        const field = levelFields[0];
-        const hierarchy = {
-            name: 'root',
-            children: data.map((d) => ({
-                name: String(d[field] ?? 'Unknown'),
-                value: clampVal(Math.max(0, Number(d[valueField]) || 0)),
-                _data: d,
-            })),
-        };
-        return d3.hierarchy(hierarchy)
-            .sum((d) => d.value)
-            .sort((a, b) => b.value - a.value);
-    }
-    function buildLevel(items, depth) {
-        if (depth >= levelFields.length) {
-            return items.map((d) => ({
-                name: String(d[levelFields[levelFields.length - 1]] ?? 'Unknown'),
-                value: clampVal(Math.max(0, Number(d[valueField]) || 0)),
-                _data: d,
-            }));
-        }
-        const field = levelFields[depth];
-        const groups = new Map();
-        for (const item of items) {
-            const key = String(item[field] ?? 'Unknown');
-            if (!groups.has(key))
-                groups.set(key, []);
-            groups.get(key).push(item);
-        }
-        if (depth === levelFields.length - 1) {
-            return items.map((d) => ({
-                name: String(d[field] ?? 'Unknown'),
-                value: clampVal(Math.max(0, Number(d[valueField]) || 0)),
-                _data: d,
-            }));
-        }
-        const children = [];
-        for (const [key, groupItems] of groups) {
-            children.push({
-                name: key,
-                children: buildLevel(groupItems, depth + 1),
-            });
-        }
-        return children;
-    }
-    const hierarchy = {
-        name: 'root',
-        children: buildLevel(data, 0),
-    };
-    return d3.hierarchy(hierarchy)
-        .sum((d) => d.value)
-        .sort((a, b) => b.value - a.value);
-}
-function getTopAncestor(d) {
-    let node = d;
-    while (node.parent && node.parent.parent) {
-        node = node.parent;
-    }
-    return node;
-}
-function getNodeColor(d, colorScale) {
-    const ancestor = getTopAncestor(d);
-    const baseColor = colorScale(ancestor.data.name);
-    if (d.depth > 1) {
-        const lightenFactor = Math.min(d.depth * 0.1, 0.35);
-        return d3.interpolateRgb(baseColor, '#ffffff')(lightenFactor);
-    }
-    return baseColor;
-}
-function getAncestorPath(d) {
-    const parts = [];
-    let node = d;
-    while (node && node.depth > 0) {
-        parts.unshift(node.data.name);
-        node = node.parent;
-    }
-    return parts.join(' \u203A ');
-}
 function isAncestor(candidate, node) {
     let current = node.parent;
     while (current) {
@@ -377,4 +286,3 @@ function isDescendantOrSelf(node, ancestor) {
     }
     return false;
 }
-//# sourceMappingURL=icicle.js.map

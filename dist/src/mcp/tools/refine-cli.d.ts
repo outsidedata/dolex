@@ -98,6 +98,7 @@ export declare const refineCliInputSchema: z.ZodObject<{
         values: (string | number)[];
         op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
     }[] | undefined;
+    layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
     limit?: number | undefined;
     flip?: boolean | undefined;
@@ -106,7 +107,6 @@ export declare const refineCliInputSchema: z.ZodObject<{
     flowColorBy?: "source" | "target" | undefined;
     switchPattern?: string | undefined;
     removeTable?: boolean | undefined;
-    layout?: "rows" | "columns" | undefined;
     hideColumns?: string[] | undefined;
 }, {
     specId: string;
@@ -130,6 +130,7 @@ export declare const refineCliInputSchema: z.ZodObject<{
         values: (string | number)[];
         op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
     }[] | undefined;
+    layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
     limit?: number | undefined;
     flip?: boolean | undefined;
@@ -138,8 +139,6 @@ export declare const refineCliInputSchema: z.ZodObject<{
     flowColorBy?: "source" | "target" | undefined;
     switchPattern?: string | undefined;
     removeTable?: boolean | undefined;
-    layout?: "rows" | "columns" | undefined;
     hideColumns?: string[] | undefined;
 }>;
 export declare function handleRefineCli(): (args: z.infer<typeof refineCliInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=refine-cli.d.ts.map

@@ -21,4 +21,3 @@ export declare function resultCacheStats(): {
     ttlMs: number;
     totalRows: number;
 };
-//# sourceMappingURL=result-cache.d.ts.map

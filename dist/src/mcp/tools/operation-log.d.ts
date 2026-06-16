@@ -40,4 +40,3 @@ export declare class OperationLog {
 export declare const operationLog: OperationLog;
 /** Log an operation, silently ignoring errors so logging never breaks tool handlers. */
 export declare function logOperation(entry: OperationEntry): void;
-//# sourceMappingURL=operation-log.d.ts.map

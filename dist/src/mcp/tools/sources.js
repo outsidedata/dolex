@@ -188,4 +188,3 @@ export function handleDescribeSource(deps) {
         return jsonResponse(args.table ? profiles[0] : profiles);
     };
 }
-//# sourceMappingURL=sources.js.map

@@ -100,4 +100,3 @@ export const beeswarmPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=beeswarm.js.map

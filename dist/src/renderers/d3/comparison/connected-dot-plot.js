@@ -5,7 +5,7 @@
  * with colored dots at each end. Y-axis is categorical (scaleBand),
  * X-axis is quantitative (scaleLinear).
  */
-import { createSvg, buildColorScale, createLegend, addSortControls, contrastText, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, calculateLeftMargin, renderEmptyState, isAllZeros, DEFAULT_PALETTE, GRID_COLOR, TEXT_MUTED, DARK_BG, } from '../shared.js';
+import { createSvg, buildColorScale, createLegend, addSortControls, contrastText, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, calculateLeftMargin, renderEmptyState, isAllZeros, tooltipHtml, DEFAULT_PALETTE, GRID_COLOR, TEXT_MUTED, DARK_BG, } from '../shared.js';
 export function renderConnectedDotPlot(container, spec) {
     const { config, encoding, data } = spec;
     const startField = config.metric1Field || config.startField || 'start';
@@ -137,7 +137,7 @@ export function renderConnectedDotPlot(container, spec) {
         const diff = endVal - startVal;
         // Highlight: brighten this row's dots
         g.selectAll(`.dot-${css(cat)}`).attr('opacity', 0.8).attr('r', DOT_RADIUS + 2);
-        showTooltip(tooltip, `<strong>${cat}</strong><br/>${startLabel}: ${formatValue(startVal)}<br/>${endLabel}: ${formatValue(endVal)}<br/>Difference: ${diff >= 0 ? '+' : ''}${formatValue(diff)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${cat}</strong><br/>${startLabel}: ${formatValue(startVal)}<br/>${endLabel}: ${formatValue(endVal)}<br/>Difference: ${diff >= 0 ? '+' : ''}${formatValue(diff)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -232,4 +232,3 @@ function drawLabel(g, cx, cy, value, bgColor) {
         .attr('pointer-events', 'none')
         .text(formatValue(value));
 }
-//# sourceMappingURL=connected-dot-plot.js.map

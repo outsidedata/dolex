@@ -98,4 +98,3 @@ export const donutPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=donut.js.map

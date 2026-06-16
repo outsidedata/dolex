@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const barPattern: VisualizationPattern;
-//# sourceMappingURL=bar.d.ts.map

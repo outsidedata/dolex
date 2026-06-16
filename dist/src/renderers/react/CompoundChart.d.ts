@@ -28,4 +28,3 @@ export interface CompoundChartProps {
 }
 export declare function CompoundChart({ spec, width, height, className, chartComponents, }: CompoundChartProps): import("react/jsx-runtime").JSX.Element;
 export {};
-//# sourceMappingURL=CompoundChart.d.ts.map

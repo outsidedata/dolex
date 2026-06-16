@@ -266,4 +266,3 @@ export function getCountryRegions() {
         .filter(([, cfg]) => cfg.geoLevel === 'country')
         .map(([code]) => code);
 }
-//# sourceMappingURL=geo-registry.js.map

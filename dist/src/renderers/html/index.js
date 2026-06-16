@@ -232,4 +232,3 @@ export { buildWaterfallHtml } from './builders/waterfall.js';
 export { buildCompoundHtml } from './builders/compound.js';
 export { shouldCompound, buildCompoundSpec } from './compound.js';
 export { getPreferredHeight } from './sizing.js';
-//# sourceMappingURL=index.js.map

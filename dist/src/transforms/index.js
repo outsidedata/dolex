@@ -18,4 +18,3 @@ export { ColumnManager } from './column-manager.js';
 export { TransformMetadata } from './metadata.js';
 // ─── Manifest Persistence ───────────────────────────────────────────────────
 export { resolveManifestPath, readManifest, writeManifest, replayManifest, } from './manifest.js';
-//# sourceMappingURL=index.js.map

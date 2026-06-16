@@ -4,7 +4,8 @@
  * Uses d3.treemap() for layout computation but renders with absolutely-
  * positioned divs instead of SVG rects, giving us natural CSS text wrapping.
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, contrastTextMuted, isAllZeros, DARK_BG, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
+import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, escapeHtml, contrastText, contrastTextMuted, isAllZeros, DARK_BG, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
+import { buildHierarchy } from './hierarchy-utils.js';
 export function renderTreemap(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.color?.field || encoding.label?.field;
@@ -76,7 +77,13 @@ export function renderTreemap(container, spec) {
         return;
     }
     // Build hierarchy
-    const root = buildHierarchy(data, categoryField, valueField, parentField, config);
+    const root = buildHierarchy({
+        data,
+        categoryField,
+        valueField,
+        parentField: parentField || undefined,
+        childField: config.childField,
+    });
     // Apply treemap layout
     const treemapLayout = d3
         .treemap()
@@ -174,7 +181,7 @@ export function renderTreemap(container, spec) {
             cell.style.outlineOffset = '-2px';
             cell.style.zIndex = '10';
             const parentName = parentField && leaf.parent?.data?.name ? leaf.parent.data.name + ' > ' : '';
-            showTooltip(tooltip, `<strong>${parentName}${leaf.data.name}</strong><br/>${valueField}: ${formatValue(leaf.value)}`, event);
+            showTooltip(tooltip, `<strong>${escapeHtml(parentName)}${escapeHtml(leaf.data.name)}</strong><br/>${escapeHtml(valueField)}: ${formatValue(leaf.value)}`, event);
         });
         cell.addEventListener('mousemove', (event) => {
             positionTooltip(tooltip, event);
@@ -188,38 +195,3 @@ export function renderTreemap(container, spec) {
         contentArea.appendChild(cell);
     }
 }
-function buildHierarchy(data, categoryField, valueField, parentField, config) {
-    // Compute min-visible threshold: 2% of max ensures extreme-range items stay visible
-    const allVals = data.map((d) => Number(d[valueField]) || 0).filter((v) => v > 0);
-    const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0;
-    const minVisible = maxVal * 0.02;
-    const clampVal = (v) => (v > 0 && v < minVisible ? minVisible : v);
-    if (parentField) {
-        const childField = config.childField || categoryField;
-        const parents = [...new Set(data.map((d) => d[parentField]))];
-        const hierarchy = {
-            name: 'root',
-            children: parents.map((p) => ({
-                name: p,
-                children: data
-                    .filter((d) => d[parentField] === p)
-                    .map((d) => ({
-                    name: d[childField] || d[categoryField] || d[parentField],
-                    value: clampVal(Number(d[valueField]) || 0),
-                    _data: d,
-                })),
-            })),
-        };
-        return d3.hierarchy(hierarchy).sum((d) => d.value).sort((a, b) => b.value - a.value);
-    }
-    const hierarchy = {
-        name: 'root',
-        children: data.map((d) => ({
-            name: d[categoryField],
-            value: clampVal(Number(d[valueField]) || 0),
-            _data: d,
-        })),
-    };
-    return d3.hierarchy(hierarchy).sum((d) => d.value).sort((a, b) => b.value - a.value);
-}
-//# sourceMappingURL=treemap.js.map

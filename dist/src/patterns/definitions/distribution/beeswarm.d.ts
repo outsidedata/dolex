@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const beeswarmPattern: VisualizationPattern;
-//# sourceMappingURL=beeswarm.d.ts.map

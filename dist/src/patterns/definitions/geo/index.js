@@ -3,4 +3,3 @@
  */
 export { choroplethPattern } from './choropleth.js';
 export { proportionalSymbolPattern } from './proportional-symbol.js';
-//# sourceMappingURL=index.js.map

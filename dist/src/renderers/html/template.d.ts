@@ -27,4 +27,3 @@ export declare function buildHtml(spec: VisualizationSpec, renderFunctionBody: s
 export declare function buildHtmlFromBundle(spec: VisualizationSpec, bundleCode: string, options?: {
     extraScripts?: string[];
 }): string;
-//# sourceMappingURL=template.d.ts.map

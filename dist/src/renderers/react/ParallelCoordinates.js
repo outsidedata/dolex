@@ -5,4 +5,3 @@ export function ParallelCoordinates({ spec, width = 800, height = 500, className
     const containerRef = useChart(spec, renderParallelCoordinates, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=ParallelCoordinates.js.map

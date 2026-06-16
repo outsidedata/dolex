@@ -11,15 +11,16 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  tooltipHtml,
   styleAxis,
   getAdaptiveTickCount,
   createLegend,
   DARK_BG,
   TEXT_MUTED,
   TEXT_COLOR,
+  categorical,
 } from './shared.js';
 import type { LegendCallbacks } from './shared.js';
-import { categorical } from '../../theme/colors.js';
 
 declare const d3: any;
 
@@ -199,9 +200,9 @@ export function renderScatter(container: HTMLElement, spec: VisualizationSpec): 
         .attr('r', p.r * 1.5)
         .attr('opacity', 1);
 
-      let html = `<strong>${encoding.x?.title || xField}</strong>: ${formatValue(Number(p.d[xField]))}<br/><strong>${encoding.y?.title || yField}</strong>: ${formatValue(Number(p.d[yField]))}`;
-      if (colorField) html += `<br/>${colorField}: ${p.d[colorField]}`;
-      if (sizeField) html += `<br/>${sizeField}: ${formatValue(Number(p.d[sizeField]))}`;
+      let html = tooltipHtml`<strong>${encoding.x?.title || xField}</strong>: ${formatValue(Number(p.d[xField]))}<br/><strong>${encoding.y?.title || yField}</strong>: ${formatValue(Number(p.d[yField]))}`;
+      if (colorField) html += tooltipHtml`<br/>${colorField}: ${p.d[colorField]}`;
+      if (sizeField) html += tooltipHtml`<br/>${sizeField}: ${formatValue(Number(p.d[sizeField]))}`;
       showTooltip(tooltip, html, event);
     })
     .on('mouseleave', function () {

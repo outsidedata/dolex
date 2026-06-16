@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const sankeyPattern: VisualizationPattern;
-//# sourceMappingURL=sankey.d.ts.map

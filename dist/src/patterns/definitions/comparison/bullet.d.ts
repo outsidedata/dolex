@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const bulletPattern: VisualizationPattern;
-//# sourceMappingURL=bullet.d.ts.map

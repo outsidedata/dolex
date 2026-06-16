@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../types.js';
 export declare function renderConnectedScatter(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=connected-scatter.d.ts.map

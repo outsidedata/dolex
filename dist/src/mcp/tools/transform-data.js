@@ -50,4 +50,3 @@ export function handleTransformData(deps) {
         }
     };
 }
-//# sourceMappingURL=transform-data.js.map

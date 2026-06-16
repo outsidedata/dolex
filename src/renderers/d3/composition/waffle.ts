@@ -16,6 +16,7 @@ import {
   formatValue,
   renderEmptyState,
   isAllZeros,
+  tooltipHtml,
   DARK_BG,
   TEXT_MUTED,
 } from '../shared.js';
@@ -85,10 +86,7 @@ export function renderWaffle(container: HTMLElement, spec: VisualizationSpec): v
     left: 20,
     right: 20,
     bottom: 20,
-  });
-
-  // Remove default background — container handles it
-  svg.style('background', 'none').style('border-radius', '0');
+  }, { background: false });
 
   const tooltip = createTooltip(container);
 
@@ -155,7 +153,7 @@ export function renderWaffle(container: HTMLElement, spec: VisualizationSpec): v
       const item = items.find((i: any) => i.category === d.category);
       showTooltip(
         tooltip,
-        `<strong>${d.category}</strong><br/>${formatValue(item?.value ?? 0)}<br/>${item?.percentage.toFixed(1)}%`,
+        tooltipHtml`<strong>${d.category}</strong><br/>${formatValue(item?.value ?? 0)}<br/>${item?.percentage.toFixed(1)}%`,
         event
       );
     })

@@ -101,4 +101,3 @@ export const parallelCoordinatesPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=parallel-coordinates.js.map

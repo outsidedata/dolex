@@ -88,4 +88,3 @@ export function responsiveTicks(axisLength, isCategory = false) {
     const tickCount = Math.max(2, Math.floor(axisLength / 80));
     return Math.min(tickCount, 12);
 }
-//# sourceMappingURL=responsive.js.map

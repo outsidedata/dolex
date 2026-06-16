@@ -9,4 +9,3 @@ import type { VisualizationSpec } from '../../types.js';
  * data shape, and available container width.
  */
 export declare function getPreferredHeight(spec: VisualizationSpec, containerWidth: number): number;
-//# sourceMappingURL=sizing.d.ts.map

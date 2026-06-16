@@ -15,4 +15,3 @@ export declare function shouldCompound(spec: VisualizationSpec, options?: {
  * Build a CompoundVisualizationSpec wrapping a chart with a data table.
  */
 export declare function buildCompoundSpec(spec: VisualizationSpec, columns?: DataColumn[]): CompoundVisualizationSpec;
-//# sourceMappingURL=compound.d.ts.map

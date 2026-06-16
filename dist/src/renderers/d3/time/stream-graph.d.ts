@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderStreamGraph(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=stream-graph.d.ts.map

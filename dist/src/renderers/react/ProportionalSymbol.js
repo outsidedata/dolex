@@ -13,4 +13,3 @@ export function ProportionalSymbol({ spec, width = 800, height = 500, className,
             }
         } }));
 }
-//# sourceMappingURL=ProportionalSymbol.js.map

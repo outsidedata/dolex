@@ -96,4 +96,3 @@ export const barPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=bar.js.map

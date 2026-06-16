@@ -5,40 +5,11 @@
  * Supports single distribution or 2-4 overlapping group distributions.
  * Optional rug plot ticks on the x-axis show individual data points.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, createLegend, formatValue, TEXT_MUTED, styleAxis, getAdaptiveTickCount, } from '../shared.js';
-import { categorical } from '../../../theme/colors.js';
-// ─── KDE HELPERS ──────────────────────────────────────────────────────────────
-/** Gaussian kernel function. */
-function gaussianKernel(u) {
-    return (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
-}
-/** Compute standard deviation of a numeric array. */
-function stdDev(values) {
-    const n = values.length;
-    if (n < 2)
-        return 1;
-    const mean = values.reduce((s, v) => s + v, 0) / n;
-    const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1);
-    return Math.sqrt(variance);
-}
-/** Silverman's rule of thumb for bandwidth selection. */
-function silvermanBandwidth(values) {
-    const sd = stdDev(values);
-    const n = values.length;
-    if (sd === 0)
-        return 1;
-    return 1.06 * sd * Math.pow(n, -0.2);
-}
-/** Compute KDE for a set of values at the given sample points. */
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, escapeHtml, tooltipHtml, createLegend, formatValue, TEXT_MUTED, styleAxis, getAdaptiveTickCount, categorical, } from '../shared.js';
+import { kde as kdeRaw, silvermanBandwidth } from '../stats.js';
+/** Adapter: returns KDE as tuple array for density-plot's area/line generators. */
 function computeKDE(values, samplePoints, bandwidth) {
-    const n = values.length;
-    if (n === 0)
-        return samplePoints.map((x) => [x, 0]);
-    return samplePoints.map((x) => {
-        const density = values.reduce((sum, xi) => sum + gaussianKernel((x - xi) / bandwidth), 0) /
-            (n * bandwidth);
-        return [x, density];
-    });
+    return kdeRaw(values, samplePoints, bandwidth).map(d => [d.value, d.density]);
 }
 // ─── DENSITY PLOT RENDERER ────────────────────────────────────────────────────
 export function renderDensityPlot(container, spec) {
@@ -250,9 +221,9 @@ export function renderDensityPlot(container, spec) {
             .attr('x2', mx)
             .attr('opacity', 0.6);
         hoverDots.selectAll('circle').remove();
-        let tooltipHtml = '';
+        let tipContent = '';
         if (categoryField) {
-            tooltipHtml += `<strong>${encoding.x?.title || valueField}:</strong> ${formatValue(xVal)}`;
+            tipContent += tooltipHtml `<strong>${encoding.x?.title || valueField}:</strong> ${formatValue(xVal)}`;
             groups.forEach((group) => {
                 const density = groupDensities.get(group);
                 const closest = density.reduce((best, pt) => Math.abs(pt[0] - xVal) < Math.abs(best[0] - xVal) ? pt : best);
@@ -267,7 +238,7 @@ export function renderDensityPlot(container, spec) {
                     .attr('stroke', '#0f1117')
                     .attr('stroke-width', 1.5)
                     .attr('pointer-events', 'none');
-                tooltipHtml += `<br/><span style="color:${color}">\u25CF</span> ${group}: ${closest[1].toFixed(4)}`;
+                tipContent += `<br/><span style="color:${escapeHtml(color)}">\u25CF</span> ${escapeHtml(group)}: ${escapeHtml(closest[1].toFixed(4))}`;
             });
         }
         else {
@@ -283,10 +254,10 @@ export function renderDensityPlot(container, spec) {
                 .attr('stroke', '#0f1117')
                 .attr('stroke-width', 1.5)
                 .attr('pointer-events', 'none');
-            tooltipHtml = `<strong>${encoding.x?.title || valueField}:</strong> ${formatValue(xVal)}`;
-            tooltipHtml += `<br/>Density: ${closest[1].toFixed(4)}`;
+            tipContent = tooltipHtml `<strong>${encoding.x?.title || valueField}:</strong> ${formatValue(xVal)}`;
+            tipContent += tooltipHtml `<br/>Density: ${closest[1].toFixed(4)}`;
         }
-        showTooltip(tooltip, tooltipHtml, event);
+        showTooltip(tooltip, tipContent, event);
     })
         .on('mouseleave', function () {
         crosshair.attr('opacity', 0);
@@ -322,4 +293,3 @@ export function renderDensityPlot(container, spec) {
         container.appendChild(legendDiv);
     }
 }
-//# sourceMappingURL=density-plot.js.map

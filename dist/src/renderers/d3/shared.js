@@ -5,12 +5,59 @@ import { categorical, sequential, diverging, colorSchemes, DARK_BG, AXIS_COLOR, 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 export const DEFAULT_MARGINS = { top: 40, right: 30, bottom: 50, left: 60 };
 export { categorical as DEFAULT_PALETTE } from '../../theme/colors.js';
+export { categorical, sequential, diverging };
 export { DARK_BG, AXIS_COLOR, GRID_COLOR, TEXT_COLOR, TEXT_MUTED };
+// ─── HTML ESCAPING ───────────────────────────────────────────────────────────
+/**
+ * Escape HTML special characters to prevent XSS in tooltips and labels.
+ * Always wrap user/data values with this before inserting into innerHTML.
+ */
+export function escapeHtml(value) {
+    const str = value == null ? '' : String(value);
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+/**
+ * Tagged template literal that auto-escapes all interpolated values.
+ * HTML structure in the template strings is preserved; only dynamic values are escaped.
+ *
+ * Usage: tooltipHtml`<strong>${name}</strong><br/>Value: ${value}`
+ */
+export function tooltipHtml(strings, ...values) {
+    let result = strings[0];
+    for (let i = 0; i < values.length; i++) {
+        result += escapeHtml(values[i]) + strings[i + 1];
+    }
+    return result;
+}
+// ─── DATE PARSING ────────────────────────────────────────────────────────────
+/**
+ * Parse a value into a Date, with special handling for year integers.
+ * Returns null if the value cannot be parsed.
+ */
+export function parseDate(v) {
+    if (v instanceof Date)
+        return isNaN(v.getTime()) ? null : v;
+    if (v === null || v === undefined || v === '')
+        return null;
+    const num = typeof v === 'number' ? v : Number(v);
+    // Treat 4-digit integers in range 1800-2200 as years
+    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
+        return new Date(num, 0, 1);
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+}
 /**
  * Create an SVG element inside the container and return the root <g> group
  * translated by the margin. Also returns computed dimensions.
  */
-export function createSvg(container, spec, marginOverrides) {
+export function createSvg(container, spec, marginOverrides, options) {
+    const showBackground = options?.background ?? true;
     const margin = { ...DEFAULT_MARGINS, ...marginOverrides };
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 500;
@@ -20,9 +67,10 @@ export function createSvg(container, spec, marginOverrides) {
         .select(container)
         .append('svg')
         .attr('width', width)
-        .attr('height', height)
-        .style('background', DARK_BG)
-        .style('border-radius', '8px');
+        .attr('height', height);
+    if (showBackground) {
+        svg.style('background', DARK_BG).style('border-radius', '8px');
+    }
     // Title (with auto-truncation to fit within SVG width)
     if (spec.title) {
         const titleEl = svg
@@ -403,7 +451,7 @@ export function shouldShowValueLabels(config, barDimension, isHorizontal) {
     return isHorizontal ? barDimension >= 20 : barDimension >= 35;
 }
 // ─── AXES ────────────────────────────────────────────────────────────────────
-export function drawXAxis(g, xScale, innerHeight, _label, isOrdinal = false) {
+export function drawXAxis(g, xScale, innerHeight, label, isOrdinal = false) {
     const axis = g
         .append('g')
         .attr('class', 'x-axis')
@@ -415,7 +463,7 @@ export function drawXAxis(g, xScale, innerHeight, _label, isOrdinal = false) {
         .tickPadding(8));
     styleAxis(axis);
 }
-export function drawYAxis(g, yScale, innerWidth, _label) {
+export function drawYAxis(g, yScale, innerWidth, label) {
     const axis = g
         .append('g')
         .attr('class', 'y-axis')
@@ -466,6 +514,10 @@ function fixTickLabels(axis) {
         if (span > 0) {
             const precision = span >= 1 ? 1 : Math.max(2, Math.ceil(-Math.log10(span)) + 2);
             const fmt = (v) => {
+                if (Math.abs(v) >= 1e12)
+                    return (v / 1e12).toFixed(1) + 'T';
+                if (Math.abs(v) >= 1e9)
+                    return (v / 1e9).toFixed(1) + 'B';
                 if (Math.abs(v) >= 1e6)
                     return (v / 1e6).toFixed(1) + 'M';
                 if (Math.abs(v) >= 1e3)
@@ -496,15 +548,11 @@ function fixTickLabels(axis) {
     }
 }
 // ─── TOOLTIP ─────────────────────────────────────────────────────────────────
-let tooltipEl = null;
-let tooltipContainer = null;
+/** Maps each tooltip element to its owning chart container. */
+const tooltipContainers = new WeakMap();
 export function createTooltip(container) {
-    tooltipContainer = container;
-    if (tooltipEl && document.body.contains(tooltipEl)) {
-        return tooltipEl;
-    }
-    tooltipEl = document.createElement('div');
-    tooltipEl.style.cssText = `
+    const el = document.createElement('div');
+    el.style.cssText = `
     position: fixed;
     pointer-events: none;
     background: #1e2028;
@@ -521,15 +569,17 @@ export function createTooltip(container) {
     max-width: 300px;
     line-height: 1.5;
   `;
-    document.body.appendChild(tooltipEl);
-    return tooltipEl;
+    document.body.appendChild(el);
+    tooltipContainers.set(el, container);
+    return el;
 }
 export function positionTooltip(tooltip, event) {
     const gap = 12;
     const tw = tooltip.offsetWidth;
     const th = tooltip.offsetHeight;
     const vh = window.innerHeight;
-    const rect = tooltipContainer?.getBoundingClientRect();
+    const container = tooltipContainers.get(tooltip);
+    const rect = container?.getBoundingClientRect();
     const midX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
     let left = event.clientX > midX
         ? event.clientX - tw - gap
@@ -844,10 +894,9 @@ export function addSortControls(svg, container, spec, dims, renderFn) {
             newSortBy = 'value';
             newSortOrder = 'descending';
         }
-        spec.config.sortBy = newSortBy;
-        spec.config.sortOrder = newSortOrder;
+        const updatedSpec = { ...spec, config: { ...spec.config, sortBy: newSortBy, sortOrder: newSortOrder } };
         container.innerHTML = '';
-        renderFn(container, spec);
+        renderFn(container, updatedSpec);
     });
 }
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
@@ -866,4 +915,46 @@ export function formatValue(v) {
     }
     return Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1);
 }
-//# sourceMappingURL=shared.js.map
+// ── Container / Layout Helpers ────────────────────────────────────────────────
+/**
+ * Set up a flex-column container with dark background for charts that
+ * render SVG inside a wrapper div (with optional legend below).
+ * Returns the chart wrapper div.
+ */
+export function setupFlexContainer(container) {
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.background = DARK_BG;
+    container.style.borderRadius = '8px';
+    container.style.overflow = 'hidden';
+    const chartWrapper = document.createElement('div');
+    chartWrapper.style.flex = '1';
+    chartWrapper.style.minHeight = '0';
+    container.appendChild(chartWrapper);
+    return chartWrapper;
+}
+/**
+ * Apply -35° rotation to x-axis tick labels.
+ * Call after the axis has been rendered.
+ */
+export function applyLabelRotation(axis) {
+    axis.selectAll('.tick text')
+        .attr('transform', 'rotate(-35)')
+        .attr('text-anchor', 'end')
+        .attr('dx', '-0.5em')
+        .attr('dy', '0.15em');
+}
+/**
+ * Shared curve interpolation map for time-series renderers.
+ * Must be called inside the renderer (needs d3 reference).
+ */
+export function getCurveMap() {
+    return {
+        linear: d3.curveLinear,
+        monotone: d3.curveMonotoneX,
+        basis: d3.curveBasis,
+        step: d3.curveStepAfter,
+        cardinal: d3.curveCardinal,
+        catmullRom: d3.curveCatmullRom,
+    };
+}

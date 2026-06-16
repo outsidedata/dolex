@@ -10,4 +10,3 @@ export { renderLollipop } from './lollipop.js';
 export { renderBullet } from './bullet.js';
 export { renderGroupedBar } from './grouped-bar.js';
 export { renderWaterfall } from './waterfall.js';
-//# sourceMappingURL=index.js.map

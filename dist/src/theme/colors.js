@@ -239,4 +239,3 @@ export const AXIS_COLOR = darkTheme.axis;
 export const GRID_COLOR = darkTheme.grid;
 export const TEXT_COLOR = darkTheme.text;
 export const TEXT_MUTED = darkTheme.textMuted;
-//# sourceMappingURL=colors.js.map

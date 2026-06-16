@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const densityPlotPattern: VisualizationPattern;
-//# sourceMappingURL=density-plot.d.ts.map

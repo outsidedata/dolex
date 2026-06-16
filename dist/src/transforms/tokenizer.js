@@ -132,4 +132,3 @@ const ONE_CHAR_OPS = {
     ']': 'RBRACKET',
     ',': 'COMMA',
 };
-//# sourceMappingURL=tokenizer.js.map

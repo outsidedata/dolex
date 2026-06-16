@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const ridgelinePattern: VisualizationPattern;
-//# sourceMappingURL=ridgeline.d.ts.map

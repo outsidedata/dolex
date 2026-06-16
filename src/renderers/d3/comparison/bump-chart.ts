@@ -16,6 +16,7 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  tooltipHtml,
   TEXT_MUTED,
   GRID_COLOR,
   DARK_BG,
@@ -45,8 +46,7 @@ export function renderBumpChart(container: HTMLElement, spec: VisualizationSpec)
   chartWrapper.style.minHeight = '0';
   container.appendChild(chartWrapper);
 
-  const { svg, g, dims } = createSvg(chartWrapper, spec, { left: 40, right: 100 });
-  svg.style('background', 'none').style('border-radius', '0');
+  const { svg, g, dims } = createSvg(chartWrapper, spec, { left: 40, right: 100 }, { background: false });
   const tooltip = createTooltip(container);
 
   // Extract unique entities and periods (preserve data order for periods)
@@ -183,7 +183,7 @@ export function renderBumpChart(container: HTMLElement, spec: VisualizationSpec)
             d3.select(this).attr('r', dotRadius + 2);
             showTooltip(
               tooltip,
-              `<strong>${entity}</strong><br/>Period: ${pt.period}<br/>Rank: #${pt.rank}<br/>Value: ${formatValue(pt.value)}`,
+              tooltipHtml`<strong>${entity}</strong><br/>Period: ${pt.period}<br/>Rank: #${pt.rank}<br/>Value: ${formatValue(pt.value)}`,
               event
             );
           })
@@ -231,7 +231,7 @@ export function renderBumpChart(container: HTMLElement, spec: VisualizationSpec)
           d3.select(this).attr('r', 8);
           showTooltip(
             tooltip,
-            `<strong>${entity}</strong><br/>Period: ${singlePeriod}<br/>Rank: #${rank}<br/>Value: ${formatValue(value)}`,
+            tooltipHtml`<strong>${entity}</strong><br/>Period: ${singlePeriod}<br/>Rank: #${rank}<br/>Value: ${formatValue(value)}`,
             event
           );
         })

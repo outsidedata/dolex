@@ -48,4 +48,3 @@ export function buildAnalysisPlan(columns, table, sourceName, maxSteps = DEFAULT
     const summary = `${sourceName}: ${columnDesc} — ${analysisWord} planned`;
     return { summary, steps };
 }
-//# sourceMappingURL=planner.js.map

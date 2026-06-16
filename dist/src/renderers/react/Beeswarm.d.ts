@@ -4,4 +4,3 @@
  */
 import type { ChartProps } from './types.js';
 export declare function Beeswarm({ spec, width, height, className, onReady, }: ChartProps): import("react/jsx-runtime").JSX.Element;
-//# sourceMappingURL=Beeswarm.d.ts.map

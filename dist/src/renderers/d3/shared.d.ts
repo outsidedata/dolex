@@ -2,7 +2,7 @@
  * Shared D3 rendering utilities — axes, scales, colors, margins, tooltips.
  */
 import type { VisualizationSpec, AxisEncoding, ColorEncoding } from '../../types.js';
-import { DARK_BG, AXIS_COLOR, GRID_COLOR, TEXT_COLOR, TEXT_MUTED } from '../../theme/colors.js';
+import { categorical, sequential, diverging, DARK_BG, AXIS_COLOR, GRID_COLOR, TEXT_COLOR, TEXT_MUTED } from '../../theme/colors.js';
 export declare const DEFAULT_MARGINS: {
     top: number;
     right: number;
@@ -10,7 +10,25 @@ export declare const DEFAULT_MARGINS: {
     left: number;
 };
 export { categorical as DEFAULT_PALETTE } from '../../theme/colors.js';
+export { categorical, sequential, diverging };
 export { DARK_BG, AXIS_COLOR, GRID_COLOR, TEXT_COLOR, TEXT_MUTED };
+/**
+ * Escape HTML special characters to prevent XSS in tooltips and labels.
+ * Always wrap user/data values with this before inserting into innerHTML.
+ */
+export declare function escapeHtml(value: unknown): string;
+/**
+ * Tagged template literal that auto-escapes all interpolated values.
+ * HTML structure in the template strings is preserved; only dynamic values are escaped.
+ *
+ * Usage: tooltipHtml`<strong>${name}</strong><br/>Value: ${value}`
+ */
+export declare function tooltipHtml(strings: TemplateStringsArray, ...values: unknown[]): string;
+/**
+ * Parse a value into a Date, with special handling for year integers.
+ * Returns null if the value cannot be parsed.
+ */
+export declare function parseDate(v: any): Date | null;
 export interface ChartDimensions {
     width: number;
     height: number;
@@ -27,7 +45,9 @@ export interface ChartDimensions {
  * Create an SVG element inside the container and return the root <g> group
  * translated by the margin. Also returns computed dimensions.
  */
-export declare function createSvg(container: HTMLElement, spec: VisualizationSpec, marginOverrides?: Partial<typeof DEFAULT_MARGINS>): {
+export declare function createSvg(container: HTMLElement, spec: VisualizationSpec, marginOverrides?: Partial<typeof DEFAULT_MARGINS>, options?: {
+    background?: boolean;
+}): {
     svg: any;
     g: any;
     dims: ChartDimensions;
@@ -95,8 +115,8 @@ export declare function isAllZeros(data: Record<string, any>[], field: string): 
  * For vertical bars: check bandwidth (width) >= 35px
  */
 export declare function shouldShowValueLabels(config: VisualizationSpec['config'], barDimension: number, isHorizontal: boolean): boolean;
-export declare function drawXAxis(g: any, xScale: any, innerHeight: number, _label?: string, isOrdinal?: boolean): void;
-export declare function drawYAxis(g: any, yScale: any, innerWidth: number, _label?: string): void;
+export declare function drawXAxis(g: any, xScale: any, innerHeight: number, label?: string, isOrdinal?: boolean): void;
+export declare function drawYAxis(g: any, yScale: any, innerWidth: number, label?: string): void;
 /**
  * Apply consistent axis styling: grid lines, domain stroke, tick text.
  * Also applies smart formatting to fix tiny-decimal "0.00" labels and
@@ -149,4 +169,19 @@ export declare function renderPlaceholder(container: HTMLElement, spec: Visualiz
  */
 export declare function addSortControls(svg: any, container: HTMLElement, spec: VisualizationSpec, dims: ChartDimensions, renderFn: (container: HTMLElement, spec: VisualizationSpec) => void): void;
 export declare function formatValue(v: number): string;
-//# sourceMappingURL=shared.d.ts.map
+/**
+ * Set up a flex-column container with dark background for charts that
+ * render SVG inside a wrapper div (with optional legend below).
+ * Returns the chart wrapper div.
+ */
+export declare function setupFlexContainer(container: HTMLElement): HTMLDivElement;
+/**
+ * Apply -35° rotation to x-axis tick labels.
+ * Call after the axis has been rendered.
+ */
+export declare function applyLabelRotation(axis: any): void;
+/**
+ * Shared curve interpolation map for time-series renderers.
+ * Must be called inside the renderer (needs d3 reference).
+ */
+export declare function getCurveMap(): Record<string, any>;

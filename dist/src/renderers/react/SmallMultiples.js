@@ -5,4 +5,3 @@ export function SmallMultiples({ spec, width = 800, height = 500, className, onR
     const containerRef = useChart(spec, renderSmallMultiples, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=SmallMultiples.js.map

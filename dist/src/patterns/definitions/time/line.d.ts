@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const linePattern: VisualizationPattern;
-//# sourceMappingURL=line.d.ts.map

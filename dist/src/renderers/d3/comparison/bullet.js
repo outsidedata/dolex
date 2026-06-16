@@ -1,4 +1,4 @@
-import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
+import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, getAdaptiveTickCount, calculateLeftMargin, truncateLabel, escapeHtml, tooltipHtml, TEXT_COLOR, TEXT_MUTED, } from '../shared.js';
 const RANGE_COLORS = ['#1a1f2e', '#252b3d', '#313850'];
 export function renderBullet(container, spec) {
     const { config, encoding, data } = spec;
@@ -101,18 +101,18 @@ export function renderBullet(container, spec) {
             .attr('cursor', 'pointer')
             .on('mouseover', function (event) {
             bulletG.select('.actual-bar').attr('opacity', 0.85);
-            let html = `<strong>${metric.label}</strong>`;
-            html += `<br/>Actual: ${formatValue(metric.actual)}`;
+            let html = tooltipHtml `<strong>${metric.label}</strong>`;
+            html += tooltipHtml `<br/>Actual: ${formatValue(metric.actual)}`;
             if (metric.target !== null) {
-                html += `<br/>Target: ${formatValue(metric.target)}`;
+                html += tooltipHtml `<br/>Target: ${formatValue(metric.target)}`;
                 const pct = ((metric.actual / metric.target) * 100).toFixed(1);
-                html += `<br/>Achievement: ${pct}%`;
+                html += tooltipHtml `<br/>Achievement: ${pct}%`;
             }
             if (config.rangeLabels && metric.ranges.length > 0) {
                 const rangeLabels = config.rangeLabels;
                 metric.ranges.forEach((r, ri) => {
                     if (rangeLabels[ri]) {
-                        html += `<br/><span style="color:${TEXT_MUTED}">${rangeLabels[ri]}: ${formatValue(r)}</span>`;
+                        html += `<br/><span style="color:${escapeHtml(TEXT_MUTED)}">${escapeHtml(rangeLabels[ri])}: ${escapeHtml(formatValue(r))}</span>`;
                     }
                 });
             }
@@ -206,4 +206,3 @@ export function renderBullet(container, spec) {
     });
     addSortControls(svg, container, spec, dims, renderBullet);
 }
-//# sourceMappingURL=bullet.js.map

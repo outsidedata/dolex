@@ -5,4 +5,3 @@ export function DivergingBar({ spec, width = 800, height = 500, className, onRea
     const containerRef = useChart(spec, renderDivergingBar, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=DivergingBar.js.map

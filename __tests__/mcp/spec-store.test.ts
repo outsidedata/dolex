@@ -58,8 +58,9 @@ describe('SpecStore', () => {
   it('updateSpec creates a new ID and stores new spec', () => {
     const id1 = store.save(makeSpec('bar'), []);
     const id2 = store.updateSpec(id1, makeSpec('line'));
+    expect(id2).not.toBeNull();
     expect(id2).not.toBe(id1);
-    expect((store.get(id2)!.spec as VisualizationSpec).pattern).toBe('line');
+    expect((store.get(id2!)!.spec as VisualizationSpec).pattern).toBe('line');
   });
 
   it('updateSpec preserves columns and alternatives from original', () => {
@@ -69,8 +70,9 @@ describe('SpecStore', () => {
 
     const id1 = store.save(makeSpec('bar'), cols, alts);
     const id2 = store.updateSpec(id1, makeSpec('line'));
+    expect(id2).not.toBeNull();
 
-    const stored = store.get(id2)!;
+    const stored = store.get(id2!)!;
     expect(stored.columns).toHaveLength(1);
     expect(stored.columns[0].name).toBe('x');
     expect(stored.alternatives.get('scatter')!.pattern).toBe('scatter');
@@ -87,8 +89,14 @@ describe('SpecStore', () => {
     const originalData = [{ x: 1, y: 2 }, { x: 3, y: 4 }];
     const id1 = store.save(makeSpec('bar'), [], new Map(), originalData);
     const id2 = store.updateSpec(id1, makeSpec('line'));
-    const stored = store.get(id2)!;
+    expect(id2).not.toBeNull();
+    const stored = store.get(id2!)!;
     expect(stored.originalData).toEqual(originalData);
+  });
+
+  it('updateSpec returns null for non-existent spec', () => {
+    const id2 = store.updateSpec('non-existent-id', makeSpec('line'));
+    expect(id2).toBeNull();
   });
 
   it('evicts oldest entry when at capacity', () => {

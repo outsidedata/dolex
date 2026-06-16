@@ -58,4 +58,3 @@ export interface SourceRegistryEntry {
     config: DataSourceConfig;
     connectedAt?: string;
 }
-//# sourceMappingURL=types.d.ts.map

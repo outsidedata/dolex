@@ -102,4 +102,3 @@ export const ridgelinePattern = {
         return spec;
     },
 };
-//# sourceMappingURL=ridgeline.js.map

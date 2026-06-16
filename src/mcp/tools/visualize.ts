@@ -121,7 +121,8 @@ export function handleVisualizeCore(
       notes.push(...colorResult.notes);
     }
 
-    const spec = result.recommended.spec;
+    // Clone spec to avoid mutating the original selector result
+    const spec = { ...result.recommended.spec };
     if (args.title) spec.title = args.title;
     if (args.subtitle) spec.config = { ...spec.config, subtitle: args.subtitle };
 

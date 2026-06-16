@@ -5,4 +5,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderLine(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=line.d.ts.map

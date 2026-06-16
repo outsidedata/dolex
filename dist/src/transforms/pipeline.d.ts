@@ -37,4 +37,3 @@ export interface TransformOutput {
 }
 export declare function executeSingleTransform(db: Database.Database, metadata: TransformMetadata, input: TransformInput, sourceColumns: string[]): TransformOutput;
 export declare function executeBatchTransform(db: Database.Database, metadata: TransformMetadata, input: BatchTransformInput, sourceColumns: string[]): TransformOutput;
-//# sourceMappingURL=pipeline.d.ts.map

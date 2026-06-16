@@ -119,4 +119,3 @@ export const lollipopPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=lollipop.js.map

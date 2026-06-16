@@ -72,8 +72,11 @@ export function writeManifest(metadata, tables, manifestPath) {
         }));
     }
     const json = JSON.stringify(manifest, null, 2);
-    // Atomic write: write to .tmp, then rename
-    const tmpPath = manifestPath + '.tmp';
+    // Atomic write: write to a process-unique temp file, then rename. The temp
+    // name includes the pid so two processes writing the same CSV's manifest
+    // concurrently don't collide on a shared `.tmp` path (the rename itself is
+    // atomic, so a reader always sees a complete file).
+    const tmpPath = `${manifestPath}.${process.pid}.tmp`;
     writeFileSync(tmpPath, json, 'utf-8');
     renameSync(tmpPath, manifestPath);
 }
@@ -133,4 +136,3 @@ export function replayManifest(db, metadata, manifest, tableName) {
     }
     return { replayed, skipped };
 }
-//# sourceMappingURL=manifest.js.map

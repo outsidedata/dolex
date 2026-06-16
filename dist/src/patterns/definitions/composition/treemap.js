@@ -101,4 +101,3 @@ export const treemapPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=treemap.js.map

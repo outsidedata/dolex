@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const calendarHeatmapPattern: VisualizationPattern;
-//# sourceMappingURL=calendar-heatmap.d.ts.map

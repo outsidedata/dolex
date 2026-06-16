@@ -10,4 +10,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderBeeswarm(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=beeswarm.d.ts.map

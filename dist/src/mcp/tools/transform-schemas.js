@@ -32,4 +32,3 @@ export const dropColumnsSchema = z.object({
     columns: z.array(z.string()).describe('Column names to drop. Use ["*"] to drop all columns in the specified layer.'),
     layer: z.enum(['derived', 'working']).optional().describe('Which layer to drop from. If omitted, auto-detects.'),
 });
-//# sourceMappingURL=transform-schemas.js.map

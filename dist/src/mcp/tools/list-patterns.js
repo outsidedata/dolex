@@ -283,4 +283,3 @@ export function handleListPatterns(getPatterns) {
         return jsonResponse({ patterns: listing, colorSystem: COLOR_SYSTEM_DOCS });
     };
 }
-//# sourceMappingURL=list-patterns.js.map

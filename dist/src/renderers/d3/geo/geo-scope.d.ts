@@ -28,4 +28,3 @@ export interface ApplyGeoScopeResult {
  */
 export declare function buildGeoSpecConfig(geo: ApplyGeoScopeResult): Record<string, any>;
 export declare function applyGeoScope(data: Record<string, any>[], geoField: string, options?: Record<string, any>): ApplyGeoScopeResult;
-//# sourceMappingURL=geo-scope.d.ts.map

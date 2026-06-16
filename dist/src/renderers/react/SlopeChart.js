@@ -5,4 +5,3 @@ export function SlopeChart({ spec, width = 800, height = 500, className, onReady
     const containerRef = useChart(spec, renderSlopeChart, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=SlopeChart.js.map

@@ -6,7 +6,8 @@
  *
  * Layout: flex column — title (HTML) → SVG chart → HTML legend.
  */
-import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, contrastTextMuted, isAllZeros, DEFAULT_PALETTE, DARK_BG, TEXT_COLOR, TEXT_MUTED, createLegend, } from '../shared.js';
+import { buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, contrastTextMuted, isAllZeros, tooltipHtml, DEFAULT_PALETTE, DARK_BG, TEXT_COLOR, TEXT_MUTED, createLegend, } from '../shared.js';
+import { buildHierarchy, getAncestorPath, getAncestorChain, getNodeColor, } from './hierarchy-utils.js';
 export function renderSunburst(container, spec) {
     const { config, encoding, data } = spec;
     const parentField = config.parentField;
@@ -81,7 +82,14 @@ export function renderSunburst(container, spec) {
         return;
     }
     // ── Build hierarchy ──
-    const root = buildHierarchy(data, parentField, childField, valueField, config);
+    const root = buildHierarchy({
+        data,
+        valueField,
+        categoryField: config.categoryField || childField || parentField,
+        parentField,
+        childField,
+        levelFields: config.levelFields,
+    });
     // ── Partition layout ──
     const effectiveInner = Math.min(innerR, radius * 0.6);
     d3.partition().size([2 * Math.PI, radius - effectiveInner])(root);
@@ -110,7 +118,7 @@ export function renderSunburst(container, spec) {
         .innerRadius(d.y0 + effectiveInner)
         .outerRadius(d.y1 + effectiveInner)
         .cornerRadius(d.depth * 3)(d))
-        .attr('fill', (d) => getArcColor(d, colorScale))
+        .attr('fill', (d) => getNodeColor(d, colorScale))
         .attr('stroke', DARK_BG)
         .attr('stroke-width', 1)
         .attr('opacity', 1)
@@ -124,7 +132,7 @@ export function renderSunburst(container, spec) {
             .attr('opacity', 1);
         d3.select(this).attr('stroke', '#ffffff').attr('stroke-width', 2);
         const path = getAncestorPath(d);
-        showTooltip(tooltip, `<strong>${path}</strong><br/>${valueField}: ${formatValue(d.value)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${path}</strong><br/>${valueField}: ${formatValue(d.value)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -153,119 +161,6 @@ export function renderSunburst(container, spec) {
     }
 }
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function getArcColor(d, colorScale) {
-    const ancestor = getTopAncestor(d);
-    const baseColor = colorScale(ancestor.data.name);
-    if (d.depth > 1) {
-        const lightenFactor = Math.min(d.depth * 0.12, 0.4);
-        return d3.interpolateRgb(baseColor, '#ffffff')(lightenFactor);
-    }
-    return baseColor;
-}
-function buildNestedHierarchy(items, levelFields, valueField, levelIdx, clampVal) {
-    const field = levelFields[levelIdx];
-    const groups = [...new Set(items.map((d) => d[field]))];
-    if (levelIdx === levelFields.length - 1) {
-        return groups.map((name) => ({
-            name,
-            value: clampVal(items
-                .filter((d) => d[field] === name)
-                .reduce((sum, d) => sum + (Number(d[valueField]) || 0), 0)),
-            _data: items.find((d) => d[field] === name),
-        }));
-    }
-    return groups.map((name) => ({
-        name,
-        children: buildNestedHierarchy(items.filter((d) => d[field] === name), levelFields, valueField, levelIdx + 1, clampVal),
-    }));
-}
-function buildHierarchy(data, parentField, childField, valueField, config) {
-    const levelFields = config.levelFields;
-    // Compute min-visible threshold: 2% of max ensures extreme-range items stay visible
-    const allVals = valueField
-        ? data.map((d) => Number(d[valueField]) || 0).filter((v) => v > 0)
-        : [];
-    const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0;
-    const minVisible = maxVal * 0.02;
-    const clampVal = (v) => (v > 0 && v < minVisible ? minVisible : v);
-    if (levelFields && levelFields.length > 0 && valueField) {
-        const hierarchy = {
-            name: 'root',
-            children: buildNestedHierarchy(data, levelFields, valueField, 0, clampVal),
-        };
-        return d3.hierarchy(hierarchy).sum((d) => d.value);
-    }
-    if (parentField && childField && valueField) {
-        const parents = [...new Set(data.map((d) => d[parentField]))];
-        const hierarchy = {
-            name: 'root',
-            children: parents.map((p) => ({
-                name: p,
-                children: data
-                    .filter((d) => d[parentField] === p)
-                    .map((d) => ({
-                    name: d[childField],
-                    value: clampVal(Number(d[valueField]) || 0),
-                    _data: d,
-                })),
-            })),
-        };
-        return d3.hierarchy(hierarchy).sum((d) => d.value);
-    }
-    if (parentField && valueField) {
-        const parents = [...new Set(data.map((d) => d[parentField]))];
-        const hierarchy = {
-            name: 'root',
-            children: parents.map((p) => {
-                const items = data.filter((d) => d[parentField] === p);
-                return {
-                    name: p,
-                    children: items.map((d, i) => ({
-                        name: d[childField || parentField] || `Item ${i}`,
-                        value: clampVal(Number(d[valueField]) || 0),
-                        _data: d,
-                    })),
-                };
-            }),
-        };
-        return d3.hierarchy(hierarchy).sum((d) => d.value);
-    }
-    const categoryField = config.categoryField || childField || parentField;
-    const hierarchy = {
-        name: 'root',
-        children: data.map((d) => ({
-            name: d[categoryField] || 'Unknown',
-            value: clampVal(Number(d[valueField]) || 0),
-            _data: d,
-        })),
-    };
-    return d3.hierarchy(hierarchy).sum((d) => d.value);
-}
-function getTopAncestor(d) {
-    let node = d;
-    while (node.parent && node.parent.parent) {
-        node = node.parent;
-    }
-    return node;
-}
-function getAncestorChain(d) {
-    const chain = new Set();
-    let node = d.parent;
-    while (node && node.depth > 0) {
-        chain.add(node);
-        node = node.parent;
-    }
-    return chain;
-}
-function getAncestorPath(d) {
-    const parts = [];
-    let node = d;
-    while (node && node.depth > 0) {
-        parts.unshift(node.data.name);
-        node = node.parent;
-    }
-    return parts.join(' \u203A ');
-}
 function drawArcLabels(g, descendants, arc, showValues, colorScale, _radius, _effectiveInner) {
     const labels = g
         .selectAll('.sunburst-label')
@@ -286,7 +181,7 @@ function drawArcLabels(g, descendants, arc, showValues, colorScale, _radius, _ef
         const thickness = d.y1 - d.y0;
         if (angle < 0.12 || thickness < 18)
             return;
-        const fillColor = getArcColor(d, colorScale);
+        const fillColor = getNodeColor(d, colorScale);
         const isLarge = angle >= 0.25 && thickness >= 25;
         const fontSize = isLarge ? '12px' : '10px';
         const maxChars = Math.max(3, Math.floor(angle * 12));
@@ -312,4 +207,3 @@ function drawArcLabels(g, descendants, arc, showValues, colorScale, _radius, _ef
         }
     });
 }
-//# sourceMappingURL=sunburst.js.map

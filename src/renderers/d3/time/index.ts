@@ -1,5 +1,5 @@
 /**
- * Time renderers — line, area, small-multiples, sparkline-grid, calendar-heatmap.
+ * Time renderers — line, area, small-multiples, sparkline-grid, calendar-heatmap, stream-graph, horizon-chart.
  */
 
 export { renderLine } from './line.js';

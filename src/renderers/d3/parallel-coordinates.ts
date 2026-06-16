@@ -22,11 +22,13 @@ import {
   truncateLabel,
   createLegend,
   renderEmptyState,
+  escapeHtml,
+  tooltipHtml,
   TEXT_COLOR,
   TEXT_MUTED,
+  categorical,
 } from './shared.js';
 import type { LegendCallbacks } from './shared.js';
-import { categorical } from '../../theme/colors.js';
 
 declare const d3: any;
 
@@ -178,17 +180,17 @@ export function renderParallelCoordinates(container: HTMLElement, spec: Visualiz
       // Build tooltip with entity label + all dimension values
       let html = '';
       if (labelField && d[labelField]) {
-        html += `<strong>${d[labelField]}</strong>`;
+        html += tooltipHtml`<strong>${d[labelField]}</strong>`;
         if (colorField && colorField !== labelField) {
-          html += ` <span style="color:#9ca3af">${d[colorField]}</span>`;
+          html += tooltipHtml` <span style="color:#9ca3af">${d[colorField]}</span>`;
         }
         html += '<br/>';
       } else if (colorField) {
-        html += `<strong>${d[colorField]}</strong><br/>`;
+        html += tooltipHtml`<strong>${d[colorField]}</strong><br/>`;
       }
       html += dimensions.map((dim: string) => {
         const val = Number(d[dim]);
-        return `${dim}: ${isNaN(val) ? d[dim] : formatValue(val)}`;
+        return `${escapeHtml(dim)}: ${isNaN(val) ? escapeHtml(d[dim]) : escapeHtml(formatValue(val))}`;
       }).join('<br/>');
 
       showTooltip(tooltip, html, event);

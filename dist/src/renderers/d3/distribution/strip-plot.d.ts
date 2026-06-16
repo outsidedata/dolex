@@ -9,4 +9,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderStripPlot(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=strip-plot.d.ts.map

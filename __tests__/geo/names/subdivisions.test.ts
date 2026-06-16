@@ -42,7 +42,7 @@ describe('subdivision name resolution', () => {
     expect(resolveSubdivisionName('JP', 'Tokyo')).toBe('Tokyo');
     expect(resolveSubdivisionName('JP', 'Hokkaido')).toBe('Hokkaido');
     expect(resolveSubdivisionName('JP', 'Osaka')).toBe('Osaka');
-    expect(resolveSubdivisionName('JP', 'Nagasaki')).toBe('Naoasaki');
+    expect(resolveSubdivisionName('JP', 'Nagasaki')).toBe('Nagasaki');
   });
 
   it('resolves French region', () => {

@@ -74,11 +74,11 @@ import { specStore } from './spec-store.js';
 import { mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { fileURLToPath } from 'url';
+import { packagePath } from '../utils/package-root.js';
 
 // Pattern library imports
 import { registry } from '../patterns/registry.js';
-import { selectPattern } from '../patterns/selector.js';
+import { selectPatternsCallback as selectPatternCallback } from '../patterns/select-callback.js';
 // Connector imports
 import { SourceManager } from '../connectors/manager.js';
 // MCP Apps shell
@@ -92,8 +92,7 @@ const sourceManager = new SourceManager(join(dolexDir, 'sources.json'));
 
 const serverStartTime = Date.now();
 
-const __dirname = join(fileURLToPath(import.meta.url), '..');
-const iconPath = join(__dirname, '..', '..', 'assets', 'icon.svg');
+const iconPath = packagePath(import.meta.url, 'assets', 'icon.svg');
 let serverIcons: Array<{ src: string; mimeType: string }> | undefined;
 try {
   const svgData = readFileSync(iconPath);
@@ -147,28 +146,6 @@ const server = new McpServer(
   },
 );
 
-// ─── Shared pattern selector callback ────────────────────────────────────────
-
-function selectPatternCallback(input: { data: Record<string, any>[]; intent: string; columns?: any[]; forcePattern?: string; geoLevel?: string; geoRegion?: string }) {
-  const columns = input.columns ?? [];
-  const specOptions: Record<string, any> = {};
-  if (input.geoLevel) specOptions.geoLevel = input.geoLevel;
-  if (input.geoRegion) specOptions.geoRegion = input.geoRegion;
-  const result = selectPattern(input.data, columns, input.intent, { forcePattern: input.forcePattern, specOptions });
-  return {
-    recommended: {
-      pattern: result.recommended.pattern.id,
-      spec: result.recommended.spec,
-      reasoning: result.recommended.reasoning,
-    },
-    alternatives: result.alternatives.map(a => ({
-      pattern: a.pattern.id,
-      spec: a.spec,
-      reasoning: a.reasoning,
-    })),
-  };
-}
-
 // ─── REGISTER TOOLS ─────────────────────────────────────────────────────────
 
 // Inline data visualization tool
@@ -177,7 +154,7 @@ registerAppTool(
   'visualize',
   {
     title: 'Visualize Data',
-    description: 'Chart data from inline arrays, cached query results, or loaded CSVs.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), pattern recommendation, alternatives.\nSet returnHtml=false to skip HTML in response (saves tokens); use screenshot(specId) to render later.\nPresent any notes to the user.',
+    description: 'Chart data from inline arrays, cached query results, or loaded CSVs.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), pattern recommendation, and alternatives.\nPresent any notes to the user.',
     inputSchema: visualizeInputSchema.shape,
     _meta: {
       ui: {

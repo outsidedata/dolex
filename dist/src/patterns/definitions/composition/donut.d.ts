@@ -3,4 +3,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const donutPattern: VisualizationPattern;
-//# sourceMappingURL=donut.d.ts.map

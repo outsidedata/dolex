@@ -113,4 +113,3 @@ function rowToRecord(row) {
         partitionBy: row.partition_by ?? undefined,
     };
 }
-//# sourceMappingURL=metadata.js.map

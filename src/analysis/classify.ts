@@ -6,8 +6,27 @@ const WEAK_ID_NAME = /(?:_number$|_no$|_num$|_idx$|_index$|^index$|_key$|_code$|
 
 function looksLikeNumericId(col: DataColumn): boolean {
   const name = col.name.toLowerCase().replace(/[\s.\-]/g, '_');
+  if (STRONG_ID_NAME.test(name)) return true;
+
   const highCardinality = col.totalCount > 0 && col.uniqueCount / col.totalCount > 0.5;
-  return STRONG_ID_NAME.test(name) || (WEAK_ID_NAME.test(name) && highCardinality);
+  if (WEAK_ID_NAME.test(name) && highCardinality) return true;
+
+  // Surrogate / auto-increment key with no id-ish name: every value distinct AND
+  // the value range looks like row indices (starts at 0 or 1, max ≈ row count).
+  // A real measure (revenue, price, score) has values unrelated to the row count,
+  // so its max far exceeds totalCount. Require a SIZABLE table (≥50 rows, matching
+  // quality.ts) so a small all-distinct MEASURE — e.g. 12 unique revenues — is
+  // never mistaken for an id just because every value happens to be unique.
+  const allDistinct = col.totalCount > 0 && col.uniqueCount >= col.totalCount;
+  if (allDistinct && col.totalCount >= 50 && col.stats) {
+    const { min, max } = col.stats;
+    const looksLikeRowIndex =
+      Number.isInteger(min) && Number.isInteger(max) &&
+      min >= 0 && min <= 1 &&
+      max >= col.totalCount - 1 && max <= col.totalCount + 1;
+    if (looksLikeRowIndex) return true;
+  }
+  return false;
 }
 
 function classifySingle(col: DataColumn): ColumnRole {
@@ -19,7 +38,9 @@ function classifySingle(col: DataColumn): ColumnRole {
     case 'date':
       return 'time';
     case 'numeric':
-      if (col.totalCount > 0 && col.uniqueCount >= col.totalCount) return 'id';
+      // NOTE: do NOT treat "all values distinct" alone as an id — in a small
+      // table a legitimate measure (revenue, price) is naturally all-distinct.
+      // Identifier detection lives in looksLikeNumericId (name + sequential-key).
       if (looksLikeNumericId(col)) return 'id';
       return 'measure';
     case 'categorical': {

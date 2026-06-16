@@ -66,4 +66,3 @@ declare class PatternRegistry {
  */
 export declare const registry: PatternRegistry;
 export {};
-//# sourceMappingURL=registry.d.ts.map

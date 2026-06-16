@@ -147,4 +147,3 @@ function prettifyFieldName(name) {
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         .replace(/\b\w/g, c => c.toUpperCase());
 }
-//# sourceMappingURL=compound.js.map

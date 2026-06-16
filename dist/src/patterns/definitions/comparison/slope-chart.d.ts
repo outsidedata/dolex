@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const slopeChartPattern: VisualizationPattern;
-//# sourceMappingURL=slope-chart.d.ts.map

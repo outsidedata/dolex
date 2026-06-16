@@ -94,4 +94,3 @@ export const divergingBarPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=diverging-bar.js.map

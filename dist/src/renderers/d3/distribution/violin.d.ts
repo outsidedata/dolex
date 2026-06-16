@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderViolin(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=violin.d.ts.map

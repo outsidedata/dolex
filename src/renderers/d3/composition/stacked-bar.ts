@@ -14,6 +14,8 @@ import {
   positionTooltip,
   createLegend,
   formatValue,
+  escapeHtml,
+  tooltipHtml,
   truncateLabel,
   styleAxis,
   getAdaptiveTickCount,
@@ -126,10 +128,7 @@ export function renderStackedBar(container: HTMLElement, spec: VisualizationSpec
     left: 70,
     right: 30,
     top: 40,
-  });
-
-  // Remove the default background from SVG — container handles it now
-  svg.style('background', 'none').style('border-radius', '0');
+  }, { background: false });
 
   const tooltip = createTooltip(container);
 
@@ -213,16 +212,16 @@ export function renderStackedBar(container: HTMLElement, spec: VisualizationSpec
         .attr('opacity', 0.8);
 
       // Build multi-series tooltip
-      let html = `<strong>${d._category}</strong>`;
+      let html = tooltipHtml`<strong>${d._category}</strong>`;
       series.forEach((s) => {
         const val = d[s as string];
         if (val > 0) {
-          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorScale(s)};margin-right:4px"></span>`;
-          html += `<br/>${swatch}${s}: ${isNormalized ? val.toFixed(1) + '%' : formatValue(val)}`;
+          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${escapeHtml(colorScale(s))};margin-right:4px"></span>`;
+          html += `<br/>${swatch}${escapeHtml(s)}: ${isNormalized ? escapeHtml(val.toFixed(1)) + '%' : escapeHtml(formatValue(val))}`;
         }
       });
       if (!isNormalized) {
-        html += `<br/><span style="color:${TEXT_MUTED};font-size:11px">Total: ${formatValue(d._total)}</span>`;
+        html += `<br/><span style="color:${escapeHtml(TEXT_MUTED)};font-size:11px">Total: ${escapeHtml(formatValue(d._total))}</span>`;
       }
       showTooltip(tooltip, html, event);
     })

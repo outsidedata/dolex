@@ -149,4 +149,3 @@ export const heatmapPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=heatmap.js.map

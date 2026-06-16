@@ -148,4 +148,3 @@ function toSqlType(type) {
         default: return 'TEXT';
     }
 }
-//# sourceMappingURL=column-manager.js.map

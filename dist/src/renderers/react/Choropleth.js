@@ -13,4 +13,3 @@ export function Choropleth({ spec, width = 800, height = 500, className, onReady
             }
         } }));
 }
-//# sourceMappingURL=Choropleth.js.map

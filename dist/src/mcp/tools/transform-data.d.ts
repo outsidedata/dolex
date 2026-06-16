@@ -9,4 +9,3 @@ import type { transformDataSchema } from './transform-schemas.js';
 export declare function handleTransformData(deps: {
     sourceManager: any;
 }): (args: z.infer<typeof transformDataSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=transform-data.d.ts.map

@@ -53,4 +53,3 @@ export function handleQuerySource(deps) {
         });
     };
 }
-//# sourceMappingURL=query-source.js.map

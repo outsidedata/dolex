@@ -6,7 +6,7 @@
  *
  * Standards: HTML legend below SVG, polygon-level hover, adaptive sizing.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, createLegend, DARK_BG, TEXT_MUTED, GRID_COLOR, AXIS_COLOR, } from './shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, truncateLabel, createLegend, tooltipHtml, escapeHtml, DARK_BG, TEXT_MUTED, GRID_COLOR, AXIS_COLOR, } from './shared.js';
 // ─── RADAR RENDERER ──────────────────────────────────────────────────────────
 export function renderRadar(container, spec) {
     const { config, data } = spec;
@@ -204,9 +204,9 @@ export function renderRadar(container, spec) {
             // Build entity summary tooltip
             const dimValues = dimensions.map((dim) => {
                 const val = Number(row[dim]) || 0;
-                return `${truncateLabel(dim, 14)}: ${formatValue(val)}`;
+                return `${escapeHtml(truncateLabel(dim, 14))}: ${formatValue(val)}`;
             }).join('<br/>');
-            showTooltip(tooltip, `<strong>${entity}</strong><br/>${dimValues}`, event);
+            showTooltip(tooltip, `<strong>${escapeHtml(entity)}</strong><br/>${dimValues}`, event);
         })
             .on('mousemove', (event) => {
             positionTooltip(tooltip, event);
@@ -234,7 +234,7 @@ export function renderRadar(container, spec) {
                     highlightEntity(entity);
                     d3.select(event.currentTarget)
                         .attr('r', effectiveDotRadius * 1.5);
-                    showTooltip(tooltip, `<strong>${entity}</strong><br/>${dim}: ${formatValue(val)}`, event);
+                    showTooltip(tooltip, tooltipHtml `<strong>${entity}</strong><br/>${dim}: ${formatValue(val)}`, event);
                 })
                     .on('mousemove', (event) => {
                     positionTooltip(tooltip, event);
@@ -257,4 +257,3 @@ export function renderRadar(container, spec) {
         container.appendChild(legendDiv);
     }
 }
-//# sourceMappingURL=radar.js.map

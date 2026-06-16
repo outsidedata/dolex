@@ -2,7 +2,7 @@
  * Diverging bar chart D3 renderer with adaptive sizing, smart hover targets,
  * and value labels — following the same standards as the bar chart renderer.
  */
-import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, renderEmptyState, isAllZeros, TEXT_MUTED, AXIS_COLOR, } from '../shared.js';
+import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, calculateLeftMargin, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, renderEmptyState, isAllZeros, tooltipHtml, TEXT_MUTED, AXIS_COLOR, } from '../shared.js';
 // ─── MAIN ENTRY ──────────────────────────────────────────────────────────────
 export function renderDivergingBar(container, spec) {
     const { encoding, data, config } = spec;
@@ -86,7 +86,7 @@ function renderHorizontal(container, spec, xField, yField) {
             .filter((bd) => bd[xField] === d[xField])
             .attr('opacity', 0.8);
         const val = Number(d[yField]);
-        showTooltip(tooltip, `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -233,7 +233,7 @@ function renderVertical(container, spec, xField, yField) {
             .filter((bd) => bd[xField] === d[xField])
             .attr('opacity', 0.8);
         const val = Number(d[yField]);
-        showTooltip(tooltip, `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d[xField]}</strong><br/>${yField}: ${val >= 0 ? '+' : ''}${formatValue(val)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -292,4 +292,3 @@ function renderVertical(container, spec, xField, yField) {
         });
     }
 }
-//# sourceMappingURL=diverging-bar.js.map

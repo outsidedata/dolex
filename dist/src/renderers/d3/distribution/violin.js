@@ -5,57 +5,8 @@
  * Groups on X-axis, values on Y-axis. Each group shows the distribution
  * shape as a symmetric filled area.
  */
-import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, truncateLabel, } from '../shared.js';
-/** Gaussian kernel function. */
-function gaussianKernel(u) {
-    return (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
-}
-/** Compute standard deviation of a numeric array. */
-function stdDev(values) {
-    const n = values.length;
-    if (n < 2)
-        return 1;
-    const mean = values.reduce((s, v) => s + v, 0) / n;
-    const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1);
-    return Math.sqrt(variance);
-}
-/** Compute KDE for a set of values at the given sample points. */
-function kde(values, samplePoints, bandwidth) {
-    const n = values.length;
-    return samplePoints.map((x) => {
-        const density = values.reduce((sum, xi) => sum + gaussianKernel((x - xi) / bandwidth), 0) /
-            (n * bandwidth);
-        return { value: x, density };
-    });
-}
-/** Silverman's rule of thumb for bandwidth selection. */
-function silvermanBandwidth(values) {
-    const sd = stdDev(values);
-    const n = values.length;
-    const bw = 1.06 * sd * Math.pow(n, -0.2);
-    if (bw > 0)
-        return bw;
-    const range = (Math.max(...values) - Math.min(...values));
-    return range > 0 ? range * 0.1 : 1;
-}
-/** Compute quartiles + median from sorted values. */
-function quartiles(sorted) {
-    const n = sorted.length;
-    if (n === 0)
-        return { q1: 0, median: 0, q3: 0 };
-    if (n === 1)
-        return { q1: sorted[0], median: sorted[0], q3: sorted[0] };
-    const median = n % 2 === 1 ? sorted[Math.floor(n / 2)] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-    const lowerHalf = sorted.slice(0, Math.floor(n / 2));
-    const upperHalf = sorted.slice(Math.ceil(n / 2));
-    const q1 = lowerHalf.length % 2 === 1
-        ? lowerHalf[Math.floor(lowerHalf.length / 2)]
-        : (lowerHalf[lowerHalf.length / 2 - 1] + lowerHalf[lowerHalf.length / 2]) / 2;
-    const q3 = upperHalf.length % 2 === 1
-        ? upperHalf[Math.floor(upperHalf.length / 2)]
-        : (upperHalf[upperHalf.length / 2 - 1] + upperHalf[upperHalf.length / 2]) / 2;
-    return { q1, median, q3 };
-}
+import { createSvg, buildColorScale, addSortControls, createTooltip, showTooltip, hideTooltip, positionTooltip, tooltipHtml, formatValue, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, truncateLabel, } from '../shared.js';
+import { kde, silvermanBandwidth, quartiles } from '../stats.js';
 // ─── RENDERER ─────────────────────────────────────────────────────────────────
 export function renderViolin(container, spec) {
     const { config, encoding, data } = spec;
@@ -171,11 +122,7 @@ export function renderViolin(container, spec) {
         g.selectAll(`.violin-shape-${groups.indexOf(d.group)}`)
             .attr('opacity', 0.9)
             .attr('stroke-width', 2);
-        showTooltip(tooltip, `<strong>${d.group}</strong><br/>` +
-            `Count: ${d.values.length}<br/>` +
-            `Median: ${formatValue(d.stats.median)}<br/>` +
-            `Q1: ${formatValue(d.stats.q1)}<br/>` +
-            `Q3: ${formatValue(d.stats.q3)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.group}</strong><br/>Count: ${d.values.length}<br/>Median: ${formatValue(d.stats.median)}<br/>Q1: ${formatValue(d.stats.q1)}<br/>Q3: ${formatValue(d.stats.q3)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -295,4 +242,3 @@ export function renderViolin(container, spec) {
     // Sort controls
     addSortControls(svg, container, spec, dims, renderViolin);
 }
-//# sourceMappingURL=violin.js.map

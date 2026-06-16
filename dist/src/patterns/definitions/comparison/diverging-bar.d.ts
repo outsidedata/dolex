@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const divergingBarPattern: VisualizationPattern;
-//# sourceMappingURL=diverging-bar.d.ts.map

@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderAlluvial(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=alluvial.d.ts.map

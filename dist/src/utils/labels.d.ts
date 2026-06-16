@@ -78,4 +78,3 @@ export interface LabelStrategyResult {
  * @returns The recommended strategy with transformed labels
  */
 export declare function labelStrategy(labels: string[], availableWidth: number, fontSize?: number): LabelStrategyResult;
-//# sourceMappingURL=labels.d.ts.map

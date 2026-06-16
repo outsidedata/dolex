@@ -65,4 +65,3 @@ export declare function scoreSpecificPattern(patternId: string, data: Record<str
     }[];
     reasoning: string;
 } | null;
-//# sourceMappingURL=selector.d.ts.map

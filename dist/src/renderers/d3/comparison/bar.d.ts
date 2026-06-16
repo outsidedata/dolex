@@ -3,4 +3,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderBar(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=bar.d.ts.map

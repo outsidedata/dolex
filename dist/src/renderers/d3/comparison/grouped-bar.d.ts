@@ -4,4 +4,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=grouped-bar.d.ts.map

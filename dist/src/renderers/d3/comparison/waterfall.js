@@ -1,8 +1,7 @@
 /**
  * Waterfall chart D3 renderer — floating bars showing cumulative positive/negative contributions.
  */
-import { createSvg, createLegend, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, contrastText, TEXT_MUTED, DARK_BG, AXIS_COLOR, GRID_COLOR, } from '../shared.js';
-import { categorical } from '../../../theme/colors.js';
+import { createSvg, createLegend, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, shouldRotateLabels, calculateBottomMargin, truncateLabel, shouldShowValueLabels, contrastText, tooltipHtml, TEXT_MUTED, DARK_BG, AXIS_COLOR, GRID_COLOR, categorical, } from '../shared.js';
 export function renderWaterfall(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.x?.field;
@@ -84,8 +83,7 @@ export function renderWaterfall(container, spec) {
     const estBarWidth = (containerWidth - 140) / labels.length;
     const willRotate = shouldRotateLabels(labels, estBarWidth);
     const bottomMargin = calculateBottomMargin(labels, willRotate);
-    const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, top: 40, right: 30 });
-    svg.style('background', 'none').style('border-radius', '0');
+    const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, top: 40, right: 30 }, { background: false });
     const tooltip = createTooltip(container);
     const allValues = items.flatMap((d) => [d.start, d.end]);
     const minVal = Math.min(0, ...allValues);
@@ -147,7 +145,7 @@ export function renderWaterfall(container, spec) {
         .on('mouseover', function (event, d) {
         g.selectAll(`.bar[data-label="${CSS.escape(d.label)}"]`).attr('opacity', 0.8);
         const prefix = d.isTotal ? 'Total' : (d.value >= 0 ? '+' : '');
-        showTooltip(tooltip, `<strong>${d.label}</strong><br/>${prefix}${formatValue(d.value)}<br/>Running: ${formatValue(d.end)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.label}</strong><br/>${prefix}${formatValue(d.value)}<br/>Running: ${formatValue(d.end)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -205,4 +203,3 @@ export function renderWaterfall(container, spec) {
         });
     }
 }
-//# sourceMappingURL=waterfall.js.map

@@ -121,4 +121,3 @@ export const bumpChartPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=bump-chart.js.map

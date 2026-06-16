@@ -100,4 +100,3 @@ export const groupedBarPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=grouped-bar.js.map

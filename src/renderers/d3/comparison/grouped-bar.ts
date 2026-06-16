@@ -23,6 +23,8 @@ import {
   shouldShowValueLabels,
   renderEmptyState,
   isAllZeros,
+  escapeHtml,
+  tooltipHtml,
   DARK_BG,
   TEXT_MUTED,
 } from '../shared.js';
@@ -104,8 +106,7 @@ export function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec
     const chartWrapper = document.createElement('div');
     chartWrapper.style.flex = '1';
     container.appendChild(chartWrapper);
-    const { svg, g, dims } = createSvg(chartWrapper, spec);
-    svg.style('background', 'none');
+    const { svg, g, dims } = createSvg(chartWrapper, spec, undefined, { background: false });
     renderEmptyState(g, dims);
     return;
   }
@@ -142,8 +143,7 @@ export function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec
   if (isHorizontal) {
     const labels = categories;
     const leftMargin = calculateLeftMargin(labels);
-    const { svg, g, dims } = createSvg(chartWrapper, spec, { left: leftMargin, bottom: 40, right: 30, top: 40 });
-    svg.style('background', 'none').style('border-radius', '0');
+    const { svg, g, dims } = createSvg(chartWrapper, spec, { left: leftMargin, bottom: 40, right: 30, top: 40 }, { background: false });
 
     const yScale = d3.scaleBand().domain(categories).range([0, dims.innerHeight]).padding(0.2);
 
@@ -181,11 +181,11 @@ export function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec
       .attr('cursor', 'pointer')
       .on('mouseover', function (event: MouseEvent, cat: string) {
         g.selectAll(`.bar[data-category="${CSS.escape(cat)}"]`).attr('opacity', 0.8);
-        let html = `<strong>${cat}</strong>`;
+        let html = tooltipHtml`<strong>${cat}</strong>`;
         series.forEach((s) => {
           const val = pivoted[cat]?.[s] ?? 0;
-          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorScale(s)};margin-right:4px"></span>`;
-          html += `<br/>${swatch}${s}: ${formatValue(val)}`;
+          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${escapeHtml(colorScale(s))};margin-right:4px"></span>`;
+          html += `<br/>${swatch}${escapeHtml(s)}: ${escapeHtml(formatValue(val))}`;
         });
         showTooltip(tooltip, html, event);
       })
@@ -218,8 +218,7 @@ export function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec
     const estBarWidth = (containerWidth - 130) / categories.length;
     const willRotate = shouldRotateLabels(categories, estBarWidth);
     const bottomMargin = calculateBottomMargin(categories, willRotate);
-    const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, right: 30, top: 40 });
-    svg.style('background', 'none').style('border-radius', '0');
+    const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, right: 30, top: 40 }, { background: false });
 
     const xScale = d3.scaleBand().domain(categories).range([0, dims.innerWidth]).padding(0.2);
 
@@ -265,11 +264,11 @@ export function renderGroupedBar(container: HTMLElement, spec: VisualizationSpec
       .attr('cursor', 'pointer')
       .on('mouseover', function (event: MouseEvent, cat: string) {
         g.selectAll(`.bar[data-category="${CSS.escape(cat)}"]`).attr('opacity', 0.8);
-        let html = `<strong>${cat}</strong>`;
+        let html = tooltipHtml`<strong>${cat}</strong>`;
         series.forEach((s) => {
           const val = pivoted[cat]?.[s] ?? 0;
-          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorScale(s)};margin-right:4px"></span>`;
-          html += `<br/>${swatch}${s}: ${formatValue(val)}`;
+          const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${escapeHtml(colorScale(s))};margin-right:4px"></span>`;
+          html += `<br/>${swatch}${escapeHtml(s)}: ${escapeHtml(formatValue(val))}`;
         });
         showTooltip(tooltip, html, event);
       })

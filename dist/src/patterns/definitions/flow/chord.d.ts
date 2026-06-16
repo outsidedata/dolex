@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const chordPattern: VisualizationPattern;
-//# sourceMappingURL=chord.d.ts.map

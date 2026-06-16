@@ -266,4 +266,3 @@ function median(values) {
     }
     return sorted[mid];
 }
-//# sourceMappingURL=column-functions.js.map

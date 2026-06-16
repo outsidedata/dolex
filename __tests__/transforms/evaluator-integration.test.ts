@@ -122,10 +122,52 @@ describe('Evaluator Integration', () => {
       expect(result.warnings.some(w => w.includes('Constant'))).toBe(true);
     });
 
-    it('warns on all null output', () => {
+    it('errors on all-null output (never silently persist a dead column)', () => {
       const rows = [{ x: null }, { x: null }];
-      const result = evaluateExpression('x + 1', rows);
-      expect(result.warnings.some(w => w.includes('All output values are null'))).toBe(true);
+      expect(() => evaluateExpression('x + 1', rows)).toThrow(/null for all|all-null column/i);
+    });
+  });
+
+  // A double-quoted string is a LITERAL; columns use backticks (or bare names).
+  // A literal that matches a column name silently computes garbage — must error.
+  describe('misquoted column guard', () => {
+    const rows = [
+      { price: 10, carat: 2 },
+      { price: 30, carat: 3 },
+    ];
+
+    it('errors when a quoted literal matches a column name in arithmetic', () => {
+      expect(() => evaluateExpression('"price" - "carat"', rows)).toThrow(/Misquoted column|backticks/i);
+      expect(() => evaluateExpression('"price" * 2', rows)).toThrow(/Misquoted column|backticks/i);
+    });
+
+    it('errors for misquoted column inside a function argument', () => {
+      expect(() => evaluateExpression('log("price")', rows)).toThrow(/Misquoted column|backticks/i);
+    });
+
+    it('accepts backtick column references', () => {
+      const r = evaluateExpression('`price` - `carat`', rows);
+      expect(r.values).toEqual([8, 27]);
+    });
+
+    it('accepts bare column references', () => {
+      const r = evaluateExpression('price - carat', rows);
+      expect(r.values).toEqual([8, 27]);
+    });
+
+    it('exempts a genuine `column == "value"` comparison even if the value matches a column name', () => {
+      // Here "status" is both a literal value and a column name; the comparison
+      // is against the `state` column, so it is a legitimate value comparison.
+      const r = [
+        { state: 'status', status: 1 },
+        { state: 'other', status: 0 },
+      ];
+      const out = evaluateExpression('state == "status"', r);
+      expect(out.values).toEqual([true, false]);
+    });
+
+    it('flags a non-equality comparison against a column-name literal', () => {
+      expect(() => evaluateExpression('price > "carat"', rows)).toThrow(/Misquoted column|backticks/i);
     });
   });
 

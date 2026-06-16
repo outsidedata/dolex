@@ -28,4 +28,3 @@ export declare class TransformMetadata {
     /** Get the derived record even if shadowed by a working layer override. */
     getDerived(tableName: string, columnName: string): TransformRecord | null;
 }
-//# sourceMappingURL=metadata.d.ts.map

@@ -110,21 +110,21 @@ export declare const manifestSchema: z.ZodObject<{
         partitionBy?: string | undefined;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
+    version: 1;
     tables: Record<string, {
         type: "boolean" | "numeric" | "categorical" | "date";
         expr: string;
         column: string;
         partitionBy?: string | undefined;
     }[]>;
-    version: 1;
 }, {
+    version: 1;
     tables: Record<string, {
         type: "boolean" | "numeric" | "categorical" | "date";
         expr: string;
         column: string;
         partitionBy?: string | undefined;
     }[]>;
-    version: 1;
 }>;
 export type ManifestData = z.infer<typeof manifestSchema>;
 export type ColumnType = 'numeric' | 'categorical' | 'date' | 'boolean';
@@ -136,4 +136,3 @@ export interface TransformStats {
     nulls: number;
     rows: number;
 }
-//# sourceMappingURL=types.d.ts.map

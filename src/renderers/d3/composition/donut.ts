@@ -12,6 +12,7 @@ import {
   positionTooltip,
   createLegend,
   formatValue,
+  escapeHtml,
   contrastText,
   isAllZeros,
   DARK_BG,
@@ -170,7 +171,7 @@ export function renderDonut(container: HTMLElement, spec: VisualizationSpec): vo
 
       showTooltip(
         tooltip,
-        `<strong>${d.data.category}</strong><br/>${formatValue(d.data.value)}<br/>${d.data.percentage.toFixed(1)}%`,
+        `<strong>${escapeHtml(d.data.category)}</strong><br/>${formatValue(d.data.value)}<br/>${d.data.percentage.toFixed(1)}%`,
         event
       );
     })

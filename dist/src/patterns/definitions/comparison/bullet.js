@@ -118,4 +118,3 @@ export const bulletPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=bullet.js.map

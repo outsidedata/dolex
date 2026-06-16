@@ -1,5 +1,5 @@
 /**
- * Composition renderers — stacked-bar, waffle, treemap, sunburst.
+ * Composition renderers — stacked-bar, waffle, treemap, sunburst, circle-pack, metric, donut, marimekko, icicle.
  */
 export { renderStackedBar } from './stacked-bar.js';
 export { renderWaffle } from './waffle.js';
@@ -10,4 +10,3 @@ export { renderMetric } from './metric.js';
 export { renderDonut } from './donut.js';
 export { renderMarimekko } from './marimekko.js';
 export { renderIcicle } from './icicle.js';
-//# sourceMappingURL=index.d.ts.map

@@ -15,4 +15,3 @@ export function BumpChart({ spec, width = 800, height = 500, className, onReady,
             }
         } }));
 }
-//# sourceMappingURL=BumpChart.js.map

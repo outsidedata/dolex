@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const sparklineGridPattern: VisualizationPattern;
-//# sourceMappingURL=sparkline-grid.d.ts.map

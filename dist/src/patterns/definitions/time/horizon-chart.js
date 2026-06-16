@@ -89,4 +89,3 @@ export const horizonChartPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=horizon-chart.js.map

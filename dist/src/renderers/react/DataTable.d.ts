@@ -26,4 +26,3 @@ export interface DataTableProps {
     onClearHighlight?: () => void;
 }
 export declare function DataTable({ data, tableSpec, width, height, className, highlightRow, highlightFields, onHighlight, onClearHighlight, }: DataTableProps): import("react/jsx-runtime").JSX.Element;
-//# sourceMappingURL=DataTable.d.ts.map

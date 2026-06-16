@@ -5,8 +5,7 @@
  * (temporal/ordinal order). Shows trajectory of x,y values over time.
  * Best for showing how two variables co-evolve across an ordered dimension.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, createLegend, DARK_BG, TEXT_MUTED, } from './shared.js';
-import { categorical } from '../../theme/colors.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, createLegend, tooltipHtml, DARK_BG, TEXT_MUTED, categorical, } from './shared.js';
 // ─── CONNECTED SCATTER PLOT ─────────────────────────────────────────────────
 export function renderConnectedScatter(container, spec) {
     const { config, encoding, data } = spec;
@@ -314,10 +313,10 @@ export function renderConnectedScatter(container, spec) {
         // Tooltip
         let html = '';
         if (p.entity)
-            html += `<strong>${p.entity}</strong><br/>`;
-        html += `${p.orderLabel}<br/>`;
-        html += `<strong>${encoding.x?.title || xField}:</strong> ${formatValue(p.d._x)}<br/>`;
-        html += `<strong>${encoding.y?.title || yField}:</strong> ${formatValue(p.d._y)}`;
+            html += tooltipHtml `<strong>${p.entity}</strong><br/>`;
+        html += tooltipHtml `${p.orderLabel}<br/>`;
+        html += tooltipHtml `<strong>${encoding.x?.title || xField}:</strong> ${formatValue(p.d._x)}<br/>`;
+        html += tooltipHtml `<strong>${encoding.y?.title || yField}:</strong> ${formatValue(p.d._y)}`;
         showTooltip(tooltip, html, event);
     })
         .on('mouseleave', function () {
@@ -355,4 +354,3 @@ export function renderConnectedScatter(container, spec) {
         container.appendChild(legendDiv);
     }
 }
-//# sourceMappingURL=connected-scatter.js.map

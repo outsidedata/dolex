@@ -49,6 +49,8 @@ To update:
 npm update -g @outsidedata/dolex
 ```
 
+> **Optional — PNG export.** Rendering charts to PNG (the `--png` flag and the MCP `screenshot` tool) needs Playwright, which is *not* installed by default. Enable it once with `npm install playwright && npx playwright install chromium`. Everything else — HTML charts, querying, analysis, the MCP data tools — works without it.
+
 ### Claude Desktop
 
 Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
@@ -57,7 +59,8 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 {
   "mcpServers": {
     "dolex": {
-      "command": "dolex"
+      "command": "dolex",
+      "args": ["mcp"]
     }
   }
 }
@@ -66,14 +69,66 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 ### Claude Code
 
 ```bash
-claude mcp add dolex -- dolex
+claude mcp add dolex -- dolex mcp
 ```
 
 ### Any MCP Client
 
+The MCP server is now a subcommand:
+
 ```bash
-dolex
+dolex mcp
 ```
+
+## Command Line
+
+You don't need an AI assistant to use Dolex. The same pattern intelligence, SQL
+engine, and 43 chart types are a CLI away — point it at a CSV and get a chart.
+
+```bash
+# Chart a CSV — the pattern is auto-selected and explained
+dolex visualize sales.csv -i "compare revenue by region"
+
+# Query first, then chart; force a type and palette; render a PNG
+# (PNG export is optional — enable it once with:
+#    npm install playwright && npx playwright install chromium)
+dolex visualize games.csv \
+  --sql "SELECT genre, SUM(na_sales) sales FROM video_games_sales GROUP BY 1" \
+  -i "sales by genre" --pattern lollipop --palette blueRed --png genre.png
+
+# Refine the last chart — works across separate invocations
+dolex refine spec-1a2b3c4d --sort desc --limit 10   # hash printed by visualize
+
+# Explore without charting
+dolex check diamonds.csv          # audit data quality + footguns before trusting it
+dolex query diamonds.csv "SELECT cut, MEDIAN(price) FROM diamonds GROUP BY 1" --format json
+dolex analyze diamonds.csv        # auto analysis plan with ready-to-run SQL
+dolex describe diamonds.csv       # column types, roles, stats, sample rows
+dolex patterns                    # browse all 43 chart types
+
+# Persisted derived columns (survive across commands via a .dolex.json manifest)
+dolex transform diamonds.csv --create price_per_carat --expr "price / carat"
+dolex query     diamonds.csv "SELECT cut, AVG(price_per_carat) FROM diamonds GROUP BY 1"
+dolex columns   diamonds.csv      # list source / derived / working columns
+```
+
+| Command | What it does |
+|---------|-------------|
+| `visualize` | Turn a CSV / source / inline JSON into a chart (HTML, optionally PNG) |
+| `refine` | Tweak a chart by its hash — sort, filter, palette, switch type, … |
+| `query` | Run SQL and print rows (`table` / `json` / `csv` / `ndjson`) |
+| `analyze` | Auto-generate an analysis plan with ready-to-run SQL |
+| `describe` | Profile columns: types, roles, stats, sample rows |
+| `check` | Audit for bad data & footguns (type traps, sentinels, duplicate/leaked columns…) |
+| `transform` | Add a persisted derived column (`--create … --expr …`) |
+| `columns` | List columns by layer (source / derived / working) |
+| `drop` | Remove derived/working columns |
+| `patterns` | List the 43 chart patterns, or show one in detail |
+| `sources` | Manage a persistent CSV registry (shared with the MCP server) |
+| `mcp` | Run the MCP stdio server |
+
+Charts default to `~/.dolex/charts/`; pipe-friendly via `--stdout` / `--json`.
+Full reference: [`docs/CLI.md`](https://github.com/outsidedata/dolex/blob/master/docs/CLI.md).
 
 ## The Query Engine
 

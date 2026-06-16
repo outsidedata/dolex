@@ -6,4 +6,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderMetric(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=metric.d.ts.map

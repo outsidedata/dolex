@@ -5,4 +5,3 @@ export function HorizonChart({ spec, width = 800, height = 500, className, onRea
     const containerRef = useChart(spec, renderHorizonChart, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=HorizonChart.js.map

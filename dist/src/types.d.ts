@@ -320,4 +320,3 @@ export interface Interaction {
 }
 /** Type guard: check if a spec is a CompoundVisualizationSpec */
 export declare function isCompoundSpec(spec: VisualizationSpec | CompoundVisualizationSpec): spec is CompoundVisualizationSpec;
-//# sourceMappingURL=types.d.ts.map

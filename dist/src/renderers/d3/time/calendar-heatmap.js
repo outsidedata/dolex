@@ -6,8 +6,7 @@
  * and vertical (days → columns, weeks → rows) orientation based on
  * container aspect ratio to maximize cell size.
  */
-import { createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, isAllZeros, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, } from '../shared.js';
-import { sequential, diverging } from '../../../theme/colors.js';
+import { createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, parseDate, isAllZeros, tooltipHtml, DARK_BG, TEXT_COLOR, TEXT_MUTED, truncateTitle, sequential, diverging, } from '../shared.js';
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const EMPTY_COLOR = '#1b2028';
@@ -259,7 +258,7 @@ export function renderCalendarHeatmap(container, spec) {
         const dateStr = d.date.toLocaleDateString('en-US', {
             weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
         });
-        showTooltip(tooltip, `<strong>${dateStr}</strong><br/>${valueField}: ${d.value !== 0 ? formatValue(d.value) : 'No data'}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${dateStr}</strong><br/>${valueField}: ${d.value !== 0 ? formatValue(d.value) : 'No data'}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -293,18 +292,6 @@ export function renderCalendarHeatmap(container, spec) {
     buildHtmlLegend(container, colorScale, dataMin, dataMax, hasMixedSign, allNegative, cellSize);
 }
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function parseDate(v) {
-    if (v instanceof Date)
-        return isNaN(v.getTime()) ? null : v;
-    if (v === null || v === undefined || v === '')
-        return null;
-    const num = typeof v === 'number' ? v : Number(v);
-    if (!isNaN(num) && num > 1800 && num < 2200 && Math.floor(num) === num) {
-        return new Date(num, 0, 1);
-    }
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-}
 function formatDateKey(d) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -474,4 +461,3 @@ function buildHtmlLegend(container, colorScale, dataMin, dataMax, hasMixedSign, 
     }
     container.appendChild(legendDiv);
 }
-//# sourceMappingURL=calendar-heatmap.js.map

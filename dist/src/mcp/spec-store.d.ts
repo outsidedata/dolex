@@ -27,7 +27,18 @@ export declare class SpecStore {
     private isExpired;
     save(spec: VisualizationSpec | CompoundVisualizationSpec, columns: DataColumn[], alternatives?: Map<string, VisualizationSpec>, originalData?: Record<string, any>[]): string;
     get(specId: string): StoredSpec | null;
-    updateSpec(specId: string, newSpec: VisualizationSpec | CompoundVisualizationSpec): string;
+    /**
+     * Insert an entry under a caller-supplied id, freshening its `createdAt` so
+     * it does not immediately expire. Used by the CLI to hydrate the store from
+     * a disk-persisted spec before reusing the in-memory refine logic.
+     */
+    restore(specId: string, entry: {
+        spec: VisualizationSpec | CompoundVisualizationSpec;
+        columns: DataColumn[];
+        alternatives?: Map<string, VisualizationSpec>;
+        originalData?: Record<string, any>[];
+    }): void;
+    updateSpec(specId: string, newSpec: VisualizationSpec | CompoundVisualizationSpec): string | null;
     getAlternative(specId: string, patternId: string): VisualizationSpec | null;
     get size(): number;
     purgeExpired(): number;
@@ -35,4 +46,3 @@ export declare class SpecStore {
     stats(): SpecStoreStats;
 }
 export declare const specStore: SpecStore;
-//# sourceMappingURL=spec-store.d.ts.map

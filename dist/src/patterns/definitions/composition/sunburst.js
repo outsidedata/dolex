@@ -97,4 +97,3 @@ export const sunburstPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=sunburst.js.map

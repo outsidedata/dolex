@@ -46,4 +46,3 @@ export declare function handleRemoveSource(deps: {
 export declare function handleDescribeSource(deps: {
     sourceManager: any;
 }): (args: z.infer<typeof describeSourceInputSchema>) => Promise<import("./shared.js").McpResponse>;
-//# sourceMappingURL=sources.d.ts.map

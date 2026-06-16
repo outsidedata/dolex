@@ -19,15 +19,16 @@ import {
   positionTooltip,
   formatValue,
   truncateLabel,
+  tooltipHtml,
   DEFAULT_PALETTE,
   DARK_BG,
   TEXT_COLOR,
   TEXT_MUTED,
   AXIS_COLOR,
 } from '../shared.js';
+import { buildGeoProjection } from './projection-utils.js';
 
 declare const d3: any;
-declare const topojson: any;
 
 // ─── CITY COORDINATE LOOKUPS ────────────────────────────────────────────────
 
@@ -206,37 +207,11 @@ export function renderProportionalSymbol(container: HTMLElement, spec: Visualiza
       : { ...WORLD_CITY_COORDS };
 
   function renderMap(topoData: any): void {
-    var features: any;
-    if (objectName) {
-      features = topojson.feature(topoData, topoData.objects[objectName]);
-    } else {
-      var objects = topoData.objects;
-      var objKey: string;
-      if (objects.countries) objKey = 'countries';
-      else if (objects.states) objKey = 'states';
-      else objKey = Object.keys(objects)[0];
-      features = topojson.feature(topoData, objects[objKey]);
-    }
-
-    var geoProjection: any;
-    if (projection === 'albersUsa') {
-      geoProjection = d3.geoAlbersUsa().fitSize([dims.innerWidth, dims.innerHeight], features);
-    } else {
-      var projName = 'geo' + projection.charAt(0).toUpperCase() + projection.slice(1);
-      var projFn = d3[projName] || d3.geoNaturalEarth1;
-      geoProjection = projFn();
-      if (rotate) geoProjection.rotate(rotate);
-      if (parallels && typeof geoProjection.parallels === 'function') geoProjection.parallels(parallels);
-      if (customScale) {
-        if (customCenter) geoProjection.center(customCenter);
-        geoProjection.scale(customScale);
-        geoProjection.translate([dims.innerWidth / 2, dims.innerHeight / 2]);
-      } else {
-        geoProjection.fitSize([dims.innerWidth, dims.innerHeight], features);
-      }
-    }
-
-    const path = d3.geoPath().projection(geoProjection);
+    const { features, projection: geoProjection, path } = buildGeoProjection(
+      topoData,
+      { projection, objectName, center: customCenter, scale: customScale, parallels, rotate },
+      dims
+    );
 
     // Draw base map
     g.selectAll('path.base')
@@ -398,10 +373,10 @@ export function renderProportionalSymbol(container: HTMLElement, spec: Visualiza
       .attr('stroke-opacity', 0.5)
       .on('mouseover', function (event: MouseEvent, d: any) {
         d3.select(this).attr('fill-opacity', 1).attr('stroke-width', 1.5);
-        let html = '<strong>' + d.datum[locationField] + '</strong>';
-        html += '<br/>' + valueField + ': ' + formatValue(d.value);
+        let html = tooltipHtml`<strong>${d.datum[locationField]}</strong>`;
+        html += tooltipHtml`<br/>${valueField}: ${formatValue(d.value)}`;
         if (encoding.color && encoding.color.field && encoding.color.field !== locationField) {
-          html += '<br/>' + encoding.color.field + ': ' + d.datum[encoding.color.field];
+          html += tooltipHtml`<br/>${encoding.color.field}: ${d.datum[encoding.color.field]}`;
         }
         showTooltip(tooltip, html, event);
       })

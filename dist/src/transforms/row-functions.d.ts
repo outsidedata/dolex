@@ -8,4 +8,3 @@ export type RowFunction = (args: any[]) => any;
 export declare function isNull(v: any): boolean;
 export declare function safeEqual(a: any, b: any): boolean;
 export declare const ROW_FUNCTIONS: Record<string, RowFunction>;
-//# sourceMappingURL=row-functions.d.ts.map

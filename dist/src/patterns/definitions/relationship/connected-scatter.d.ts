@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const connectedScatterPattern: VisualizationPattern;
-//# sourceMappingURL=connected-scatter.d.ts.map

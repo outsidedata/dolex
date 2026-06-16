@@ -109,4 +109,3 @@ export const metricPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=metric.js.map

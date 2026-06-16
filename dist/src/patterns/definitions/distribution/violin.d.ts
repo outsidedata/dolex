@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const violinPattern: VisualizationPattern;
-//# sourceMappingURL=violin.d.ts.map

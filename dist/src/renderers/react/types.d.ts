@@ -14,4 +14,3 @@ export interface ChartProps {
     /** Callback fired after D3 has rendered into the container */
     onReady?: (container: HTMLDivElement) => void;
 }
-//# sourceMappingURL=types.d.ts.map

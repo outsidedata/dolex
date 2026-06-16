@@ -32,4 +32,12 @@ export declare function computeSankeyLayout(nodeNames: string[], linkData: {
     nodes: SankeyNode[];
     links: SankeyLink[];
 };
-//# sourceMappingURL=sankey-layout.d.ts.map
+/**
+ * Position a column of nodes vertically: scale by value, enforce min height, compress if needed.
+ * Shared between sankey and alluvial layouts.
+ */
+export declare function layoutColumnY(nodes: Array<{
+    value: number;
+    y0: number;
+    y1: number;
+}>, height: number, padding: number): void;

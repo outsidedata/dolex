@@ -69,4 +69,3 @@ export const choroplethPattern = {
         };
     },
 };
-//# sourceMappingURL=choropleth.js.map

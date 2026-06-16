@@ -7,8 +7,7 @@
  *
  * Optional stat overlays: mean line, median line.
  */
-import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, shouldShowValueLabels, renderEmptyState, DEFAULT_PALETTE, TEXT_MUTED, } from '../shared.js';
-import { sequential } from '../../../theme/colors.js';
+import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, tooltipHtml, formatValue, styleAxis, getAdaptiveTickCount, shouldShowValueLabels, renderEmptyState, DEFAULT_PALETTE, TEXT_MUTED, sequential, } from '../shared.js';
 // ─── HISTOGRAM-SPECIFIC COLOR ────────────────────────────────────────────────
 //
 // Histograms aggregate raw data into bins, so the generic buildColorScale
@@ -154,7 +153,7 @@ function renderPreBinnedHistogram(container, spec) {
         g.selectAll('.bar')
             .filter((bd) => bd.binStart === d.binStart)
             .attr('opacity', 0.8);
-        showTooltip(tooltip, `<strong>${d.binLabel || formatValue(d.binStart) + ' – ' + formatValue(d.binEnd)}</strong><br/>Count: ${formatValue(d.count)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${d.binLabel || formatValue(d.binStart) + ' – ' + formatValue(d.binEnd)}</strong><br/>Count: ${formatValue(d.count)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -303,7 +302,7 @@ function renderRawHistogram(container, spec, xField) {
         g.selectAll('.bar')
             .filter((bd) => bd.x0 === d.x0)
             .attr('opacity', 0.8);
-        showTooltip(tooltip, `<strong>${formatValue(d.x0)} – ${formatValue(d.x1)}</strong><br/>Count: ${formatValue(d.length)}`, event);
+        showTooltip(tooltip, tooltipHtml `<strong>${formatValue(d.x0)} – ${formatValue(d.x1)}</strong><br/>Count: ${formatValue(d.length)}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -390,4 +389,3 @@ function drawStatLine(g, x, height, color, dashArray, label, labelY) {
         .attr('pointer-events', 'none')
         .text(label);
 }
-//# sourceMappingURL=histogram.js.map

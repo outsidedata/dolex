@@ -1,7 +1,7 @@
 /**
  * Lollipop chart D3 renderer — dots on sticks for clean ranking.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, renderEmptyState, isAllZeros, truncateLabel, calculateLeftMargin, getAdaptiveTickCount, addSortControls, styleAxis, shouldRotateLabels, calculateBottomMargin, contrastText, } from '../shared.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, escapeHtml, renderEmptyState, isAllZeros, truncateLabel, calculateLeftMargin, getAdaptiveTickCount, addSortControls, styleAxis, shouldRotateLabels, calculateBottomMargin, contrastText, } from '../shared.js';
 export function renderLollipop(container, spec) {
     const { config, encoding, data } = spec;
     const isHorizontal = config.orientation !== 'vertical';
@@ -121,7 +121,7 @@ function renderHorizontal(g, data, originalData, encoding, config, dims, tooltip
             .attr('y', (dd) => yScale(String(dd[categoryField])) - hoverSize);
         g.selectAll('.lollipop-stem')
             .attr('opacity', (dd) => String(dd[categoryField]) === cat ? 1 : 0.25);
-        showTooltip(tooltip, `<strong>${d[categoryField]}</strong><br/>${valueField}: ${formatValue(Number(d[valueField]))}`, event);
+        showTooltip(tooltip, `<strong>${escapeHtml(d[categoryField])}</strong><br/>${escapeHtml(valueField)}: ${formatValue(Number(d[valueField]))}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -256,7 +256,7 @@ function renderVertical(g, data, originalData, encoding, config, dims, tooltip, 
             .attr('y', (dd) => yScale(Number(dd[valueField])) - hoverSize);
         g.selectAll('.lollipop-stem')
             .attr('opacity', (dd) => String(dd[categoryField]) === cat ? 1 : 0.25);
-        showTooltip(tooltip, `<strong>${d[categoryField]}</strong><br/>${valueField}: ${formatValue(Number(d[valueField]))}`, event);
+        showTooltip(tooltip, `<strong>${escapeHtml(d[categoryField])}</strong><br/>${escapeHtml(valueField)}: ${formatValue(Number(d[valueField]))}`, event);
     })
         .on('mousemove', (event) => {
         positionTooltip(tooltip, event);
@@ -315,4 +315,3 @@ function renderVertical(g, data, originalData, encoding, config, dims, tooltip, 
             .text((d) => formatValue(Number(d[valueField])));
     }
 }
-//# sourceMappingURL=lollipop.js.map

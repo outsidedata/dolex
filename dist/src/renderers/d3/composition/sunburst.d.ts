@@ -8,4 +8,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderSunburst(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=sunburst.d.ts.map

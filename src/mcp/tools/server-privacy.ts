@@ -84,7 +84,7 @@ export function handleClearCache(deps: PrivacyDeps) {
     return {
       content: [{
         type: 'text' as const,
-        text: cleared.join('\n'),
+        text: JSON.stringify({ cleared }, null, 2),
       }],
     };
   };

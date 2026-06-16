@@ -1,8 +1,7 @@
 /**
  * Relationship renderers — scatter.
  */
-import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, styleAxis, getAdaptiveTickCount, createLegend, DARK_BG, TEXT_MUTED, } from './shared.js';
-import { categorical } from '../../theme/colors.js';
+import { createSvg, buildColorScale, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, tooltipHtml, styleAxis, getAdaptiveTickCount, createLegend, DARK_BG, TEXT_MUTED, categorical, } from './shared.js';
 // ─── SCATTER PLOT ────────────────────────────────────────────────────────────
 export function renderScatter(container, spec) {
     const { config, encoding, data } = spec;
@@ -146,11 +145,11 @@ export function renderScatter(container, spec) {
             .filter((_, j) => j === p.i)
             .attr('r', p.r * 1.5)
             .attr('opacity', 1);
-        let html = `<strong>${encoding.x?.title || xField}</strong>: ${formatValue(Number(p.d[xField]))}<br/><strong>${encoding.y?.title || yField}</strong>: ${formatValue(Number(p.d[yField]))}`;
+        let html = tooltipHtml `<strong>${encoding.x?.title || xField}</strong>: ${formatValue(Number(p.d[xField]))}<br/><strong>${encoding.y?.title || yField}</strong>: ${formatValue(Number(p.d[yField]))}`;
         if (colorField)
-            html += `<br/>${colorField}: ${p.d[colorField]}`;
+            html += tooltipHtml `<br/>${colorField}: ${p.d[colorField]}`;
         if (sizeField)
-            html += `<br/>${sizeField}: ${formatValue(Number(p.d[sizeField]))}`;
+            html += tooltipHtml `<br/>${sizeField}: ${formatValue(Number(p.d[sizeField]))}`;
         showTooltip(tooltip, html, event);
     })
         .on('mouseleave', function () {
@@ -251,4 +250,3 @@ function seededJitter(index, axis) {
     s = (s * 16807 + 0) % 2147483647;
     return (s - 1) / 2147483646;
 }
-//# sourceMappingURL=relationship.js.map

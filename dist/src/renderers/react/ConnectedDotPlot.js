@@ -5,4 +5,3 @@ export function ConnectedDotPlot({ spec, width = 800, height = 500, className, o
     const containerRef = useChart(spec, renderConnectedDotPlot, width, height, onReady);
     return _jsx("div", { ref: containerRef, className: className });
 }
-//# sourceMappingURL=ConnectedDotPlot.js.map

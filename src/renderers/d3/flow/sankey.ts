@@ -10,6 +10,7 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  tooltipHtml,
   renderEmptyState,
   isAllZeros,
   DEFAULT_PALETTE,
@@ -107,7 +108,7 @@ function drawLinks(
       d3.select(this).attr('opacity', linkOpacity + 0.3);
       showTooltip(
         tooltip,
-        `<strong>${d.source.name} → ${d.target.name}</strong><br/>Value: ${formatValue(d.value)}`,
+        tooltipHtml`<strong>${d.source.name} → ${d.target.name}</strong><br/>Value: ${formatValue(d.value)}`,
         event
       );
     })
@@ -143,9 +144,9 @@ function drawNodes(
       d3.select(this).attr('opacity', 0.8);
       const inflow = d.targetLinks.reduce((s, l) => s + l.value, 0);
       const outflow = d.sourceLinks.reduce((s, l) => s + l.value, 0);
-      let html = `<strong>${d.name}</strong><br/>Total: ${formatValue(d.value)}`;
-      if (inflow > 0) html += `<br/>Inflow: ${formatValue(inflow)}`;
-      if (outflow > 0) html += `<br/>Outflow: ${formatValue(outflow)}`;
+      let html = tooltipHtml`<strong>${d.name}</strong><br/>Total: ${formatValue(d.value)}`;
+      if (inflow > 0) html += tooltipHtml`<br/>Inflow: ${formatValue(inflow)}`;
+      if (outflow > 0) html += tooltipHtml`<br/>Outflow: ${formatValue(outflow)}`;
       showTooltip(tooltip, html, event);
     })
     .on('mousemove', (event: MouseEvent) => {

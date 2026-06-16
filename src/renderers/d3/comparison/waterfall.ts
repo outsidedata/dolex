@@ -18,12 +18,13 @@ import {
   truncateLabel,
   shouldShowValueLabels,
   contrastText,
+  tooltipHtml,
   TEXT_MUTED,
   DARK_BG,
   AXIS_COLOR,
   GRID_COLOR,
+  categorical,
 } from '../shared.js';
-import { categorical } from '../../../theme/colors.js';
 
 declare const d3: any;
 
@@ -124,8 +125,7 @@ export function renderWaterfall(container: HTMLElement, spec: VisualizationSpec)
   const willRotate = shouldRotateLabels(labels, estBarWidth);
   const bottomMargin = calculateBottomMargin(labels, willRotate);
 
-  const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, top: 40, right: 30 });
-  svg.style('background', 'none').style('border-radius', '0');
+  const { svg, g, dims } = createSvg(chartWrapper, spec, { bottom: bottomMargin, left: 70, top: 40, right: 30 }, { background: false });
   const tooltip = createTooltip(container);
 
   const allValues = items.flatMap((d) => [d.start, d.end]);
@@ -198,7 +198,7 @@ export function renderWaterfall(container: HTMLElement, spec: VisualizationSpec)
       const prefix = d.isTotal ? 'Total' : (d.value >= 0 ? '+' : '');
       showTooltip(
         tooltip,
-        `<strong>${d.label}</strong><br/>${prefix}${formatValue(d.value)}<br/>Running: ${formatValue(d.end)}`,
+        tooltipHtml`<strong>${d.label}</strong><br/>${prefix}${formatValue(d.value)}<br/>Running: ${formatValue(d.end)}`,
         event
       );
     })

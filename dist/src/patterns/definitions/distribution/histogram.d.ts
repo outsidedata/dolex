@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const histogramPattern: VisualizationPattern;
-//# sourceMappingURL=histogram.d.ts.map

@@ -121,4 +121,3 @@ export const marimekkoPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=marimekko.js.map

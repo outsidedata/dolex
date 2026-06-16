@@ -119,4 +119,3 @@ export const scatterPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=scatter.js.map

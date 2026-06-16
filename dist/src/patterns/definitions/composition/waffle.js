@@ -122,4 +122,3 @@ export const wafflePattern = {
         return spec;
     },
 };
-//# sourceMappingURL=waffle.js.map

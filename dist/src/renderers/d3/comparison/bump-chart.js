@@ -5,7 +5,7 @@
  * Y-axis is rank (1 at top, inverted). Each entity is a smooth
  * line connecting its rank at each time period.
  */
-import { createSvg, buildColorScale, createLegend, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, TEXT_MUTED, GRID_COLOR, DARK_BG, truncateLabel, } from '../shared.js';
+import { createSvg, buildColorScale, createLegend, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, tooltipHtml, TEXT_MUTED, GRID_COLOR, DARK_BG, truncateLabel, } from '../shared.js';
 export function renderBumpChart(container, spec) {
     const { config, encoding, data } = spec;
     const categoryField = config.categoryField || encoding.color?.field || 'entity';
@@ -23,8 +23,7 @@ export function renderBumpChart(container, spec) {
     chartWrapper.style.flex = '1';
     chartWrapper.style.minHeight = '0';
     container.appendChild(chartWrapper);
-    const { svg, g, dims } = createSvg(chartWrapper, spec, { left: 40, right: 100 });
-    svg.style('background', 'none').style('border-radius', '0');
+    const { svg, g, dims } = createSvg(chartWrapper, spec, { left: 40, right: 100 }, { background: false });
     const tooltip = createTooltip(container);
     // Extract unique entities and periods (preserve data order for periods)
     const periodSet = new Set();
@@ -139,7 +138,7 @@ export function renderBumpChart(container, spec) {
                     .attr('cursor', 'pointer')
                     .on('mouseover', function (event) {
                     d3.select(this).attr('r', dotRadius + 2);
-                    showTooltip(tooltip, `<strong>${entity}</strong><br/>Period: ${pt.period}<br/>Rank: #${pt.rank}<br/>Value: ${formatValue(pt.value)}`, event);
+                    showTooltip(tooltip, tooltipHtml `<strong>${entity}</strong><br/>Period: ${pt.period}<br/>Rank: #${pt.rank}<br/>Value: ${formatValue(pt.value)}`, event);
                 })
                     .on('mousemove', (event) => {
                     positionTooltip(tooltip, event);
@@ -182,7 +181,7 @@ export function renderBumpChart(container, spec) {
                 .attr('cursor', 'pointer')
                 .on('mouseover', function (event) {
                 d3.select(this).attr('r', 8);
-                showTooltip(tooltip, `<strong>${entity}</strong><br/>Period: ${singlePeriod}<br/>Rank: #${rank}<br/>Value: ${formatValue(value)}`, event);
+                showTooltip(tooltip, tooltipHtml `<strong>${entity}</strong><br/>Period: ${singlePeriod}<br/>Rank: #${rank}<br/>Value: ${formatValue(value)}`, event);
             })
                 .on('mousemove', (event) => {
                 positionTooltip(tooltip, event);
@@ -207,4 +206,3 @@ export function renderBumpChart(container, spec) {
         container.appendChild(legendDiv);
     }
 }
-//# sourceMappingURL=bump-chart.js.map

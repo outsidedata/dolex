@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const bumpChartPattern: VisualizationPattern;
-//# sourceMappingURL=bump-chart.d.ts.map

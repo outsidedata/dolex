@@ -4,8 +4,7 @@
  * Best for correlation matrices, cross-tabulation, frequency matrices,
  * and any 2D categorical × numeric dataset.
  */
-import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, formatValue, contrastText, truncateLabel, calculateLeftMargin, calculateBottomMargin, shouldRotateLabels, DARK_BG, TEXT_MUTED, } from './shared.js';
-import { sequential, diverging } from '../../theme/colors.js';
+import { createSvg, createTooltip, showTooltip, hideTooltip, positionTooltip, tooltipHtml, formatValue, contrastText, truncateLabel, calculateLeftMargin, calculateBottomMargin, shouldRotateLabels, DARK_BG, TEXT_MUTED, sequential, diverging, } from './shared.js';
 export function renderHeatmap(container, spec) {
     const { config, encoding, data } = spec;
     const rowField = config.rowField || encoding.y?.field || Object.keys(data[0])[0];
@@ -129,7 +128,7 @@ export function renderHeatmap(container, spec) {
         .attr('fill', (d) => colorScale(Number(d[valueField])))
         .on('mouseenter', function (event, d) {
         d3.select(this).attr('opacity', 0.8);
-        const html = `<strong>${rowField}:</strong> ${d[rowField]}<br/><strong>${colField}:</strong> ${d[colField]}<br/><strong>${valueField}:</strong> ${formatValue(Number(d[valueField]))}`;
+        const html = tooltipHtml `<strong>${rowField}:</strong> ${d[rowField]}<br/><strong>${colField}:</strong> ${d[colField]}<br/><strong>${valueField}:</strong> ${formatValue(Number(d[valueField]))}`;
         showTooltip(tooltip, html, event);
     })
         .on('mousemove', function (event) {
@@ -240,4 +239,3 @@ export function renderHeatmap(container, spec) {
     legendDiv.appendChild(maxLabel);
     container.appendChild(legendDiv);
 }
-//# sourceMappingURL=heatmap.js.map

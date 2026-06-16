@@ -11,6 +11,7 @@ import {
   hideTooltip,
   positionTooltip,
   formatValue,
+  escapeHtml,
   renderEmptyState,
   isAllZeros,
   TEXT_MUTED,
@@ -184,7 +185,7 @@ function renderHorizontal(
 
       showTooltip(
         tooltip,
-        `<strong>${d[categoryField]}</strong><br/>${valueField}: ${formatValue(Number(d[valueField]))}`,
+        `<strong>${escapeHtml(d[categoryField])}</strong><br/>${escapeHtml(valueField)}: ${formatValue(Number(d[valueField]))}`,
         event
       );
     })
@@ -356,7 +357,7 @@ function renderVertical(
 
       showTooltip(
         tooltip,
-        `<strong>${d[categoryField]}</strong><br/>${valueField}: ${formatValue(Number(d[valueField]))}`,
+        `<strong>${escapeHtml(d[categoryField])}</strong><br/>${escapeHtml(valueField)}: ${formatValue(Number(d[valueField]))}`,
         event
       );
     })

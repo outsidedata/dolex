@@ -224,6 +224,23 @@ export function evaluateExpression(
         throw new Error(msg);
       }
     }
+
+    // Guard against the silent "misquoted column" footgun: a double-quoted
+    // string is a LITERAL in expressions (use backticks for columns). If a
+    // literal exactly matches a column name it is almost always a mistake that
+    // would silently compute garbage (e.g. "price" - "carat" → 0 for every
+    // row). Fail loudly rather than produce a false-positive column.
+    const misquoted = findMisquotedColumnLiterals(ast, available);
+    if (misquoted.length > 0) {
+      const list = misquoted.map((c) => `"${c}"`).join(', ');
+      const fixed = misquoted.map((c) => `\`${c}\``).join(', ');
+      throw new Error(
+        `Misquoted column reference: ${list} ${misquoted.length === 1 ? 'is a string literal but matches a column name' : 'are string literals but match column names'}. ` +
+        `Double quotes mean a literal string in expressions — use backticks for columns: ${fixed} ` +
+        `(bare names also work when they have no spaces/special characters). ` +
+        `Refusing to run: this would silently compute a constant instead of using the column.`
+      );
+    }
   }
 
   // Apply filter: mark which rows should be evaluated
@@ -255,11 +272,20 @@ export function evaluateExpression(
   // Infer type
   const type = inferType(ast, values);
 
+  // An all-null column is never a useful derived column and almost always
+  // signals a silent failure (wrong column, incompatible types, sqrt of
+  // negatives, etc.). Fail loudly rather than persist a dead column.
+  if (stats.rows > 0 && stats.nulls === stats.rows) {
+    throw new Error(
+      `Expression produced null for all ${stats.rows} rows — refusing to create an all-null column. ` +
+      `Check that columns are referenced correctly (use backticks for names with spaces/special characters) ` +
+      `and that the operation is valid for the data types involved.`
+    );
+  }
+
   // Generate warnings
   const nullRatio = stats.nulls / stats.rows;
-  if (stats.rows > 0 && stats.nulls === stats.rows) {
-    warnings.push('All output values are null');
-  } else if (nullRatio > 0.2) {
+  if (nullRatio > 0.2) {
     warnings.push(`${Math.round(nullRatio * 100)}% of output values are null (${stats.nulls}/${stats.rows})`);
   }
   if (type === 'numeric' && stats.min !== undefined && stats.max !== undefined && stats.min === stats.max && stats.nulls < stats.rows) {
@@ -269,6 +295,54 @@ export function evaluateExpression(
   return { values, type, warnings, stats };
 }
 
+
+/**
+ * Find double-quoted string literals whose value matches a column name — these
+ * are almost always a misquoted column reference (backticks are for columns;
+ * double quotes are string literals). A string compared for equality against a
+ * column (`status == "active"`) is a legitimate value comparison and exempt.
+ */
+function findMisquotedColumnLiterals(ast: AstNode, columns: Set<string>): string[] {
+  const hits = new Set<string>();
+
+  function walk(node: AstNode): void {
+    switch (node.type) {
+      case 'string':
+        if (columns.has(node.value)) hits.add(node.value);
+        return;
+      case 'binary':
+        if (node.op === '==' || node.op === '!=') {
+          // Exempt a string literal only when its sibling is a bare/backtick
+          // column reference — i.e. a genuine `column == "value"` comparison.
+          walkEqualityOperand(node.left, node.right);
+          walkEqualityOperand(node.right, node.left);
+        } else {
+          walk(node.left);
+          walk(node.right);
+        }
+        return;
+      case 'unary':
+        walk(node.operand);
+        return;
+      case 'call':
+        node.args.forEach(walk);
+        return;
+      case 'array':
+        node.elements.forEach(walk);
+        return;
+      default:
+        return;
+    }
+  }
+
+  function walkEqualityOperand(operand: AstNode, sibling: AstNode): void {
+    if (operand.type === 'string' && sibling.type === 'column') return; // legit value comparison
+    walk(operand);
+  }
+
+  walk(ast);
+  return [...hits];
+}
 
 function findClosest(target: string, candidates: string[]): string | null {
   let best: string | null = null;

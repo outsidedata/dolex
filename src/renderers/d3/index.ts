@@ -7,7 +7,7 @@
  */
 
 import type { VisualizationSpec } from '../../types.js';
-import { renderPlaceholder } from './shared.js';
+import { renderPlaceholder, escapeHtml } from './shared.js';
 
 // Comparison
 import { renderBar } from './comparison/bar.js';
@@ -157,8 +157,8 @@ export function renderSpec(container: HTMLElement, spec: VisualizationSpec): voi
       console.error(`Renderer error for pattern "${spec.pattern}":`, err);
       container.innerHTML = `
         <div style="color:#ef4444;padding:20px;font-family:monospace;">
-          <p><strong>Render error:</strong> ${spec.pattern}</p>
-          <pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">${(err as Error).message}\n${(err as Error).stack}</pre>
+          <p><strong>Render error:</strong> ${escapeHtml(spec.pattern)}</p>
+          <pre style="font-size:11px;opacity:0.8;white-space:pre-wrap;">${escapeHtml((err as Error).message)}\n${escapeHtml((err as Error).stack)}</pre>
         </div>
       `;
     }

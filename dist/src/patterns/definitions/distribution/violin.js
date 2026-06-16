@@ -102,4 +102,3 @@ export const violinPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=violin.js.map

@@ -122,4 +122,3 @@ export const radarPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=radar.js.map

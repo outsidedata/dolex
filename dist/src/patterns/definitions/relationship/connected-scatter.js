@@ -105,4 +105,3 @@ export const connectedScatterPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=connected-scatter.js.map

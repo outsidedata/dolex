@@ -96,4 +96,3 @@ export const slopeChartPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=slope-chart.js.map

@@ -9,4 +9,3 @@
  */
 import type { VisualizationSpec } from '../../types.js';
 export declare function renderParallelCoordinates(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=parallel-coordinates.d.ts.map

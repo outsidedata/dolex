@@ -8,4 +8,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const smallMultiplesPattern: VisualizationPattern;
-//# sourceMappingURL=small-multiples.d.ts.map

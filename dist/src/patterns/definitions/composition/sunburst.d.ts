@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const sunburstPattern: VisualizationPattern;
-//# sourceMappingURL=sunburst.d.ts.map

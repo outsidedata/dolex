@@ -18,4 +18,3 @@ type D3RenderFn = (container: HTMLElement, spec: VisualizationSpec) => void;
  */
 export declare function useChart(spec: VisualizationSpec, renderFn: D3RenderFn, width: number, height: number, onReady?: (container: HTMLDivElement) => void): React.RefObject<HTMLDivElement | null>;
 export {};
-//# sourceMappingURL=useChart.d.ts.map

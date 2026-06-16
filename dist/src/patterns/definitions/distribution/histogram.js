@@ -106,4 +106,3 @@ export const histogramPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=histogram.js.map

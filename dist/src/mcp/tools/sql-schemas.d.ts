@@ -17,4 +17,3 @@ export declare const rowFilterSchema: z.ZodObject<{
     value?: any;
 }>;
 export declare const ALL_PALETTE_NAMES: readonly ["categorical", "blue", "green", "purple", "warm", "blueRed", "greenPurple", "tealOrange", "redGreen", "traffic-light", "profit-loss", "temperature"];
-//# sourceMappingURL=sql-schemas.d.ts.map

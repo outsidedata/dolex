@@ -101,4 +101,3 @@ export const boxPlotPattern = {
         return spec;
     },
 };
-//# sourceMappingURL=box-plot.js.map

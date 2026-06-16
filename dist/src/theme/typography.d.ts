@@ -134,4 +134,3 @@ export declare const textStyles: {
     };
 };
 export type TextStyleKey = keyof typeof textStyles;
-//# sourceMappingURL=typography.d.ts.map

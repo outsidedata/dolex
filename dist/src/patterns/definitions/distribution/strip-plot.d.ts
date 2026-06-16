@@ -7,4 +7,3 @@
  */
 import type { VisualizationPattern } from '../../../types.js';
 export declare const stripPlotPattern: VisualizationPattern;
-//# sourceMappingURL=strip-plot.d.ts.map

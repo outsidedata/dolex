@@ -101,4 +101,3 @@ export const linePattern = {
         return spec;
     },
 };
-//# sourceMappingURL=line.js.map

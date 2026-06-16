@@ -7,4 +7,3 @@
  */
 import type { VisualizationSpec } from '../../../types.js';
 export declare function renderDensityPlot(container: HTMLElement, spec: VisualizationSpec): void;
-//# sourceMappingURL=density-plot.d.ts.map

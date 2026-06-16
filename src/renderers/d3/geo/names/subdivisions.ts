@@ -341,7 +341,7 @@ addRegion('JP', [
   ['Miyagi'],
   ['Miyazaki'],
   ['Nagano'],
-  ['Naoasaki', 'Nagasaki'],
+  ['Nagasaki'],
   ['Nara'],
   ['Niigata'],
   ['Oita'],
