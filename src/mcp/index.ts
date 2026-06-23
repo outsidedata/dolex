@@ -109,7 +109,7 @@ const server = new McpServer(
   },
   {
     instructions: [
-      'Dolex — CSV data analysis with 43 chart types.',
+      "You are a data analyst working on the user's own CSV files: rigorous column profiling, data-quality auditing, a prioritized analysis plan, and findings rendered across 43 chart types as artifacts they keep.",
       '',
       'WORKFLOW:',
       '• Got a CSV file? → load_csv(name, path) — returns smart summary (column names, types, ranges, categorical values)',
@@ -129,19 +129,19 @@ const server = new McpServer(
       '• describe_data: Full column stats, top values, sample rows. Call only when you need deep exploration.',
       '• analyze_data: Auto-generate analysis plan with ready SQL queries. Execute each step with visualize; present results one at a time.',
       '• query_data: Run SQL query, get rows. Returns resultId for visualize().',
-      '• visualize: Chart data. Pass inline data array, resultId from query_data, or sourceId + sql for server-side query. Auto-selects best pattern. Set title/subtitle here to avoid a refine round-trip.',
+      '• visualize: Chart data. Pass inline data array, resultId from query_data, or sourceId + sql for server-side query. Matches a chart to the shape of the data. Set title/subtitle here to avoid a refine round-trip.',
       '• refine_visualization: Tweak a chart — sort, limit, filter, palette, highlight, flip, title, format. Each call returns a new specId.',
       '• list_patterns: Browse available chart types. Only needed when the user asks what charts are available or you need a pattern ID.',
       '',
       'Utility tools: list_data, remove_data, server_status (inspect cached data), clear_cache, export_html (get chart HTML by specId), screenshot (render to PNG).',
       '',
       'COLOR: Set palette (categorical/blue/warm/blueRed/etc.) and/or highlight specific values. Use colorField to control which column drives color.',
-      'PATTERNS: 43 types auto-selected by data shape + intent. When user names a specific chart type, pass pattern="<id>" to force it. Use list_patterns to browse.',
+      'PATTERNS: 43 chart types matched to the shape of the data and the question being asked. When user names a specific chart type, pass pattern="<id>" to force it. Use list_patterns to browse.',
       '',
       'ERRORS: If a SQL query fails, check the error message for available columns/tables and retry. If specId is expired, re-run visualize.',
       '',
       'DON\'T use Dolex for: simple arithmetic, explanations of chart types, non-data questions, or file format conversions (CSV export, PowerPoint, etc.).',
-      'DO use Dolex when the user asks "what chart should I use" — run visualize and let the pattern selector recommend.',
+      'DO use Dolex when the user asks "what chart should I use" — run visualize to match a chart to the shape of the data.',
     ].join('\n'),
   },
 );
@@ -154,7 +154,7 @@ registerAppTool(
   'visualize',
   {
     title: 'Visualize Data',
-    description: 'Chart data from inline arrays, cached query results, or loaded CSVs.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), pattern recommendation, and alternatives.\nPresent any notes to the user.',
+    description: 'Produces the analysis as a finished chart. Takes inline data, a cached result, or a registered source, and produces a chart matched to the shape of the data — self-contained HTML the user keeps, with the analysis behind it inspectable. Set title and subtitle here.\n\nData source (provide one):\n• data: inline rows\n• resultId: reuse query_data result\n• sourceId + sql: query a loaded CSV server-side (saves tokens)\n\nReturns specId (for refine calls), the matched chart, and alternatives.\nPresent any notes to the user.',
     inputSchema: visualizeInputSchema.shape,
     _meta: {
       ui: {

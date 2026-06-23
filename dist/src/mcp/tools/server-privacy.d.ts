@@ -9,9 +9,9 @@ import type { SourceManager } from '../../connectors/manager.js';
 export declare const clearCacheInputSchema: z.ZodObject<{
     scope: z.ZodDefault<z.ZodEnum<["all", "specs", "results"]>>;
 }, "strip", z.ZodTypeAny, {
-    scope: "specs" | "all" | "results";
+    scope: "all" | "specs" | "results";
 }, {
-    scope?: "specs" | "all" | "results" | undefined;
+    scope?: "all" | "specs" | "results" | undefined;
 }>;
 interface PrivacyDeps {
     sourceManager: SourceManager;

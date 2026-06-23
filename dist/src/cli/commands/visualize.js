@@ -3,7 +3,7 @@
  *
  * Data comes from a CSV path / registered source (optionally sliced with
  * `--sql`), an inline JSON array (`--data file.json`), or stdin (`-` /
- * `--stdin`). The pattern is auto-selected unless `--pattern` forces one.
+ * `--stdin`). The chart is matched to the shape of the data; `--pattern` forces a specific one.
  */
 import { parseArgs, str, bool, num, list } from '../args.js';
 import * as o from '../output.js';

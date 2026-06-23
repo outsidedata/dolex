@@ -1,7 +1,7 @@
 /**
  * MCP Tool: visualize
  * Takes data (inline, cached, or from a loaded CSV via SQL) + intent
- * and returns visualization recommendations from the handcrafted pattern library.
+ * and produces a chart matched to the shape of the data.
  *
  * Returns compact text content (specId + metadata, no data) while
  * structuredContent still gets the full pre-rendered chart HTML.

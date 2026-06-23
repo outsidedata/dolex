@@ -4,7 +4,8 @@
  *
  * Dispatches subcommands. Command modules are dynamically imported so that
  * commands which never touch a CSV avoid loading the SQLite/papaparse optional
- * deps, and so `dolex mcp` is the only path that loads (and starts) the MCP
- * server — whose `main()` runs on import.
+ * deps, and so the MCP server (whose `main()` runs on import) is loaded only
+ * when actually serving — via the `dolex mcp` subcommand, or by a bare `dolex`
+ * launched over piped stdio (how MCP clients spawn it).
  */
 export {};

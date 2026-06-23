@@ -1,12 +1,13 @@
 # Dolex CLI
 
-`dolex` is a command-line data-visualization tool. Point it at a CSV, describe what
-you want to see, and it picks the right chart from the 43-pattern library, runs your
-SQL, and writes a self-contained HTML chart (or a PNG). No AI assistant required —
-the pattern-selection intelligence runs locally.
+`dolex` is a command-line data-analysis tool. Point it at a CSV, describe what
+you want to see, and it matches the visualization to the shape of your data and the
+question being asked, runs your SQL, and writes a self-contained HTML chart (or a PNG)
+from the 43-pattern library. It runs locally on your own data.
 
-> **The MCP server still ships.** It is now a subcommand: `dolex mcp`. Everything an
-> AI assistant could do through MCP, a human (or a shell script) can now do directly.
+> **The MCP server still ships.** An MCP client launching `dolex` over stdio gets the
+> server (so `command: "dolex"` configs keep working); `dolex mcp` starts it explicitly.
+> Everything an AI assistant could do through MCP, a human (or a shell script) can now do directly.
 
 ## Why a CLI is possible here
 

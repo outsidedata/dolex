@@ -7,7 +7,7 @@ import * as o from '../output.js';
 export function printMainHelp(version?: string): void {
   const v = version ? o.c.dim(`v${version}`) : '';
   o.out(`${o.c.bold('dolex')} ${v} — data visualization from the command line
-${o.c.dim('43 chart types · SQL engine · auto-analysis · local pattern intelligence')}
+${o.c.dim('a data analyst you can trust on your own data — profile, audit, analyze, and chart 43 ways')}
 
 ${o.c.bold('USAGE')}
   dolex <command> [arguments] [options]

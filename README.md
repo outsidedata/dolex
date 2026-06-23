@@ -7,35 +7,20 @@
  ╚═════╝   ╚═════╝  ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
 ```
 
-**Your AI data analyst.** Point Claude at a folder of CSV files and get expert-level analysis — no code, no setup, no data leaves your machine.
+# Dolex turns your AI assistant into a data analyst you can trust on your own data.
 
----
+A B2B data-analysis product that gives your AI assistant a rigorous analyst's discipline, working on your own files and handing back artifacts you keep.
 
-## The Problem
+Dolex connects to your data, audits it, runs the analysis, and returns real results you own. It runs locally on your CSV files and loads a folder of them as one joinable database. It profiles every column, classifies what each one is, and builds a prioritized analysis plan with ready-to-run queries. Every answer traces back to an inspectable query, and the findings come back as artifacts you keep. Dolex ships as a published npm package with two front ends over one core: an MCP server any AI assistant can call, and a command-line tool your terminals, scripts, and pipelines run directly.
 
-You've got a folder of CSV exports on your desktop. `sales-2024-Q1.csv`, `sales-2024-Q2.csv`, `customers.csv`, `products.csv`. Loose files from different periods, different systems. Right now, turning those into actual insight means one of two things:
+## What you get
 
-1. **The Python REPL loop** — Claude writes a script, runs it, gets an error, fixes it, runs it again, gets a different error, and eventually produces a matplotlib chart with default styling that you'd be embarrassed to put in a deck.
-
-2. **"Here's a bar chart"** — every AI assistant reaches for the same three chart types because they optimize for the most likely token, not the most informative visualization.
-
-Dolex replaces both. No Python. No REPL. No `import pandas`. No `plt.show()`. No debugging dependency conflicts. Just tell Claude: *"load everything in ~/data/ and show me quarterly trends."*
-
-## What It Actually Is
-
-Dolex is an MCP server that gives Claude a complete data analysis toolkit. It runs locally inside Claude — you don't need to know how that works, just install it and Claude gains new abilities:
-
-**Load a whole folder of CSV files at once** — point it at a directory and Dolex loads every CSV it finds, profiles each one automatically (column types, distributions, stats, sample values), and makes them all queryable. Loose quarterly exports, separate files per region, whatever you have — Dolex handles it.
-
-**A built-in query engine** — aggregations (sum, avg, median, stddev, percentiles), time bucketing (group by month/quarter/year), window functions (lag, lead, rank, running totals, percent of total), automatic joins across files, and filters. Handles 500k+ rows. No code generation, no sandboxes — Dolex crunches the numbers directly.
-
-**43 handcrafted visualization patterns** — not chart.js defaults. Bump charts for rankings, beeswarms for distributions, Sankey diagrams for flows, ridgeline plots for comparing distributions, connected dot plots for two-metric comparisons, calendar heatmaps for temporal patterns, and 37 more. Each pattern has selection rules that encode real data visualization expertise.
-
-**Pattern intelligence** — Dolex doesn't just render charts. It analyzes the shape of your data and your intent, scores all 43 patterns, and recommends the one that actually communicates the insight — not the obvious one.
-
-**Auto-analysis planning** — give it a dataset and it generates a structured analysis plan: which columns matter, what relationships to explore, what charts to build, with ready-to-execute queries for each step.
-
-**100% local, 100% offline** — your data never leaves your machine. Charts render as self-contained HTML. 33 TopoJSON map files ship with the package. Zero CDN calls, zero external dependencies.
+- **Analysis on your own data.** Dolex runs locally on your CSV files, and a folder of them becomes one database your assistant can join across.
+- **Data you can stand behind.** A built-in audit surfaces type traps, sentinel values, leaked and duplicate columns, and outliers before they reach a conclusion.
+- **Rigor on every result.** Full column profiling and statistics back the analysis, and each finding traces to a query you can inspect.
+- **A real analysis plan.** Dolex classifies your columns and produces a prioritized analysis plan with ready-to-run queries; derived columns persist across sessions.
+- **Artifacts you keep.** Findings render across 43 chart types as self-contained HTML or PNG, with React components, a design system, and the queries behind every result.
+- **One analyst on call everywhere.** The same core serves your chat assistant and your pipelines, with concurrent work running in its own lane.
 
 ## Install
 
@@ -59,8 +44,7 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 {
   "mcpServers": {
     "dolex": {
-      "command": "dolex",
-      "args": ["mcp"]
+      "command": "dolex"
     }
   }
 }
@@ -69,12 +53,12 @@ Add to your config (`~/Library/Application Support/Claude/claude_desktop_config.
 ### Claude Code
 
 ```bash
-claude mcp add dolex -- dolex mcp
+claude mcp add dolex -- dolex
 ```
 
 ### Any MCP Client
 
-The MCP server is now a subcommand:
+Point your client's server command at `dolex`. Launched by an MCP client over stdio, it runs the server. To start it explicitly — or to confirm it boots from a terminal — use the subcommand:
 
 ```bash
 dolex mcp
@@ -82,11 +66,11 @@ dolex mcp
 
 ## Command Line
 
-You don't need an AI assistant to use Dolex. The same pattern intelligence, SQL
-engine, and 43 chart types are a CLI away — point it at a CSV and get a chart.
+The same analysis engine, query layer, and 43 chart types are a CLI away — point
+it at a CSV and get a chart, an analysis plan, or a data-quality audit.
 
 ```bash
-# Chart a CSV — the pattern is auto-selected and explained
+# Chart a CSV — the pattern matches the shape of the data
 dolex visualize sales.csv -i "compare revenue by region"
 
 # Query first, then chart; force a type and palette; render a PNG
@@ -132,9 +116,9 @@ Full reference: [`docs/CLI.md`](https://github.com/outsidedata/dolex/blob/master
 
 ## The Query Engine
 
-Point Claude at a folder of CSV files and start asking questions. No schema definition, no imports, no setup. Dolex loads every file, profiles your data automatically — column types, distributions, cardinality, sample values — and gives Claude everything it needs to answer your questions.
+Point your assistant at a folder of CSV files and start asking questions. Dolex loads every file and profiles your data — column types, distributions, cardinality, sample values — giving your assistant everything it needs to answer.
 
-Claude never writes code or raw SQL. Instead it works with Dolex's built-in query language:
+The built-in query language covers the analysis your assistant runs:
 
 **Aggregations**: `sum`, `avg`, `min`, `max`, `count`, `count_distinct`, `median`, `stddev`, `p25`, `p75`, `percentile`
 

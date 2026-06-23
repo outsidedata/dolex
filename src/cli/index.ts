@@ -4,14 +4,34 @@
  *
  * Dispatches subcommands. Command modules are dynamically imported so that
  * commands which never touch a CSV avoid loading the SQLite/papaparse optional
- * deps, and so `dolex mcp` is the only path that loads (and starts) the MCP
- * server — whose `main()` runs on import.
+ * deps, and so the MCP server (whose `main()` runs on import) is loaded only
+ * when actually serving — via the `dolex mcp` subcommand, or by a bare `dolex`
+ * launched over piped stdio (how MCP clients spawn it).
  */
 
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as o from './output.js';
+
+/**
+ * Start the MCP stdio server. Importing the module runs its `main()`, which
+ * takes over the process and never returns. The MCP SDK is an optional
+ * dependency: if it isn't installed, surface an actionable install message
+ * instead of crashing with a cryptic module-not-found error.
+ */
+async function startMcpServer(): Promise<void> {
+  try {
+    await import('../mcp/index.js');
+  } catch (e) {
+    const { isModuleNotFound, missingDependencyMessage } = await import('../utils/optional-deps.js');
+    if (isModuleNotFound(e) && /modelcontextprotocol/i.test(String(e))) {
+      o.fail(missingDependencyMessage('mcp'));
+      process.exit(1);
+    }
+    throw e;
+  }
+}
 
 function readVersion(): string | undefined {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -78,19 +98,7 @@ async function main(): Promise<void> {
 
     case 'mcp':
     case 'serve':
-      // Starts the stdio server on import; do not exit — it owns the process.
-      // The MCP SDK is an optional dependency: if it isn't installed, tell the
-      // user exactly what to install instead of crashing with a cryptic error.
-      try {
-        await import('../mcp/index.js');
-      } catch (e) {
-        const { isModuleNotFound, missingDependencyMessage } = await import('../utils/optional-deps.js');
-        if (isModuleNotFound(e) && /modelcontextprotocol/i.test(String(e))) {
-          o.fail(missingDependencyMessage('mcp'));
-          process.exit(1);
-        }
-        throw e;
-      }
+      await startMcpServer();
       return;
 
     case 'version':
@@ -99,7 +107,20 @@ async function main(): Promise<void> {
       o.out(readVersion() ?? 'unknown');
       process.exit(0);
 
-    case undefined:
+    case undefined: {
+      // No subcommand. MCP clients spawn the bin with piped stdio (no TTY) and
+      // expect the stdio server on the other end, so a bare `dolex` must serve —
+      // that keeps every existing `command: "dolex"` config working. A human at
+      // an interactive terminal (a TTY) gets help instead.
+      if (!process.stdin.isTTY) {
+        await startMcpServer();
+        return;
+      }
+      const { printMainHelp } = await import('./commands/help.js');
+      printMainHelp(readVersion());
+      process.exit(0);
+    }
+
     case 'help':
     case '--help':
     case '-h': {

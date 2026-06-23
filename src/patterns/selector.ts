@@ -1,13 +1,13 @@
 /**
- * Pattern Selection Intelligence.
+ * Pattern Selection.
  *
- * This is the core of the product. Analyzes data shape + user intent,
- * scores every registered pattern, and returns ranked recommendations
- * with reasoning.
+ * Analyzes data shape + user intent, scores every registered pattern,
+ * and returns ranked recommendations with reasoning.
  *
- * An LLM will always pick bar/line/pie. We pick bump charts, beeswarms,
- * slope charts, waffles — because the selection rules encode design
- * expertise that probabilistic token generation cannot.
+ * Selection rules encode dataviz design expertise, matching the
+ * visualization — bar, line, bump chart, beeswarm, slope chart, waffle,
+ * and the rest of the library — to the shape of the data and the question
+ * being asked.
  */
 
 import type {
