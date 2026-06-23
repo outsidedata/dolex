@@ -1,6 +1,6 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "8.0.1",
+  "version": "8.0.2",
   "description": "Turn your AI assistant into a data analyst you can trust on your own CSV files — column profiling, data-quality auditing, a prioritized analysis plan, and findings rendered across 43 chart types.",
   "type": "module",
   "license": "MIT",
