@@ -34,6 +34,29 @@ describe('Tokenizer', () => {
       expect(tokens[1].type).toBe('NUMBER');
       expect(tokens[1].value).toBe('5');
     });
+
+    it('tokenizes scientific notation lowercase e (GOTCHA #11)', () => {
+      const tokens = tokenize('1e9');
+      expect(tokens[0]).toEqual({ type: 'NUMBER', value: '1e9', pos: 0 });
+    });
+
+    it('tokenizes scientific notation with decimal mantissa', () => {
+      const tokens = tokenize('5.5e8');
+      expect(tokens[0]).toEqual({ type: 'NUMBER', value: '5.5e8', pos: 0 });
+    });
+
+    it('tokenizes scientific notation uppercase E with sign', () => {
+      const tokens = tokenize('2E-3');
+      expect(tokens[0]).toEqual({ type: 'NUMBER', value: '2E-3', pos: 0 });
+    });
+
+    it('does not treat trailing e as exponent (e not followed by digit)', () => {
+      // "1e" — the "e" is NOT an exponent (no digits after), so it's an identifier.
+      const tokens = tokenize('1e');
+      expect(tokens[0]).toEqual({ type: 'NUMBER', value: '1', pos: 0 });
+      expect(tokens[1].type).toBe('IDENT');
+      expect(tokens[1].value).toBe('e');
+    });
   });
 
   describe('strings', () => {
@@ -55,6 +78,30 @@ describe('Tokenizer', () => {
     it('tokenizes string with special characters', () => {
       const tokens = tokenize('"a+b=c"');
       expect(tokens[0]).toEqual({ type: 'STRING', value: 'a+b=c', pos: 0 });
+    });
+
+    it('tokenizes single-quoted string (GOTCHA #7: accept single quotes too)', () => {
+      const tokens = tokenize("'hello'");
+      expect(tokens[0]).toEqual({ type: 'STRING', value: 'hello', pos: 0 });
+    });
+
+    it('tokenizes single-quoted string with spaces', () => {
+      const tokens = tokenize("'young adult'");
+      expect(tokens[0]).toEqual({ type: 'STRING', value: 'young adult', pos: 0 });
+    });
+
+    it('single-quoted string can contain a double quote', () => {
+      const tokens = tokenize("'say \"hi\"'");
+      expect(tokens[0]).toEqual({ type: 'STRING', value: 'say "hi"', pos: 0 });
+    });
+
+    it('double-quoted string can contain a single quote (apostrophe)', () => {
+      const tokens = tokenize('"it\'s"');
+      expect(tokens[0]).toEqual({ type: 'STRING', value: "it's", pos: 0 });
+    });
+
+    it('throws on unterminated single-quoted string', () => {
+      expect(() => tokenize("'hello")).toThrow(TokenizeError);
     });
 
     it('throws on unterminated string', () => {

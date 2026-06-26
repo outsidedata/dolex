@@ -93,6 +93,19 @@ function toTableName(filename) {
  */
 function registerCustomAggregates(db) {
     const sortedNums = (values) => values.filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+    // Accumulate ONLY real numeric values. SQLite NULL arrives as JS null and empty
+    // cells as '' — both coerce to 0 via Number(), which would silently count missing
+    // values as zero and corrupt median/stddev/cv/mad/percentiles (and disagree with
+    // native AVG/COUNT, which ignore NULLs). Skip them BEFORE coercion. Non-numeric
+    // strings → NaN → also skipped. (Regression: __tests__/connectors/aggregates.test.ts)
+    const pushNum = (acc, val) => {
+        if (val === null || val === undefined || val === '')
+            return acc;
+        const n = Number(val);
+        if (Number.isFinite(n))
+            acc.push(n);
+        return acc;
+    };
     const computePercentile = (sorted, p) => {
         if (sorted.length === 0)
             return null;
@@ -107,12 +120,12 @@ function registerCustomAggregates(db) {
     };
     db.aggregate('median', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => computePercentile(sortedNums(acc), 0.5),
     });
     db.aggregate('stddev', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => {
             const nums = sortedNums(acc);
             if (nums.length === 0)
@@ -124,23 +137,62 @@ function registerCustomAggregates(db) {
     });
     db.aggregate('p25', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => computePercentile(sortedNums(acc), 0.25),
     });
     db.aggregate('p75', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => computePercentile(sortedNums(acc), 0.75),
     });
     db.aggregate('p10', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => computePercentile(sortedNums(acc), 0.10),
     });
     db.aggregate('p90', {
         start: () => [],
-        step: (acc, val) => { acc.push(Number(val)); return acc; },
+        step: (acc, val) => pushNum(acc, val),
         result: (acc) => computePercentile(sortedNums(acc), 0.90),
+    });
+    // Extended tail percentiles (floor/ceiling extremes) — same shape as p10..p90.
+    for (const [name, p] of [['p1', 0.01], ['p5', 0.05], ['p95', 0.95], ['p99', 0.99]]) {
+        db.aggregate(name, {
+            start: () => [],
+            step: (acc, val) => pushNum(acc, val),
+            result: (acc) => computePercentile(sortedNums(acc), p),
+        });
+    }
+    // Coefficient of variation — stddev/mean (population). Scale-free dispersion, for
+    // comparing variability across different-magnitude metrics. NULL when mean is 0
+    // (the ratio is undefined) or there are no values.
+    db.aggregate('cv', {
+        start: () => [],
+        step: (acc, val) => pushNum(acc, val),
+        result: (acc) => {
+            const nums = sortedNums(acc);
+            if (nums.length === 0)
+                return null;
+            const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+            if (mean === 0)
+                return null;
+            const variance = nums.reduce((sum, v) => sum + (v - mean) ** 2, 0) / nums.length;
+            return Math.sqrt(variance) / mean;
+        },
+    });
+    // Median absolute deviation — median(|x - median(x)|). A robust (outlier-resistant)
+    // dispersion measure; pairs with median better than stddev does for skewed data.
+    db.aggregate('mad', {
+        start: () => [],
+        step: (acc, val) => pushNum(acc, val),
+        result: (acc) => {
+            const nums = sortedNums(acc);
+            if (nums.length === 0)
+                return null;
+            const med = computePercentile(nums, 0.5);
+            const devs = sortedNums(nums.map((v) => Math.abs(v - med)));
+            return computePercentile(devs, 0.5);
+        },
     });
 }
 /**
@@ -183,6 +235,10 @@ function loadCsvs(csvPaths) {
             let nullCount = 0; // undefined/null/\N
             let emptyCount = 0; // ''
             let nonNumericCount = 0; // non-empty values that are not numbers
+            // Tally the NON-EMPTY non-numeric tokens (e.g. "Undrafted") so a recurring
+            // string sentinel hiding in a numeric column can be surfaced to the auditor —
+            // NUMERIC affinity coerces it to NULL, erasing it from the stored data.
+            const nonNumericTokens = new Map();
             for (const row of rows) {
                 const v = row[col];
                 if (v === undefined || v === null || v === '\\N') {
@@ -200,8 +256,10 @@ function loadCsvs(csvPaths) {
                 }
                 if (isNumericStr(v))
                     numericDistinct.add(v);
-                else
+                else {
                     nonNumericCount++;
+                    nonNumericTokens.set(v, (nonNumericTokens.get(v) ?? 0) + 1);
+                }
             }
             const type = inferColumnType(col, samples, distinct.size, rows.length);
             // Zero-padded codes (zip '00501', '007') look numeric but must stay TEXT
@@ -213,7 +271,21 @@ function loadCsvs(csvPaths) {
             // ORDER BY (SQLite ranks text above all numbers). Counts reflect that.
             const finalNullCount = numericAffinity ? nullCount + emptyCount + nonNumericCount : nullCount;
             const finalUnique = numericAffinity ? numericDistinct.size : distinct.size;
-            return { col, type, samples, distinctCount: finalUnique, nullCount: finalNullCount, numericAffinity };
+            // The dominant non-empty token coerced to NULL (numeric columns only) — the
+            // fingerprint of a string-sentinel affinity trap. Empty strings don't count;
+            // they're plain missing values the auditor reports via the null ratio.
+            let coercedNonNumeric;
+            if (numericAffinity && nonNumericTokens.size > 0) {
+                let token = '';
+                let count = 0;
+                for (const [tok, c] of nonNumericTokens)
+                    if (c > count) {
+                        token = tok;
+                        count = c;
+                    }
+                coercedNonNumeric = { token, count };
+            }
+            return { col, type, samples, distinctCount: finalUnique, nullCount: finalNullCount, numericAffinity, coercedNonNumeric };
         });
         const numericCols = new Set(colMeta.filter((m) => m.numericAffinity).map((m) => m.col));
         // Create table with NUMERIC affinity for numeric columns, TEXT otherwise.
@@ -307,6 +379,7 @@ function loadCsvs(csvPaths) {
                 totalCount: rows.length,
                 stats: columnStats,
                 topValues,
+                coercedNonNumeric: meta.coercedNonNumeric,
             };
             columns.push(column);
             allColumns.push({ table: tableName, col: column });

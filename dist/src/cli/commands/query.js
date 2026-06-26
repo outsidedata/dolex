@@ -29,6 +29,9 @@ export async function queryCommand(argv) {
         }
         const rows = res.rows ?? [];
         const columns = res.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+        // SQL-safety advisories → stderr, so piped stdout (json/csv) stays clean.
+        for (const w of res.warnings ?? [])
+            o.warn(w);
         switch (format) {
             case 'json':
                 o.out(JSON.stringify(rows, null, 2));
@@ -68,5 +71,5 @@ ${o.c.bold('OPTIONS')}
   --limit <n>          Max rows (default 10000)
   --from <table>       Pick a table when the source has several
 
-${o.c.dim('Custom aggregates: MEDIAN, STDDEV, P25, P75, P10, P90. Read-only (SELECT/WITH) only.')}`);
+${o.c.dim('Custom aggregates: MEDIAN, STDDEV, CV, MAD, P1/P5/P10/P25/P75/P90/P95/P99. Read-only (SELECT/WITH) only.')}`);
 }

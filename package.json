@@ -1,6 +1,6 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "8.0.2",
+  "version": "8.1.0",
   "description": "Turn your AI assistant into a data analyst you can trust on your own CSV files — column profiling, data-quality auditing, a prioritized analysis plan, and findings rendered across 43 chart types.",
   "type": "module",
   "license": "MIT",
@@ -75,7 +75,10 @@
     "test:coverage": "vitest run --coverage",
     "mcp:stdio": "tsx src/mcp/index.ts",
     "preflight": "bash scripts/publish-preflight.sh",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test",
+    "chat": "tsx local-orchestration/src/chat.ts",
+    "web": "tsx local-orchestration/web/server.ts",
+    "gate": "bash local-orchestration/gate.sh"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

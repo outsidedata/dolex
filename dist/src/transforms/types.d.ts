@@ -81,13 +81,13 @@ export declare const manifestEntrySchema: z.ZodObject<{
     partitionBy: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     type: "boolean" | "numeric" | "categorical" | "date";
-    expr: string;
     column: string;
+    expr: string;
     partitionBy?: string | undefined;
 }, {
     type: "boolean" | "numeric" | "categorical" | "date";
-    expr: string;
     column: string;
+    expr: string;
     partitionBy?: string | undefined;
 }>;
 export type ManifestEntry = z.infer<typeof manifestEntrySchema>;
@@ -100,29 +100,29 @@ export declare const manifestSchema: z.ZodObject<{
         partitionBy: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
         type: "boolean" | "numeric" | "categorical" | "date";
-        expr: string;
         column: string;
+        expr: string;
         partitionBy?: string | undefined;
     }, {
         type: "boolean" | "numeric" | "categorical" | "date";
-        expr: string;
         column: string;
+        expr: string;
         partitionBy?: string | undefined;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     version: 1;
     tables: Record<string, {
         type: "boolean" | "numeric" | "categorical" | "date";
-        expr: string;
         column: string;
+        expr: string;
         partitionBy?: string | undefined;
     }[]>;
 }, {
     version: 1;
     tables: Record<string, {
         type: "boolean" | "numeric" | "categorical" | "date";
-        expr: string;
         column: string;
+        expr: string;
         partitionBy?: string | undefined;
     }[]>;
 }>;

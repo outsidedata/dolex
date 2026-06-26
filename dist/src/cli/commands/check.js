@@ -8,14 +8,9 @@
 import { parseArgs, str, bool } from '../args.js';
 import * as o from '../output.js';
 import { openTarget } from '../data-source.js';
-import { auditColumns } from '../../analysis/quality.js';
+import { auditDataset } from '../../analysis/quality.js';
 const BOOLEANS = ['json', 'help'];
 const ALIASES = { h: 'help', table: 'from' };
-const MAX_DUP_ROWS_SCAN = 500_000; // skip the full-table distinct scan above this
-const MAX_IDENTICAL_PAIRS = 80; // bound the pairwise identical-column comparison
-function esc(name) {
-    return `"${name.replace(/"/g, '""')}"`;
-}
 export async function checkCommand(argv) {
     const args = parseArgs(argv, { booleans: BOOLEANS, aliases: ALIASES });
     if (bool(args, 'help')) {
@@ -33,11 +28,7 @@ export async function checkCommand(argv) {
         const tablesToCheck = explicitTable
             ? opened.tables.filter((t) => t.name === opened.defaultTable)
             : opened.tables;
-        const findings = [];
-        for (const t of tablesToCheck) {
-            findings.push(...auditColumns(t.name, t.columns, t.rowCount));
-            findings.push(...(await tableLevelChecks(opened, t)));
-        }
+        const findings = await auditDataset(tablesToCheck, (sql) => opened.query(sql));
         if (bool(args, 'json')) {
             const counts = countBySeverity(findings);
             o.out(JSON.stringify({ tables: tablesToCheck.map((t) => t.name), counts, findings }, null, 2));
@@ -48,81 +39,6 @@ export async function checkCommand(argv) {
     finally {
         await opened.close();
     }
-}
-async function tableLevelChecks(opened, t) {
-    const out = [];
-    // Duplicate rows (skip very large tables to bound cost).
-    if (t.rowCount > 0 && t.rowCount <= MAX_DUP_ROWS_SCAN) {
-        const res = await opened.query(`SELECT (SELECT COUNT(*) FROM ${esc(t.name)}) - (SELECT COUNT(*) FROM (SELECT DISTINCT * FROM ${esc(t.name)})) AS dups`);
-        const dups = res.ok && res.rows && res.rows[0] ? Number(res.rows[0].dups) : NaN;
-        if (!res.ok || !Number.isFinite(dups)) {
-            // A failed check must be loud — never report clean when we didn't actually look.
-            out.push({
-                severity: 'high',
-                table: t.name,
-                issue: 'check-incomplete',
-                detail: `Duplicate-row check could not complete${res.ok ? '' : `: ${res.error}`}.`,
-                suggestion: 'The audit is incomplete — do not trust a clean result; re-run.',
-            });
-        }
-        else if (dups > 0) {
-            out.push({
-                severity: 'medium',
-                table: t.name,
-                issue: 'duplicate-rows',
-                detail: `${dups} fully-duplicate row${dups === 1 ? '' : 's'} (${pct(dups, t.rowCount)} of the table).`,
-                suggestion: 'Verify these are real repeats and not an accidental double-load or join fan-out.',
-            });
-        }
-    }
-    // Identical (redundant/leaked) columns: only compare columns that already share
-    // type + cardinality + null count, so the pairwise scan stays cheap.
-    const groups = new Map();
-    for (const c of t.columns) {
-        const key = `${c.type}|${c.uniqueCount}|${c.nullCount}`;
-        const arr = groups.get(key);
-        if (arr)
-            arr.push(c);
-        else
-            groups.set(key, [c]);
-    }
-    let comparisons = 0;
-    for (const group of groups.values()) {
-        if (group.length < 2)
-            continue;
-        for (let i = 0; i < group.length; i++) {
-            for (let j = i + 1; j < group.length; j++) {
-                if (comparisons++ >= MAX_IDENTICAL_PAIRS)
-                    break;
-                const a = group[i].name;
-                const b = group[j].name;
-                const res = await opened.query(`SELECT COUNT(*) AS diff FROM ${esc(t.name)} WHERE ${esc(a)} IS NOT ${esc(b)}`);
-                const diff = res.ok && res.rows && res.rows[0] ? Number(res.rows[0].diff) : NaN;
-                if (!res.ok || !Number.isFinite(diff)) {
-                    // Don't silently treat a failed comparison as "columns differ".
-                    out.push({
-                        severity: 'high',
-                        table: t.name,
-                        column: `${a} vs ${b}`,
-                        issue: 'check-incomplete',
-                        detail: `Could not compare columns "${a}" and "${b}"${res.ok ? '' : `: ${res.error}`}.`,
-                        suggestion: 'The audit is incomplete — do not trust a clean result; re-run.',
-                    });
-                }
-                else if (diff === 0) {
-                    out.push({
-                        severity: 'high',
-                        table: t.name,
-                        column: `${a} = ${b}`,
-                        issue: 'identical-columns',
-                        detail: `Columns "${a}" and "${b}" are identical on every row.`,
-                        suggestion: 'Redundant or leaked feature — a model/analysis "predicting" one just reads the other. Drop one.',
-                    });
-                }
-            }
-        }
-    }
-    return out;
 }
 const ORDER = ['high', 'medium', 'low'];
 const LABEL = { high: 'HIGH', medium: 'MEDIUM', low: 'LOW' };
@@ -163,9 +79,6 @@ function countBySeverity(findings) {
         medium: findings.filter((f) => f.severity === 'medium').length,
         low: findings.filter((f) => f.severity === 'low').length,
     };
-}
-function pct(n, total) {
-    return total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '0%';
 }
 function printHelp() {
     o.out(`${o.c.bold('dolex check')} — audit data for bad data & analysis footguns

@@ -25,6 +25,16 @@ export interface DataColumn {
         value: string;
         count: number;
     }[];
+    /**
+     * Numeric columns only: the dominant non-numeric value the connector coerced to
+     * NULL on load (a string sentinel like "Undrafted" hiding in an otherwise-numeric
+     * column). NUMERIC affinity erases it from the stored data, so the auditor can't
+     * see it any other way — this is how the affinity-trap (mixed-type) is surfaced.
+     */
+    coercedNonNumeric?: {
+        token: string;
+        count: number;
+    };
 }
 export interface DataTable {
     name: string;

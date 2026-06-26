@@ -19,6 +19,7 @@ ${o.c.bold('COMMANDS')}
   ${o.c.cyan('analyze')}    <csv|source>     Auto-generate an analysis plan with ready-to-run SQL
   ${o.c.cyan('describe')}   <csv|source>     Profile columns: types, roles, stats, sample rows
   ${o.c.cyan('check')}      <csv|source>     Audit for bad data & footguns (type traps, sentinels, dupes…)
+  ${o.c.cyan('clean')}      <csv>            Remediate a column with a Python clean() you write (preview/apply)
   ${o.c.cyan('transform')}  <csv|source>     Add a persisted derived column (--create … --expr …)
   ${o.c.cyan('columns')}    <csv|source>     List columns by layer (source / derived / working)
   ${o.c.cyan('drop')}       <csv|source>     Remove derived/working columns

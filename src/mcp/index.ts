@@ -69,6 +69,8 @@ import { handleTransformData } from './tools/transform-data.js';
 import { handlePromoteColumns } from './tools/promote-columns.js';
 import { handleListTransforms } from './tools/list-transforms.js';
 import { handleDropColumns } from './tools/drop-columns.js';
+import { cleanColumnSchema } from './tools/clean-schemas.js';
+import { handleCleanColumn } from './tools/clean-column.js';
 import { specStore } from './spec-store.js';
 
 import { mkdirSync, readFileSync } from 'fs';
@@ -129,6 +131,7 @@ const server = new McpServer(
       '• describe_data: Full column stats, top values, sample rows. Call only when you need deep exploration.',
       '• analyze_data: Auto-generate analysis plan with ready SQL queries. Execute each step with visualize; present results one at a time.',
       '• query_data: Run SQL query, get rows. Returns resultId for visualize().',
+      '• clean_column: Clean one column with a Python clean(value) you write — parse messy dates, null sentinels, canonicalize categories. Preview first, then apply:true writes a non-destructive <column>_clean. (Requires python3.)',
       '• visualize: Chart data. Pass inline data array, resultId from query_data, or sourceId + sql for server-side query. Matches a chart to the shape of the data. Set title/subtitle here to avoid a refine round-trip.',
       '• refine_visualization: Tweak a chart — sort, limit, filter, palette, highlight, flip, title, format. Each call returns a new specId.',
       '• list_patterns: Browse available chart types. Only needed when the user asks what charts are available or you need a pattern ID.',
@@ -250,7 +253,7 @@ server.registerTool(
   'query_data',
   {
     title: 'Query Data',
-    description: 'Run a SQL query on a loaded dataset. JOINs, GROUP BY, window functions, CTEs.\nCustom aggregates: MEDIAN, STDDEV, P25, P75, P10, P90.\nReturns resultId for visualize().',
+    description: 'Run a SQL query on a loaded dataset. JOINs, GROUP BY, window functions, CTEs.\nCustom aggregates: MEDIAN, STDDEV, CV, MAD, P1/P5/P10/P25/P75/P90/P95/P99.\nReturns resultId for visualize().',
     inputSchema: querySourceInputSchema,
   },
   handleQuerySource({ sourceManager }),
@@ -295,6 +298,16 @@ server.registerTool(
     inputSchema: dropColumnsSchema.shape,
   },
   handleDropColumns({ sourceManager }),
+);
+
+server.registerTool(
+  'clean_column',
+  {
+    title: 'Clean Column',
+    description: 'Clean one column by writing a Python `def clean(value):` function (you author it, the server runs it — the Python sibling of query_data). PREVIEW first (apply omitted/false): validates the fix and returns before→after stats + a sample WITHOUT writing. Then call again with apply:true to write a NEW column (<column>_clean) — NON-DESTRUCTIVE, the original column is kept.\n\nWHEN TO USE: after describe_data or the data-quality audit flags a column (a sentinel value, a mixed-type column, messy categories). Use it for fixes the SQL expression language can\'t do: parse a non-ISO date (datetime.strptime → ISO), null a sentinel (return None for "None"/"Undrafted"/999999), canonicalize a messy category (value.strip().lower()). NOTE: value arrives as a string (or None) — cast before numeric work.\n\nRequires python3 on PATH. Executes the Python you provide — same trust model as the SQL you pass to query_data.',
+    inputSchema: cleanColumnSchema.shape,
+  },
+  handleCleanColumn({ sourceManager }),
 );
 
 // Privacy / cache management tools

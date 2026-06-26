@@ -50,6 +50,7 @@ export interface ResolvedData {
     queryMeta?: {
         truncated?: boolean;
         totalSourceRows?: number;
+        warnings?: string[];
     };
     extraMeta?: {
         sqlPreview?: string;

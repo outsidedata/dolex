@@ -78,6 +78,9 @@ async function main(): Promise<void> {
     case 'audit':
       process.exit(await (await import('./commands/check.js')).checkCommand(rest));
 
+    case 'clean':
+      process.exit(await (await import('./commands/clean.js')).cleanCommand(rest));
+
     case 'transform':
       process.exit(await (await import('./commands/transform.js')).transformCommand(rest));
 

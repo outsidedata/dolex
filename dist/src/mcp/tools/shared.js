@@ -211,7 +211,7 @@ export async function resolveData(args, deps) {
             return errorResponse(result.error);
         }
         data = result.rows;
-        queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
+        queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows, warnings: result.warnings };
         extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
     }
     if (!data && args.resultId) {

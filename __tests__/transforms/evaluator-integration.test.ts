@@ -126,6 +126,23 @@ describe('Evaluator Integration', () => {
       const rows = [{ x: null }, { x: null }];
       expect(() => evaluateExpression('x + 1', rows)).toThrow(/null for all|all-null column/i);
     });
+
+    it('treats a non-finite (Infinity) literal as null — never persists +Inf (red-team #11)', () => {
+      // 1e400 overflows to IEEE Infinity; it must become null, not a "valid"
+      // numeric. An all-Infinity column therefore trips the all-null guard.
+      const rows = [{ x: 1 }, { x: 2 }];
+      expect(() => evaluateExpression('1e400', rows)).toThrow(/null for all|all-null column/i);
+      expect(() => evaluateExpression('x * 1e400', rows)).toThrow(/null for all|all-null column/i);
+    });
+
+    it('non-finite values count as null in stats (no Infinity reported as a valid number)', () => {
+      // division by zero -> Infinity in JS; must be null, not Infinity.
+      const rows = [{ x: 1, z: 0 }, { x: 2, z: 2 }];
+      const r = evaluateExpression('x / z', rows);
+      expect(r.values[0]).toBeNull();      // 1/0 -> Infinity -> null
+      expect(r.values[1]).toBe(1);          // 2/2 -> 1
+      expect(r.values.some((v) => v === Infinity || v === -Infinity)).toBe(false);
+    });
   });
 
   // A double-quoted string is a LITERAL; columns use backticks (or bare names).
@@ -168,6 +185,36 @@ describe('Evaluator Integration', () => {
 
     it('flags a non-equality comparison against a column-name literal', () => {
       expect(() => evaluateExpression('price > "carat"', rows)).toThrow(/Misquoted column|backticks/i);
+    });
+
+    it('does NOT flag a string literal in a string-arg position even if it matches a column (GOTCHA #10)', () => {
+      // "year" matches the `year` column but here it is the date_part PART name —
+      // a legit string literal, not a misquoted column. Must not throw.
+      const r = [
+        { year: 2020, ts: '2021-05-01' },
+        { year: 2019, ts: '2022-06-01' },
+      ];
+      const out = evaluateExpression('date_part(ts, "year")', r);
+      expect(out.values).toEqual([2021, 2022]);
+    });
+
+    it('still flags a misquoted column in a NUMERIC function arg (log)', () => {
+      expect(() => evaluateExpression('log("price")', rows)).toThrow(/Misquoted column|backticks/i);
+    });
+
+    it('flags a misquoted column at the VALUE arg0 of coalesce/concat/in/cut (red-team #10)', () => {
+      // arg0 of these is a value/column slot, NOT a string-literal slot — a quoted
+      // column name there is the footgun the guard exists to catch.
+      expect(() => evaluateExpression('coalesce("price", 0)', rows)).toThrow(/Misquoted column|backticks/i);
+      expect(() => evaluateExpression('concat("price", "_x")', rows)).toThrow(/Misquoted column|backticks/i);
+      expect(() => evaluateExpression('cut("price", [0, 5, 10], ["lo", "hi"])', rows)).toThrow(/Misquoted column|backticks/i);
+    });
+
+    it('still exempts genuine string-literal positions (str_contains needle, date_part part)', () => {
+      const r = [{ name: 'priceless', price: 1 }, { name: 'cheap', price: 2 }];
+      // searching for the text "price" — legit, even though a `price` column exists
+      const out = evaluateExpression('str_contains(name, "price")', r);
+      expect(out.values).toEqual([true, false]);
     });
   });
 

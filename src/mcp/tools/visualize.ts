@@ -93,7 +93,7 @@ export function handleVisualizeCore(
     maxAlternativeChartTypes?: number;
     geoLevel?: 'country' | 'subdivision';
     geoRegion?: string;
-  }, queryMeta?: { truncated?: boolean; totalSourceRows?: number }, extraMeta?: Partial<OperationMeta>) => {
+  }, queryMeta?: { truncated?: boolean; totalSourceRows?: number; warnings?: string[] }, extraMeta?: Partial<OperationMeta>) => {
     const start = Date.now();
     const notes: string[] = [];
     const columns = (args.columns as DataColumn[]) || inferColumns(data);
@@ -156,6 +156,7 @@ export function handleVisualizeCore(
         columns: columns.map(c => ({ name: c.name, type: c.type })),
         ...(queryMeta?.truncated ? { truncated: true, totalSourceRows: queryMeta.totalSourceRows } : {}),
       },
+      ...(queryMeta?.warnings?.length ? { warnings: queryMeta.warnings } : {}),
     };
 
     if (isCompoundSpec(finalSpec)) {

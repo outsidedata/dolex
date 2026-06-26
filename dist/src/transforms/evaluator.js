@@ -207,11 +207,17 @@ export function evaluateExpression(expr, rows, options) {
             values[i] = null;
             continue;
         }
-        values[i] = evaluate(ast, {
+        const v = evaluate(ast, {
             row: rows[i],
             rowIndex: filteredIndex,
             precomputed: pre,
         });
+        // Non-finite numbers (Infinity/-Infinity/NaN — from overflow like 1e400 or
+        // x/0) are NOT valid column values: SQLite can't round-trip them and they
+        // poison aggregates. Treat them as null so they count toward the null stats
+        // and the all-null guard fires. (Symmetric with the CSV loader's isFinite
+        // check; red-team #11.)
+        values[i] = typeof v === 'number' && !Number.isFinite(v) ? null : v;
         filteredIndex++;
     }
     // Compute stats
@@ -242,6 +248,40 @@ export function evaluateExpression(expr, rows, options) {
  * double quotes are string literals). A string compared for equality against a
  * column (`status == "active"`) is a legitimate value comparison and exempt.
  */
+/**
+ * Per-function argument positions that genuinely take a STRING LITERAL (not a
+ * column). A string at one of these positions is exempt from the misquoted-column
+ * guard. Functions absent here (log, sqrt, abs, arithmetic, …) keep flagging, so
+ * `log("price")` is still caught. 'all' = every arg position is a string position.
+ */
+// Only positions that are GENUINELY string-literal slots are exempt. Crucially,
+// arg0 of coalesce/concat/in/recode/cut is the VALUE/COLUMN slot — a quoted
+// column name THERE is the misquote footgun, so those are NOT 'all' (red-team
+// #10). `{rest: n}` exempts every position from n onward (e.g. in()'s comparand
+// list, recode()'s from/to pairs). Functions absent here (log, sqrt, coalesce,
+// concat, cut arg0, arithmetic) keep flagging. Array string elements are exempt
+// separately in the walker (they are string-expected labels/comparands).
+const STRING_ARG_POSITIONS = {
+    date_part: [1],
+    date_floor: [1],
+    date_diff: [2],
+    str_contains: [1],
+    str_replace: [1, 2],
+    fill_null: [1],
+    null_if: [1],
+    in: { rest: 1 },
+    recode: { rest: 1 },
+};
+function isStringArgPosition(fn, idx) {
+    const spec = STRING_ARG_POSITIONS[fn];
+    if (!spec)
+        return false;
+    if (spec === 'all')
+        return true;
+    if (Array.isArray(spec))
+        return spec.includes(idx);
+    return idx >= spec.rest;
+}
 function findMisquotedColumnLiterals(ast, columns) {
     const hits = new Set();
     function walk(node) {
@@ -266,10 +306,25 @@ function findMisquotedColumnLiterals(ast, columns) {
                 walk(node.operand);
                 return;
             case 'call':
-                node.args.forEach(walk);
+                // A string literal at a position where the function genuinely expects a
+                // string (e.g. date_part(col, "year"), str_contains(col, "x")) is an
+                // intentional value, NOT a misquoted column — don't flag it even if it
+                // matches a column name (GOTCHA #10). Numeric functions (log, sqrt, …)
+                // are NOT in the map, so log("price") is still correctly flagged.
+                node.args.forEach((arg, idx) => {
+                    if (arg.type === 'string' && isStringArgPosition(node.name, idx))
+                        return;
+                    walk(arg);
+                });
                 return;
             case 'array':
-                node.elements.forEach(walk);
+                // String elements of an array literal are intentional labels/values
+                // (cut labels, in-lists, recode pairs), not misquoted columns.
+                node.elements.forEach((el) => {
+                    if (el.type === 'string')
+                        return;
+                    walk(el);
+                });
                 return;
             default:
                 return;

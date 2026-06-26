@@ -123,6 +123,7 @@ export function handleVisualizeCore(selectPatterns, toolName = 'visualize') {
                 columns: columns.map(c => ({ name: c.name, type: c.type })),
                 ...(queryMeta?.truncated ? { truncated: true, totalSourceRows: queryMeta.totalSourceRows } : {}),
             },
+            ...(queryMeta?.warnings?.length ? { warnings: queryMeta.warnings } : {}),
         };
         if (isCompoundSpec(finalSpec)) {
             compactResponse.compound = true;

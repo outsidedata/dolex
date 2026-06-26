@@ -22,6 +22,29 @@ describe('generateCandidates', () => {
     expect(trend!.suggestedPatterns).toContain('line');
   });
 
+  it('generates a period-over-period growth step (LAG, NULLIF-guarded %) for date + measure', () => {
+    const cols = [cc('order_date', 'time'), cc('revenue', 'measure')];
+    const c = generateCandidates(cols, table).find(s => /growth/i.test(s.title));
+    expect(c).toBeDefined();
+    expect(c!.sql).toContain('LAG(');
+    expect(c!.sql).toContain('NULLIF(');
+    expect(c!.sql).toContain('pct_change');
+    expect(c!.sql).toContain('100.0'); // real division, not integer
+  });
+
+  it('generates a seasonality step (month-of-year) for an ISO date + measure', () => {
+    const cols = [cc('order_date', 'time'), cc('revenue', 'measure')];
+    const c = generateCandidates(cols, table).find(s => /seasonal/i.test(s.title));
+    expect(c).toBeDefined();
+    expect(c!.sql).toContain("strftime('%m'");
+  });
+
+  it('skips seasonality for a year-only time column', () => {
+    const cols = [cc('season_year', 'time', { topValues: [{ value: '2021', count: 5 }, { value: '2022', count: 5 }] as any }), cc('revenue', 'measure')];
+    const c = generateCandidates(cols, table).find(s => /seasonal/i.test(s.title));
+    expect(c).toBeUndefined();
+  });
+
   it('generates a comparison when dimension + measure exist', () => {
     const cols = [cc('region', 'dimension', { uniqueCount: 5 }), cc('revenue', 'measure')];
     const candidates = generateCandidates(cols, table);

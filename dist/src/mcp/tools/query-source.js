@@ -8,7 +8,7 @@ import { errorResponse, jsonResponse } from './shared.js';
 import { logOperation } from './operation-log.js';
 export const querySourceInputSchema = z.object({
     sourceId: z.string().describe('Dataset ID returned by load_csv'),
-    sql: z.string().describe('SQL SELECT query. Use table and column names from load_csv/describe_data. Supports JOINs, GROUP BY, HAVING, window functions, CTEs. Custom aggregates: MEDIAN, STDDEV, P25, P75, P10, P90.'),
+    sql: z.string().describe('SQL SELECT query. Use table and column names from load_csv/describe_data. Supports JOINs, GROUP BY, HAVING, window functions, CTEs. Custom aggregates: MEDIAN, STDDEV, CV (coeff. of variation), MAD (median abs. deviation), P1/P5/P10/P25/P75/P90/P95/P99.'),
     maxRows: z.number().optional().describe('Max rows to return (default: 10000)'),
 });
 export function handleQuerySource(deps) {
@@ -49,6 +49,7 @@ export function handleQuerySource(deps) {
             rows: result.rows,
             totalRows: result.totalRows,
             truncated: result.truncated ?? false,
+            ...(result.warnings?.length ? { warnings: result.warnings } : {}),
             queryTimeMs: Date.now() - start,
         });
     };

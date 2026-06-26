@@ -234,7 +234,7 @@ export function formatUptime(ms: number): string {
 
 export interface ResolvedData {
   data: Record<string, any>[];
-  queryMeta?: { truncated?: boolean; totalSourceRows?: number };
+  queryMeta?: { truncated?: boolean; totalSourceRows?: number; warnings?: string[] };
   extraMeta?: { sqlPreview?: string; sourceType?: string };
 }
 
@@ -262,7 +262,7 @@ export async function resolveData(
       return errorResponse(result.error);
     }
     data = result.rows;
-    queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows };
+    queryMeta = { truncated: result.truncated, totalSourceRows: result.totalRows, warnings: result.warnings };
     extraMeta = { sqlPreview: args.sql.slice(0, 200), sourceType };
   }
 

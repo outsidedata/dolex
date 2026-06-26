@@ -17,6 +17,10 @@ export interface SqlQueryResult {
     totalRows?: number;
     truncated?: boolean;
     error?: string;
+    /** Advisory SQL-safety diagnostics (e.g. integer-division truncation). The
+     *  query still ran; these signal silent-wrong-answer traps so the caller can
+     *  re-issue a corrected query. The engine never rewrites the SQL itself. */
+    warnings?: string[];
 }
 export declare class SourceManager {
     private registry;
@@ -78,6 +82,12 @@ export declare class SourceManager {
      * Error messages are enriched with available table/column names.
      */
     querySql(idOrName: string, sql: string, maxRows?: number): Promise<SqlQueryResult>;
+    /**
+     * Advisory SQL-safety pass over a successful query. Best-effort: any failure
+     * yields no warnings (never blocks or breaks the query). Gated on a cheap
+     * syntactic pre-filter so the type probes only run when a risky term exists.
+     */
+    private analyzeSqlSafety;
     /**
      * Enrich SQLite error messages with available table/column info.
      */

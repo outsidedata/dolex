@@ -283,11 +283,69 @@ const composition: AnalysisRule = (columns, table) => {
   return null;
 };
 
+// Period-over-period growth: the change and % change of a measure vs the previous
+// time bucket (WoW/MoM/YoY depending on the bucket). Uses LAG; the % change is
+// guarded with NULLIF (div-by-zero) and 100.0 (real division) — the SQL-safety
+// traps this engine warns about, avoided at the source.
+const periodOverPeriod: AnalysisRule = (columns, table) => {
+  const timeCol = first(columns, 'time');
+  const measureCol = first(columns, 'measure');
+  if (!timeCol || !measureCol) return null;
+  const tb = timeBucketing(timeCol);
+  if (!tb) return null;
+  const { label: bucket, expr: bucketExpr } = tb;
+  const period = q(`${timeCol.name}_${bucket}`);
+  const total = q(sumAlias(measureCol.name));
+  const sql =
+    `WITH t AS (SELECT ${bucketExpr} AS ${period}, SUM(${q(measureCol.name)}) AS ${total} FROM ${q(table)} GROUP BY 1) ` +
+    `SELECT ${period}, ${total}, ${total} - LAG(${total}) OVER (ORDER BY ${period}) AS change, ` +
+    `ROUND(100.0 * (${total} - LAG(${total}) OVER (ORDER BY ${period})) / NULLIF(LAG(${total}) OVER (ORDER BY ${period}), 0), 1) AS pct_change ` +
+    `FROM t ORDER BY ${period} ASC`;
+  return makeStep(
+    'trend',
+    `${capitalize(measureCol.name)} Growth (period over period)`,
+    `How fast is ${capitalize(measureCol.name)} growing from one ${bucket} to the next?`,
+    `Show ${bucket}-over-${bucket} change and % change in ${measureCol.name}`,
+    `Time column "${timeCol.name}" + measure "${measureCol.name}" supports period-over-period growth (${bucket}). % change is NULLIF-guarded against a zero base.`,
+    sql,
+    table,
+    ['bar', 'line', 'waterfall'],
+  );
+};
+
+// Seasonality: average a measure by month-of-year ACROSS years, isolating the
+// recurring seasonal shape from the long-run trend. Only meaningful with sub-year
+// (ISO date) resolution — skipped for year-only columns.
+const seasonality: AnalysisRule = (columns, table) => {
+  const timeCol = first(columns, 'time');
+  const measureCol = first(columns, 'measure');
+  if (!timeCol || !measureCol) return null;
+  if (isYearColumn(timeCol)) return null; // year-only → no within-year season
+  const vals = (timeCol.topValues ?? []).map((t) => String(t.value));
+  if (vals.length > 0 && !isIsoDateColumn(timeCol)) return null; // non-ISO date → strftime would NULL
+  const c = q(timeCol.name);
+  const sql =
+    `SELECT strftime('%m', ${c}) AS month, AVG(${q(measureCol.name)}) AS ${q(`avg_${measureCol.name}`)} ` +
+    `FROM ${q(table)} WHERE strftime('%m', ${c}) IS NOT NULL GROUP BY 1 ORDER BY 1 ASC`;
+  return makeStep(
+    'trend',
+    `${capitalize(measureCol.name)} Seasonality (by month)`,
+    `Does ${capitalize(measureCol.name)} follow a recurring monthly/seasonal pattern?`,
+    `Show average ${measureCol.name} by month of year across all years`,
+    `ISO date "${timeCol.name}" + measure "${measureCol.name}" lets us average by month-of-year to separate seasonality from trend.`,
+    sql,
+    table,
+    ['bar', 'line', 'radar'],
+  );
+};
+
 // --- All Rules --------------------------------------------------------------
 
 const ALL_RULES: AnalysisRule[] = [
   timeTrend,
   trendByGroup,
+  periodOverPeriod,
+  seasonality,
   comparison,
   distribution,
   relationship,

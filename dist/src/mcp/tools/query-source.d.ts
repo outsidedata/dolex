@@ -8,12 +8,12 @@ export declare const querySourceInputSchema: z.ZodObject<{
     sql: z.ZodString;
     maxRows: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    sourceId: string;
     sql: string;
+    sourceId: string;
     maxRows?: number | undefined;
 }, {
-    sourceId: string;
     sql: string;
+    sourceId: string;
     maxRows?: number | undefined;
 }>;
 export declare function handleQuerySource(deps: {

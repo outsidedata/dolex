@@ -149,6 +149,8 @@ Every query is validated before execution — field names are checked against th
 | Tool | What it does |
 |------|-------------|
 | `load_csv` | Load a CSV file or directory |
+| `list_data` | List loaded datasets |
+| `remove_data` | Remove a loaded dataset |
 | `describe_data` | Profile columns, stats, sample rows |
 | `analyze_data` | Auto-generate an analysis plan |
 | `query_data` | Run SQL queries (JOINs, GROUP BY, window functions, CTEs) |
@@ -158,6 +160,7 @@ Every query is validated before execution — field names are checked against th
 | `promote_columns` | Persist working columns to disk |
 | `list_transforms` | List columns by layer (source/derived/working) |
 | `drop_columns` | Drop derived or working columns |
+| `clean_column` | Fix one column with a Python `clean(value)` — parse dates, null sentinels, canonicalize categories; preview then non-destructive apply (requires python3) |
 | `list_patterns` | Browse all 43 patterns |
 | `export_html` | Get raw HTML |
 | `screenshot` | Render to PNG |

@@ -11,6 +11,7 @@
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { csvConnector } from './csv.js';
+import { riskyDivisionTerms, detectSqlFootguns, divisionDenominators, detectDivByZero, detectBareAggregate } from './sql-safety.js';
 const MAX_RESULT_ROWS = 10000;
 // ─── SQL Safety ───────────────────────────────────────────────────────────
 function isReadOnlySelect(sql) {
@@ -299,17 +300,75 @@ export class SourceManager {
             // Only mark as truncated if we hit our limit AND the user didn't have an explicit LIMIT
             const userHasLimit = /\bLIMIT\s+\d+/i.test(sql);
             const hitOurLimit = result.rows.length >= Math.min(maxRows, MAX_RESULT_ROWS);
+            const warnings = await this.analyzeSqlSafety(resolved.source, sql);
             return {
                 ok: true,
                 rows: result.rows,
                 columns: result.columns,
                 totalRows: result.rows.length,
                 truncated: hitOurLimit && !userHasLimit,
+                ...(warnings.length ? { warnings } : {}),
             };
         }
         catch (err) {
             const enriched = await this.enrichSqlError(idOrName, err.message);
             return { ok: false, error: `SQL query failed: ${enriched}` };
+        }
+    }
+    /**
+     * Advisory SQL-safety pass over a successful query. Best-effort: any failure
+     * yields no warnings (never blocks or breaks the query). Gated on a cheap
+     * syntactic pre-filter so the type probes only run when a risky term exists.
+     */
+    async analyzeSqlSafety(source, sql) {
+        try {
+            const hasDivision = riskyDivisionTerms(sql).length > 0;
+            const denoms = divisionDenominators(sql);
+            const maybeBareAgg = /\b(?:SUM|AVG|COUNT|MIN|MAX|TOTAL|GROUP_CONCAT|MEDIAN|STDDEV)\s*\(/i.test(sql) && !/\bGROUP\s+BY\b/i.test(sql);
+            if (!hasDivision && denoms.length === 0 && !maybeBareAgg)
+                return [];
+            const schema = await source.getSchema();
+            const colToTable = new Map();
+            for (const t of schema.tables)
+                for (const c of t.columns)
+                    if (!colToTable.has(c.name))
+                        colToTable.set(c.name, t.name);
+            const typeCache = new Map();
+            const columnType = async (col) => {
+                if (typeCache.has(col))
+                    return typeCache.get(col);
+                let type;
+                const table = colToTable.get(col);
+                if (table) {
+                    const r = await source.executeQuery(`SELECT typeof("${col}") AS t FROM "${table}" WHERE "${col}" IS NOT NULL LIMIT 1`);
+                    const v = r.rows?.[0]?.t;
+                    type = typeof v === 'string' ? v : undefined;
+                }
+                typeCache.set(col, type);
+                return type;
+            };
+            const zeroCache = new Map();
+            const columnHasZero = async (col) => {
+                if (zeroCache.has(col))
+                    return zeroCache.get(col);
+                let zero = false;
+                const table = colToTable.get(col);
+                if (table) {
+                    const r = await source.executeQuery(`SELECT 1 AS z FROM "${table}" WHERE "${col}" = 0 LIMIT 1`);
+                    zero = (r.rows?.length ?? 0) > 0;
+                }
+                zeroCache.set(col, zero);
+                return zero;
+            };
+            const warnings = [
+                ...(await detectSqlFootguns(sql, columnType)),
+                ...(await detectDivByZero(sql, columnHasZero)),
+                ...detectBareAggregate(sql, (col) => colToTable.has(col)),
+            ];
+            return warnings.map((w) => w.message);
+        }
+        catch {
+            return [];
         }
     }
     /**
@@ -331,7 +390,7 @@ export class SourceManager {
                 return `${errorMsg}. Available tables: ${tables.join(', ')}`;
             }
             if (/no such function/i.test(errorMsg)) {
-                return `${errorMsg}. Available aggregate functions: SUM, AVG, MIN, MAX, COUNT, MEDIAN, STDDEV, P25, P75, P10, P90. Window functions: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, etc.`;
+                return `${errorMsg}. Available aggregate functions: SUM, AVG, MIN, MAX, COUNT, MEDIAN, STDDEV, CV, MAD, P1, P5, P10, P25, P75, P90, P95, P99. Window functions: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, etc.`;
             }
         }
         catch {

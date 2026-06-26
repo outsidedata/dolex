@@ -46,6 +46,7 @@ export async function visualizeCommand(argv: string[]): Promise<number> {
       }
       data = res.rows ?? [];
       queryMeta = { truncated: res.truncated, totalSourceRows: res.totalRows };
+      for (const w of res.warnings ?? []) o.warn(w);
     } finally {
       await opened.close();
     }

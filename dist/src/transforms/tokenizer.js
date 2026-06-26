@@ -24,14 +24,31 @@ export function tokenize(input) {
                 while (i < input.length && isDigit(input[i]))
                     i++;
             }
+            // Optional exponent (GOTCHA #11): e/E, optional sign, ≥1 digit. Only consume
+            // it when digits actually follow, so a bare trailing "e" stays an identifier.
+            if (i < input.length && (input[i] === 'e' || input[i] === 'E')) {
+                let j = i + 1;
+                if (j < input.length && (input[j] === '+' || input[j] === '-'))
+                    j++;
+                if (j < input.length && isDigit(input[j])) {
+                    i = j;
+                    while (i < input.length && isDigit(input[i]))
+                        i++;
+                }
+            }
             tokens.push({ type: 'NUMBER', value: input.slice(start, i), pos: start });
             continue;
         }
-        if (ch === '"') {
+        // String literals accept EITHER double or single quotes (GOTCHA #7). The
+        // closing quote must match the opener, so an apostrophe inside a
+        // double-quoted string — and a double quote inside a single-quoted string —
+        // are literal content, not terminators.
+        if (ch === '"' || ch === "'") {
+            const quote = ch;
             const start = i;
             i++;
             let str = '';
-            while (i < input.length && input[i] !== '"') {
+            while (i < input.length && input[i] !== quote) {
                 if (input[i] === '\\' && i + 1 < input.length) {
                     const esc = input[i + 1];
                     str += ESCAPE_MAP[esc] ?? ('\\' + esc);
@@ -104,6 +121,7 @@ function isIdentChar(ch) {
 // ─── Lookup Tables ───────────────────────────────────────────────────────────
 const ESCAPE_MAP = {
     '"': '"',
+    "'": "'",
     '\\': '\\',
     'n': '\n',
     't': '\t',
