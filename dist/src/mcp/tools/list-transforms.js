@@ -6,6 +6,28 @@ export function handleListTransforms(deps) {
         const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
         if (isTransformError(ctx))
             return ctx;
+        // Live sources (Postgres/Mongo) have no SQLite handle. Their derived columns are
+        // session-local (created via transform_data) and surface in the introspected schema
+        // tagged layer:'derived'. List those from the schema instead of dereferencing a null
+        // db handle (which previously threw "Cannot read properties of undefined").
+        if (!ctx.db) {
+            const schema = await ctx.source.getSchema();
+            const tbl = schema.tables.find((t) => t.name === args.table);
+            const cols = tbl?.columns ?? [];
+            const derived = cols.filter((c) => c.layer === 'derived');
+            const sourceCols = cols.filter((c) => c.layer !== 'derived');
+            return jsonResponse({
+                source_columns: sourceCols.map((c) => c.name),
+                derived_columns: derived.map((c) => ({
+                    column: c.name,
+                    layer: 'derived',
+                    note: 'session-local (created via transform_data); expression not tracked on a live source',
+                })),
+                working_columns: [],
+                total_columns: cols.length,
+                note: `Live ${ctx.source.type} source — derived columns are session-local to this connection and are not persisted (no working layer or manifest). Recreate them with transform_data.`,
+            });
+        }
         const metadata = new TransformMetadata(ctx.db);
         metadata.init();
         const mgr = new ColumnManager(ctx.db);

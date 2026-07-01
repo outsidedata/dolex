@@ -6,6 +6,8 @@ export function handleCleanColumn(deps) {
         const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
         if (isTransformError(ctx))
             return ctx;
+        if (!ctx.db)
+            return errorResponse(`clean_column runs a Python clean() over CSV-backed rows. On a live ${ctx.source.type} source, express the fix as a derived column via transform_data using a native ${ctx.source.type === 'mongodb' ? 'aggregation ($set) expression' : 'SQL expression'} — non-destructive and server-side.`);
         const colNames = ctx.table.columns.map((c) => c.name);
         if (!colNames.includes(args.column))
             return errorResponse(`Column '${args.column}' not found. Available: [${colNames.join(', ')}]`);

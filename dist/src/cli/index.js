@@ -86,6 +86,9 @@ async function main() {
         case 'sources':
         case 'source':
             process.exit(await (await import('./commands/sources.js')).sourcesCommand(rest));
+        case 'deps':
+        case 'doctor':
+            process.exit(await (await import('./commands/deps.js')).depsCommand(rest));
         case 'mcp':
         case 'serve':
             await startMcpServer();

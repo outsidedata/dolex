@@ -14,10 +14,13 @@ import * as crypto from 'crypto';
 import type { DataSourceType, DataSourceConfig, DataSchema } from '../types.js';
 import type {
   ConnectedSource,
+  DataConnector,
   SourceRegistryEntry,
   QueryExecutionResult,
 } from './types.js';
 import { csvConnector } from './csv.js';
+import { pgConnector } from './pg/index.js';
+import { mongoConnector } from './mongo/index.js';
 import { riskyDivisionTerms, detectSqlFootguns, divisionDenominators, detectDivByZero, detectBareAggregate } from './sql-safety.js';
 
 const MAX_RESULT_ROWS = 10000;
@@ -85,11 +88,39 @@ function generateSourceId(name: string): string {
   return `src-${hash}`;
 }
 
-const CONNECTOR_MAP: Record<string, typeof csvConnector> = {
+/** Classify a connection failure into an actionable kind, so callers can give a specific next step
+ *  (install the driver / start the DB / fix credentials) instead of relaying a raw driver string. */
+export function classifyConnError(msg = ''): 'driver-missing' | 'unreachable' | 'host-not-found' | 'timeout' | 'auth-failed' | 'db-not-found' | 'error' {
+  if (/needs an optional dependency|npm install/i.test(msg)) return 'driver-missing';
+  if (/ECONNREFUSED|connection refused/i.test(msg)) return 'unreachable';
+  if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg)) return 'host-not-found';
+  if (/ETIMEDOUT|timed? ?out/i.test(msg)) return 'timeout';
+  if (/password|authentication|auth(entication)? failed|SCRAM|role ".*" does not exist|not authorized/i.test(msg)) return 'auth-failed';
+  if (/database ".*" does not exist|Unknown database|no such database/i.test(msg)) return 'db-not-found';
+  return 'error';
+}
+
+const CONNECTOR_MAP: Record<string, DataConnector> = {
   csv: csvConnector,
+  postgres: pgConnector,
+  mongodb: mongoConnector,
 };
 
-function getConnectorForType(type: DataSourceType): typeof csvConnector | undefined {
+/** SQL-family sources go through the SQL safety/limit/error machinery; a document store
+ *  (mongodb) is routed down a pipeline path instead (no SELECT gate, no LIMIT-wrap). */
+const isSqlSource = (type?: string): boolean => type === 'csv' || type === 'postgres';
+
+/** Read-only gate for an aggregation pipeline: reject write stages ($out/$merge) and any
+ *  arbitrary-JS operators ($function/$accumulator/$where) — the Mongo analogue of the
+ *  SELECT-only SQL gate. Best-effort: a malformed pipeline string is rejected too. */
+function isReadOnlyPipeline(query: string): { ok: boolean; error?: string } {
+  if (/"\$(?:out|merge|function|accumulator|where)"/i.test(query)) {
+    return { ok: false, error: 'Only read-only aggregation pipelines are allowed (no $out/$merge/$function/$accumulator/$where).' };
+  }
+  return { ok: true };
+}
+
+function getConnectorForType(type: DataSourceType): DataConnector | undefined {
   return CONNECTOR_MAP[type];
 }
 
@@ -158,6 +189,8 @@ export class SourceManager {
       const tmpPath = `${this.persistPath}.${process.pid}.tmp`;
       fs.writeFileSync(tmpPath, JSON.stringify(entries, null, 2), 'utf-8');
       fs.renameSync(tmpPath, this.persistPath);
+      // The registry may hold connection strings / credentials — restrict it to the owner.
+      try { fs.chmodSync(this.persistPath, 0o600); } catch { /* best-effort */ }
     } catch {
       // Persistence failure is non-fatal
     }
@@ -171,16 +204,12 @@ export class SourceManager {
    */
   async add(
     name: string,
-    config: DataSourceConfig
-  ): Promise<{ ok: boolean; entry?: SourceRegistryEntry; error?: string }> {
+    config: DataSourceConfig,
+    opts: { verify?: boolean } = {},
+  ): Promise<{ ok: boolean; entry?: SourceRegistryEntry; error?: string; verified?: boolean; warning?: string }> {
     const connector = getConnectorForType(config.type);
     if (!connector) {
       return { ok: false, error: `Unsupported data source type: ${config.type}` };
-    }
-
-    const testResult = await connector.test(config);
-    if (!testResult.ok) {
-      return { ok: false, error: testResult.error };
     }
 
     const id = generateSourceId(name);
@@ -191,11 +220,56 @@ export class SourceManager {
       };
     }
 
+    // Config-first: liveness is NOT a precondition for registering (a DB can be momentarily down,
+    // asleep, or behind a not-yet-started tunnel). We verify, but only REFUSE when opts.verify is
+    // set; otherwise we persist the config and report the connectivity result so the caller can act.
+    const testResult = await connector.test(config);
+    if (!testResult.ok && opts.verify) {
+      return { ok: false, error: testResult.error, verified: false };
+    }
+
     const entry: SourceRegistryEntry = { id, name, type: config.type, config };
     this.registry.set(id, entry);
     this.saveRegistry();
 
-    return { ok: true, entry };
+    return { ok: true, entry, verified: testResult.ok, warning: testResult.ok ? undefined : testResult.error };
+  }
+
+  /**
+   * Update a registered source's config in place (DB moved, password rotated, driver now installed)
+   * WITHOUT losing its id — so every existing reference keeps working. `patch` is merged over the
+   * stored config; the type is immutable. Any live connection is closed so the next use reconnects.
+   */
+  async update(
+    idOrName: string,
+    patch: Partial<DataSourceConfig>,
+    opts: { verify?: boolean } = {},
+  ): Promise<{ ok: boolean; entry?: SourceRegistryEntry; error?: string; verified?: boolean; warning?: string }> {
+    const entry = this.findEntry(idOrName);
+    if (!entry) return { ok: false, error: `Source not found: ${idOrName}` };
+    const config = { ...entry.config, ...patch, type: entry.config.type } as DataSourceConfig;
+    const connector = getConnectorForType(config.type)!;
+    const testResult = await connector.test(config);
+    if (!testResult.ok && opts.verify) return { ok: false, error: testResult.error, verified: false };
+    const conn = this.connections.get(entry.id);
+    if (conn) { await conn.close(); this.connections.delete(entry.id); }
+    entry.config = config;
+    this.registry.set(entry.id, entry);
+    this.saveRegistry();
+    return { ok: true, entry, verified: testResult.ok, warning: testResult.ok ? undefined : testResult.error };
+  }
+
+  /**
+   * Connectivity health-check for a REGISTERED source (the return-user's "is my saved DB still
+   * reachable?" and an agent's pre-flight). Returns a classified failure so the caller can give an
+   * actionable next step rather than a raw driver string.
+   */
+  async testSource(idOrName: string): Promise<{ ok: boolean; error?: string; kind?: string }> {
+    const entry = this.findEntry(idOrName);
+    if (!entry) return { ok: false, error: `Source not found: ${idOrName}`, kind: 'not-registered' };
+    const connector = getConnectorForType(entry.config.type)!;
+    const r = await connector.test(entry.config);
+    return r.ok ? { ok: true } : { ok: false, error: r.error, kind: classifyConnError(r.error) };
   }
 
   /**
@@ -333,13 +407,17 @@ export class SourceManager {
     idOrName: string,
     sql: string
   ): Promise<{ ok: boolean; result?: QueryExecutionResult; error?: string }> {
-    // Enforce read-only queries to prevent SQL injection attacks
-    if (!isReadOnlySelect(sql)) {
-      return { ok: false, error: 'Only SELECT queries are allowed.' };
-    }
-
     const resolved = await this.resolveSource(idOrName);
     if (!resolved.ok) return resolved;
+
+    // A document store takes an aggregation pipeline, not SQL — gate + run accordingly.
+    if (!isSqlSource(resolved.source.type)) {
+      const guard = isReadOnlyPipeline(sql);
+      if (!guard.ok) return { ok: false, error: guard.error };
+    } else if (!isReadOnlySelect(sql)) {
+      // Enforce read-only queries to prevent SQL injection attacks
+      return { ok: false, error: 'Only SELECT queries are allowed.' };
+    }
 
     try {
       const result = await resolved.source.executeQuery(sql);
@@ -361,12 +439,18 @@ export class SourceManager {
     sql: string,
     maxRows: number = MAX_RESULT_ROWS
   ): Promise<SqlQueryResult> {
+    const resolved = await this.resolveSource(idOrName);
+    if (!resolved.ok) return resolved;
+
+    // Document store: run the read-only aggregation pipeline (no SELECT gate, no LIMIT-wrap);
+    // cap the result set client-side instead of via SQL.
+    if (!isSqlSource(resolved.source.type)) {
+      return this.queryPipeline(resolved.source, sql, Math.min(maxRows, MAX_RESULT_ROWS));
+    }
+
     if (!isReadOnlySelect(sql)) {
       return { ok: false, error: 'Only SELECT queries are allowed.' };
     }
-
-    const resolved = await this.resolveSource(idOrName);
-    if (!resolved.ok) return resolved;
 
     const cappedSql = wrapWithLimit(sql, Math.min(maxRows, MAX_RESULT_ROWS));
 
@@ -399,12 +483,39 @@ export class SourceManager {
   }
 
   /**
+   * Run a read-only aggregation pipeline against a document store and return rows + columns,
+   * capped to maxRows. The pipeline string is the {collection, pipeline} seam the connector
+   * parses. No SQL safety pass (those footguns are SQL-only); Mongo-specific footgun
+   * detection is the language-plane work, added later. Never throws (audit-on-load relies on it).
+   */
+  private async queryPipeline(
+    source: ConnectedSource,
+    query: string,
+    maxRows: number,
+  ): Promise<SqlQueryResult> {
+    const guard = isReadOnlyPipeline(query);
+    if (!guard.ok) return { ok: false, error: guard.error };
+    try {
+      const result = await source.executeQuery(query);
+      const errorMsg = hasErrorRow(result);
+      if (errorMsg) return { ok: false, error: errorMsg };
+      const capped = result.rows.slice(0, maxRows);
+      return {
+        ok: true, rows: capped, columns: result.columns,
+        totalRows: result.rows.length, truncated: result.rows.length > capped.length,
+      };
+    } catch (err: any) {
+      return { ok: false, error: `Pipeline query failed: ${err.message}` };
+    }
+  }
+
+  /**
    * Advisory SQL-safety pass over a successful query. Best-effort: any failure
    * yields no warnings (never blocks or breaks the query). Gated on a cheap
    * syntactic pre-filter so the type probes only run when a risky term exists.
    */
   private async analyzeSqlSafety(
-    source: { getSchema(): Promise<DataSchema>; executeQuery(sql: string): Promise<QueryExecutionResult> },
+    source: { type?: string; getSchema(): Promise<DataSchema>; executeQuery(sql: string): Promise<QueryExecutionResult> },
     sql: string,
   ): Promise<string[]> {
     try {
@@ -417,17 +528,28 @@ export class SourceManager {
       const colToTable = new Map<string, string>();
       for (const t of schema.tables) for (const c of t.columns) if (!colToTable.has(c.name)) colToTable.set(c.name, t.name);
 
+      // Type probe is dialect-specific: SQLite has typeof(); Postgres has pg_typeof().
+      // Normalize the result so the integer-division check ('integer') works on both —
+      // Postgres int columns report integer/bigint/smallint, floats numeric/double precision.
+      const isPg = source.type === 'postgres';
+      const normalizeType = (raw: string): string => {
+        const t = raw.toLowerCase();
+        if (t === 'integer' || t === 'bigint' || t === 'smallint') return 'integer';
+        if (t === 'numeric' || t === 'double precision' || t === 'real') return 'real';
+        return t;
+      };
       const typeCache = new Map<string, string | undefined>();
       const columnType = async (col: string): Promise<string | undefined> => {
         if (typeCache.has(col)) return typeCache.get(col);
         let type: string | undefined;
         const table = colToTable.get(col);
         if (table) {
+          const probe = isPg ? `pg_typeof("${col}")::text` : `typeof("${col}")`;
           const r = await source.executeQuery(
-            `SELECT typeof("${col}") AS t FROM "${table}" WHERE "${col}" IS NOT NULL LIMIT 1`,
+            `SELECT ${probe} AS t FROM "${table}" WHERE "${col}" IS NOT NULL LIMIT 1`,
           );
           const v = r.rows?.[0]?.t;
-          type = typeof v === 'string' ? v : undefined;
+          type = typeof v === 'string' ? normalizeType(v) : undefined;
         }
         typeCache.set(col, type);
         return type;

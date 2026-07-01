@@ -25,6 +25,14 @@ export declare const OPTIONAL_FEATURES: {
         readonly feature: "the MCP server (`dolex mcp`)";
         readonly install: "npm install @modelcontextprotocol/sdk @modelcontextprotocol/ext-apps";
     };
+    readonly postgres: {
+        readonly feature: "Postgres data sources";
+        readonly install: "npm install pg";
+    };
+    readonly mongodb: {
+        readonly feature: "MongoDB data sources";
+        readonly install: "npm install mongodb";
+    };
 };
 export type OptionalFeatureKey = keyof typeof OPTIONAL_FEATURES;
 /** Build the standard, agent-and-human friendly "install this" message. */

@@ -12,9 +12,9 @@ const DEFAULT_MAX_STEPS = 6;
 function plural(n, word) {
     return `${n} ${word}${n !== 1 ? 's' : ''}`;
 }
-export function buildAnalysisPlan(columns, table, sourceName, maxSteps = DEFAULT_MAX_STEPS) {
+export function buildAnalysisPlan(columns, table, sourceName, maxSteps = DEFAULT_MAX_STEPS, dialect = 'sqlite') {
     const classified = classifyColumns(columns);
-    const candidates = generateCandidates(classified, table);
+    const candidates = generateCandidates(classified, table, dialect);
     candidates.sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category]);
     // Deduplicate by category: first encountered wins after priority sort
     const seen = new Set();

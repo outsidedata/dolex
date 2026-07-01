@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { errorResponse, jsonResponse } from './shared.js';
+import { resolveSourceConfig } from '../../connectors/source-factory.js';
 const SANDBOX_PATH_PATTERNS = [
     /^\/mnt\/user-data\//,
     /^\/home\/claude\//,
@@ -15,7 +16,17 @@ export function isSandboxPath(filePath) {
 }
 export const addSourceInputSchema = z.object({
     name: z.string().describe('Name for this dataset'),
-    path: z.string().describe('Path to a CSV file or directory of CSV files'),
+    type: z.enum(['csv', 'postgres', 'mongodb']).optional().describe('Source type (default: csv)'),
+    path: z.string().optional().describe('CSV: path to a .csv file or directory of CSV files'),
+    uri: z.string().optional().describe('Postgres libpq connection string, or MongoDB connection URI'),
+    host: z.string().optional().describe('DB host (postgres/mongodb) if not using uri'),
+    port: z.number().optional().describe('DB port'),
+    database: z.string().optional().describe('Database name (postgres discrete / mongodb — required for mongo)'),
+    user: z.string().optional().describe('Postgres user'),
+    password: z.string().optional().describe('Postgres password (stored in plaintext — prefer passwordEnv)'),
+    passwordEnv: z.string().optional().describe('Name of an env var holding the Postgres password (e.g. "PGPASSWORD"); keeps the secret out of the saved config'),
+    schema: z.string().optional().describe('Postgres schema to introspect (default: public)'),
+    collections: z.array(z.string()).optional().describe('MongoDB: restrict to these collections'),
 });
 export const removeSourceInputSchema = z.object({
     sourceId: z.string().describe('Dataset ID returned by load_csv'),
@@ -109,14 +120,33 @@ function buildSmartSummary(t) {
 export function handleListSources(deps) {
     return async () => jsonResponse(deps.sourceManager.list());
 }
+export const testSourceInputSchema = z.object({
+    sourceId: z.string().describe('Source id or name to health-check'),
+});
+/** Connectivity health-check for a registered source — is the saved DB reachable with its credentials?
+ *  Returns a classified kind (unreachable / auth-failed / db-not-found / driver-missing / …) so the
+ *  assistant can give the user a specific fix, and repair via load_source (re-register) if needed. */
+export function handleTestSource(deps) {
+    return async (args) => jsonResponse(await deps.sourceManager.testSource(args.sourceId));
+}
 export function handleAddSource(deps) {
     return async (args) => {
-        if (isSandboxPath(args.path)) {
+        if (args.path && isSandboxPath(args.path)) {
             return errorResponse('This path looks like a cloud sandbox path, not a local filesystem path. '
                 + 'Dolex runs on the user\'s machine and can access any local file — but not cloud sandbox uploads. '
                 + 'Ask the user for the real local path (e.g. /Users/name/Downloads/data.csv).');
         }
-        const config = { type: 'csv', path: args.path };
+        let config;
+        try {
+            config = resolveSourceConfig({
+                type: args.type, path: args.path, uri: args.uri, host: args.host, port: args.port,
+                database: args.database, user: args.user, password: args.password, passwordEnv: args.passwordEnv,
+                schema: args.schema, collections: args.collections,
+            });
+        }
+        catch (err) {
+            return errorResponse(err.message);
+        }
         let entry;
         let reconnected = false;
         const existing = deps.sourceManager.get(args.name);
@@ -137,9 +167,19 @@ export function handleAddSource(deps) {
                 return errorResponse(err.message);
             }
             if (!addResult.ok || !addResult.entry) {
-                return errorResponse(addResult.error ?? 'Failed to load CSV');
+                return errorResponse(addResult.error ?? 'Failed to load source');
             }
             entry = addResult.entry;
+            // Config-first: the source is registered even if the DB wasn't reachable just now. Don't try to
+            // profile it (that would fail); tell the assistant it's saved and how to get it live.
+            if (addResult.verified === false) {
+                return jsonResponse({
+                    sourceId: entry.id, name: entry.name, type: entry.type, registered: true, reachable: false,
+                    message: `Registered "${entry.name}", but couldn't connect yet: ${addResult.warning}. `
+                        + `Once the database is reachable (start it / fix credentials — for a missing driver run the install command), it will work. `
+                        + `Relay the reason to the user; no re-registration is needed.`,
+                });
+            }
         }
         const schemaResult = await deps.sourceManager.getSchema(entry.id);
         const schema = schemaResult.ok ? schemaResult.schema : null;

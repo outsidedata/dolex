@@ -42,19 +42,49 @@ export function isIsoDateColumn(col) {
     return vals.length > 0 && vals.every((v) => /^\d{4}-\d{2}-\d{2}([ T]|$)/.test(v));
 }
 /**
- * Choose the time-bucket label + a SQL expression robust to how the value is
- * stored. Year columns extract the integer year (works for '1980', '1980.0',
- * numeric 1980); ISO dates use strftime. Returns null for a non-ISO, non-year
- * date column — we'd rather skip the trend than ship strftime SQL that silently
- * produces a single NULL bucket summing the whole table.
+ * Raised when analysis-plan generation is asked to run against a source whose
+ * query paradigm the planner can't emit. The planner produces SELECT SQL, so a
+ * document store (mongodb → aggregation pipeline) is REFUSED here rather than
+ * silently handed SQLite SQL — the caller surfaces `message` as a clean error.
  */
-export function timeBucketing(col) {
+export class PlannerUnsupportedSourceError extends Error {
+    sourceType;
+    constructor(sourceType, message) {
+        super(message);
+        this.sourceType = sourceType;
+        this.name = 'PlannerUnsupportedSourceError';
+    }
+}
+/**
+ * Resolve a registered source's `type` to the SQL flavor the planner emits.
+ * The ONE place source-type → planner-dialect is decided, so no call site
+ * re-derives it with a `type === 'postgres' ? …` ternary that silently maps an
+ * unrecognized (e.g. mongodb) source to SQLite. csv/undefined → sqlite,
+ * postgres → postgres; a pipeline source (mongodb) or unknown type THROWS.
+ */
+export function plannerDialectForSource(type) {
+    switch (type) {
+        case undefined:
+        case 'csv':
+            return 'sqlite';
+        case 'postgres':
+            return 'postgres';
+        case 'mongodb':
+            throw new PlannerUnsupportedSourceError('mongodb', 'analyze builds SQL analysis plans and cannot plan a MongoDB source ' +
+                '(aggregation-pipeline paradigm, not SQL). Query it directly, or drive it through the orchestrator/recon path.');
+        default:
+            throw new PlannerUnsupportedSourceError(type, `analyze: unknown source type "${type}" — no analysis-plan dialect mapping (expected csv | postgres).`);
+    }
+}
+export function timeBucketing(col, dialect = 'sqlite') {
     if (isYearColumn(col)) {
         const c = q(col.name);
-        return {
-            label: 'year',
-            expr: `CASE WHEN CAST(${c} AS REAL) BETWEEN 1000 AND 2200 THEN CAST(CAST(${c} AS INTEGER) AS TEXT) END`,
-        };
+        // A year stored as a number → its integer year as text, guarded to a plausible range.
+        // Postgres is type-strict (can't CAST('1980.0' AS INTEGER)), so it numeric-guards first.
+        const expr = dialect === 'postgres'
+            ? `CASE WHEN (${c})::text ~ '^ *-?[0-9]+([.][0-9]+)? *$' AND (${c})::double precision BETWEEN 1000 AND 2200 THEN floor((${c})::double precision)::int::text END`
+            : `CASE WHEN CAST(${c} AS REAL) BETWEEN 1000 AND 2200 THEN CAST(CAST(${c} AS INTEGER) AS TEXT) END`;
+        return { label: 'year', expr };
     }
     // Skip only on POSITIVE evidence the dates are non-ISO (top values present and
     // not ISO). Absent top values, assume ISO and bucket as before — a real date
@@ -63,7 +93,7 @@ export function timeBucketing(col) {
     if (vals.length > 0 && !isIsoDateColumn(col))
         return null;
     const bucket = pickTimeBucket(col);
-    return { label: bucket, expr: sqlTimeBucket(col.name, bucket) };
+    return { label: bucket, expr: sqlTimeBucket(col.name, bucket, dialect) };
 }
 function findByRole(columns, role) {
     return columns.filter(c => c.role === role);
@@ -74,8 +104,18 @@ function first(columns, role) {
 function sumAlias(measureName) {
     return `total_${measureName}`;
 }
-function sqlTimeBucket(col, bucket) {
+function sqlTimeBucket(col, bucket, dialect = 'sqlite') {
     const c = q(col);
+    if (dialect === 'postgres') {
+        const ts = `(${c})::timestamp`;
+        switch (bucket) {
+            case 'year': return `EXTRACT(YEAR FROM ${ts})::int::text`;
+            case 'quarter': return `to_char(${ts}, 'YYYY') || '-Q' || EXTRACT(QUARTER FROM ${ts})::int::text`;
+            case 'month': return `to_char(${ts}, 'YYYY-MM')`;
+            case 'week': return `to_char(${ts}, 'IYYY-"W"IW')`;
+            case 'day': return `to_char(${ts}, 'YYYY-MM-DD')`;
+        }
+    }
     switch (bucket) {
         case 'year':
             return `CASE WHEN typeof(${c}) = 'integer' AND ${c} BETWEEN 1000 AND 2200 THEN CAST(${c} AS TEXT) ELSE strftime('%Y', ${c}) END`;
@@ -92,25 +132,25 @@ function sqlTimeBucket(col, bucket) {
 function makeStep(category, title, question, intent, rationale, sql, table, suggestedPatterns) {
     return { title, question, intent, sql, table, suggestedPatterns, rationale, category };
 }
-const timeTrend = (columns, table) => {
+const timeTrend = (columns, table, dialect) => {
     const timeCol = first(columns, 'time');
     const measureCol = first(columns, 'measure');
     if (!timeCol || !measureCol)
         return null;
-    const tb = timeBucketing(timeCol);
+    const tb = timeBucketing(timeCol, dialect);
     if (!tb)
         return null; // date column isn't ISO/year-bucketable — skip rather than ship garbage SQL
     const { label: bucket, expr: bucketExpr } = tb;
     const asName = sumAlias(measureCol.name);
     return makeStep('trend', `${capitalize(measureCol.name)} Over Time`, `How does ${capitalize(measureCol.name)} change over time?`, `Show ${measureCol.name} trend over ${timeCol.name}`, `Time column "${timeCol.name}" paired with measure "${measureCol.name}" suggests a time-series trend analysis.`, `SELECT ${bucketExpr} AS ${q(`${timeCol.name}_${bucket}`)}, SUM(${q(measureCol.name)}) AS ${q(asName)} FROM ${q(table)} GROUP BY 1 ORDER BY 1 ASC`, table, ['line', 'area', 'sparkline-grid']);
 };
-const trendByGroup = (columns, table) => {
+const trendByGroup = (columns, table, dialect) => {
     const timeCol = first(columns, 'time');
     const measureCol = first(columns, 'measure');
     const dimCol = findByRole(columns, 'dimension').find(d => d.uniqueCount <= 8);
     if (!timeCol || !measureCol || !dimCol)
         return null;
-    const tb = timeBucketing(timeCol);
+    const tb = timeBucketing(timeCol, dialect);
     if (!tb)
         return null; // non-ISO/non-year date — skip rather than ship garbage SQL
     const { label: bucket, expr: bucketExpr } = tb;
@@ -177,12 +217,12 @@ const composition = (columns, table) => {
 // time bucket (WoW/MoM/YoY depending on the bucket). Uses LAG; the % change is
 // guarded with NULLIF (div-by-zero) and 100.0 (real division) — the SQL-safety
 // traps this engine warns about, avoided at the source.
-const periodOverPeriod = (columns, table) => {
+const periodOverPeriod = (columns, table, dialect) => {
     const timeCol = first(columns, 'time');
     const measureCol = first(columns, 'measure');
     if (!timeCol || !measureCol)
         return null;
-    const tb = timeBucketing(timeCol);
+    const tb = timeBucketing(timeCol, dialect);
     if (!tb)
         return null;
     const { label: bucket, expr: bucketExpr } = tb;
@@ -197,7 +237,7 @@ const periodOverPeriod = (columns, table) => {
 // Seasonality: average a measure by month-of-year ACROSS years, isolating the
 // recurring seasonal shape from the long-run trend. Only meaningful with sub-year
 // (ISO date) resolution — skipped for year-only columns.
-const seasonality = (columns, table) => {
+const seasonality = (columns, table, dialect) => {
     const timeCol = first(columns, 'time');
     const measureCol = first(columns, 'measure');
     if (!timeCol || !measureCol)
@@ -208,8 +248,9 @@ const seasonality = (columns, table) => {
     if (vals.length > 0 && !isIsoDateColumn(timeCol))
         return null; // non-ISO date → strftime would NULL
     const c = q(timeCol.name);
-    const sql = `SELECT strftime('%m', ${c}) AS month, AVG(${q(measureCol.name)}) AS ${q(`avg_${measureCol.name}`)} ` +
-        `FROM ${q(table)} WHERE strftime('%m', ${c}) IS NOT NULL GROUP BY 1 ORDER BY 1 ASC`;
+    const monthExpr = dialect === 'postgres' ? `to_char((${c})::timestamp, 'MM')` : `strftime('%m', ${c})`;
+    const sql = `SELECT ${monthExpr} AS month, AVG(${q(measureCol.name)}) AS ${q(`avg_${measureCol.name}`)} ` +
+        `FROM ${q(table)} WHERE ${monthExpr} IS NOT NULL GROUP BY 1 ORDER BY 1 ASC`;
     return makeStep('trend', `${capitalize(measureCol.name)} Seasonality (by month)`, `Does ${capitalize(measureCol.name)} follow a recurring monthly/seasonal pattern?`, `Show average ${measureCol.name} by month of year across all years`, `ISO date "${timeCol.name}" + measure "${measureCol.name}" lets us average by month-of-year to separate seasonality from trend.`, sql, table, ['bar', 'line', 'radar']);
 };
 // --- All Rules --------------------------------------------------------------
@@ -225,9 +266,9 @@ const ALL_RULES = [
     composition,
 ];
 // --- Main Export -------------------------------------------------------------
-export function generateCandidates(columns, table) {
+export function generateCandidates(columns, table, dialect = 'sqlite') {
     return ALL_RULES.flatMap(rule => {
-        const result = rule(columns, table);
+        const result = rule(columns, table, dialect);
         return result ? [result] : [];
     });
 }

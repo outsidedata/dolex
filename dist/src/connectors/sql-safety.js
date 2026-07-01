@@ -32,7 +32,7 @@ const OPERAND = String.raw `(?:\w+\s*\([^()]*\)|\w+(?:\.\w+)?|\d+(?:\.\d+)?)`;
 const TERM = new RegExp(`${OPERAND}(?:\\s*[*/]\\s*${OPERAND})+`, 'g');
 const FLOAT_LIT = /\d+\.\d+/;
 const CAST_REAL = /CAST\s*\([^()]*AS\s+(?:REAL|FLOAT|DOUBLE)/i;
-const TERM_FUNCS = new Set(['sum', 'avg', 'count', 'min', 'max', 'cast', 'as', 'real', 'float', 'double', 'total', 'abs', 'round']);
+const TERM_FUNCS = new Set(['sum', 'avg', 'count', 'min', 'max', 'cast', 'as', 'real', 'float', 'double', 'total', 'abs', 'round', 'distinct', 'all']);
 /** Multiplicative terms containing a `/` that are NOT already float-safe (no float
  *  literal, no CAST-to-real), with their candidate column identifiers. Pure syntax
  *  — cheap enough to use as a pre-filter before any type probing. */
@@ -158,8 +158,8 @@ export async function detectSqlFootguns(sql, columnType) {
         if (allInteger) {
             warnings.push({
                 code: 'integer-division',
-                message: `Integer division in "${term.trim()}" will truncate toward zero (SQLite floors int/int — e.g. 16/32 → 0, not 0.5). ` +
-                    `Wrap the numerator: CAST(<numerator> AS REAL) / <denominator>.`,
+                message: `Integer division in "${term.trim()}" truncates toward zero (int/int floors — e.g. 16/32 → 0, not 0.5). ` +
+                    `Cast a numeric operand first: CAST(<numerator> AS REAL) / <denominator>.`,
             });
         }
     }

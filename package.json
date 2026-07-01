@@ -1,6 +1,6 @@
 {
   "name": "@outsidedata/dolex",
-  "version": "8.1.0",
+  "version": "9.0.0",
   "description": "Turn your AI assistant into a data analyst you can trust on your own CSV files — column profiling, data-quality auditing, a prioritized analysis plan, and findings rendered across 43 chart types.",
   "type": "module",
   "license": "MIT",
@@ -88,7 +88,9 @@
   "optionalDependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "topojson-client": "^3.1.0"
+    "topojson-client": "^3.1.0",
+    "pg": "^8.22.0",
+    "mongodb": "^7.4.0"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -110,6 +112,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@types/topojson-client": "^3.1.5",

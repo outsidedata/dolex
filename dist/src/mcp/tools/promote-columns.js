@@ -6,6 +6,8 @@ export function handlePromoteColumns(deps) {
         const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
         if (isTransformError(ctx))
             return ctx;
+        if (!ctx.db)
+            return errorResponse(`promote_columns persists derived columns to a CSV-side manifest. On a live ${ctx.source.type} source, derived columns are session-local (created with transform_data) and are not persisted — nothing to promote.`);
         const metadata = new TransformMetadata(ctx.db);
         metadata.init();
         let columnsToPromote;

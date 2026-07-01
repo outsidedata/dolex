@@ -26,8 +26,12 @@ export async function cleanCommand(argv: string[]): Promise<number> {
   if (!target) { o.fail('Usage: dolex clean <csv> --column <col> --code-file <fix.py> [--apply]'); return 1; }
   if (!pythonAvailable()) { o.fail('dolex clean requires python3 on PATH (not found).'); return 1; }
 
-  const manifestArg = str(args, 'apply-manifest');
-  if (manifestArg !== undefined) return replay(target, manifestArg);
+  // --apply-manifest may be bare (replay the sibling <base>.cleanfix.json) or take an explicit
+  // path. A bare value flag parses to boolean `true`, so test presence, not string-ness —
+  // otherwise the documented no-arg form fell through to the author-mode usage error.
+  if (args['apply-manifest'] !== undefined) {
+    return replay(target, str(args, 'apply-manifest') ?? '');
+  }
 
   const column = str(args, 'column');
   const codeFile = str(args, 'code-file');
@@ -37,6 +41,15 @@ export async function cleanCommand(argv: string[]): Promise<number> {
   // Read the column's values through the shared opener.
   const opened = await openTarget(target, {});
   try {
+    // clean writes a non-destructive cleaned CSV from a CSV file — a live DB source has no
+    // file to rewrite. Reject up front with the same redirect the MCP clean_column twin gives,
+    // instead of previewing and then failing with a confusing ENOENT on the source name.
+    const srcType = opened.manager.get(opened.sourceId)?.config?.type;
+    if (srcType && srcType !== 'csv') {
+      const nativeExpr = srcType === 'mongodb' ? 'native aggregation ($set) expression' : 'native SQL expression';
+      o.fail(`dolex clean writes a non-destructive cleaned CSV and works on CSV sources only. On a live ${srcType} source, express the fix as a derived column via \`dolex transform\` using a ${nativeExpr} — non-destructive and server-side.`);
+      return 1;
+    }
     const tableName = opened.defaultTable;
     const q = await opened.query(`SELECT "${column.replace(/"/g, '""')}" AS v FROM "${tableName.replace(/"/g, '""')}"`, 1_000_000);
     if (!q.ok) { o.fail(`could not read column "${column}": ${q.error}`); return 1; }

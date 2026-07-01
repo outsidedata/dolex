@@ -133,6 +133,42 @@ describe('auditColumns data-quality heuristics', () => {
     ], 100);
     expect(issues(f)).toEqual([]);
   });
+
+  it('flags accounting-style negatives "(1,234)" as numeric-text-parens', () => {
+    const f = auditColumns('t', [
+      col({ name: 'pnl', type: 'categorical', sampleValues: ['(1,234)', '(5,000)', '(2,000.50)'], uniqueCount: 50 }),
+    ], 100);
+    expect(find(f, 'numeric-text-parens')?.severity).toBe('high');
+  });
+
+  it('flags a boolean column with mixed encodings (Yes/Y/No) as boolean-variants', () => {
+    const f = auditColumns('t', [
+      col({ name: 'active', type: 'categorical', sampleValues: ['Yes', 'Y', 'No', 'N'], uniqueCount: 4 }),
+    ], 100);
+    expect(find(f, 'boolean-variants')).toBeDefined();
+  });
+
+  it('does NOT flag a clean Yes/No boolean (no variants to canonicalize)', () => {
+    const f = auditColumns('t', [
+      col({ name: 'active', type: 'categorical', sampleValues: ['Yes', 'No'], uniqueCount: 2 }),
+    ], 100);
+    expect(find(f, 'boolean-variants')).toBeUndefined();
+  });
+
+  it('flags leading/trailing whitespace as dirty-whitespace', () => {
+    const f = auditColumns('t', [
+      col({ name: 'city', type: 'categorical', sampleValues: ['Paris', 'Berlin ', 'Rome'], uniqueCount: 50 }),
+    ], 100);
+    expect(find(f, 'dirty-whitespace')).toBeDefined();
+  });
+
+  it('does NOT double-flag dirty-whitespace when dirty-categories already fires', () => {
+    const f = auditColumns('t', [
+      col({ name: 'dept', type: 'categorical', topValues: [{ value: 'Billing', count: 10 }, { value: 'billing ', count: 8 }] as any, sampleValues: ['Billing', 'billing '], uniqueCount: 2 }),
+    ], 100);
+    expect(find(f, 'dirty-categories')).toBeDefined();
+    expect(find(f, 'dirty-whitespace')).toBeUndefined();
+  });
 });
 
 // ── New rules added to reach the silent-wrong adversarial vectors ──────────────

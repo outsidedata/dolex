@@ -1,7 +1,7 @@
 import type { DataColumn } from '../types.js';
 import type { AnalysisPlan, AnalysisCategory } from './types.js';
 import { classifyColumns } from './classify.js';
-import { generateCandidates } from './rules.js';
+import { generateCandidates, type PlannerDialect } from './rules.js';
 
 const CATEGORY_PRIORITY: Record<AnalysisCategory, number> = {
   trend: 1,
@@ -23,9 +23,10 @@ export function buildAnalysisPlan(
   table: string,
   sourceName: string,
   maxSteps: number = DEFAULT_MAX_STEPS,
+  dialect: PlannerDialect = 'sqlite',
 ): AnalysisPlan {
   const classified = classifyColumns(columns);
-  const candidates = generateCandidates(classified, table);
+  const candidates = generateCandidates(classified, table, dialect);
 
   candidates.sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category]);
 

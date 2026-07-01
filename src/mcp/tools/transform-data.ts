@@ -15,6 +15,26 @@ export function handleTransformData(deps: { sourceManager: any }) {
     const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
     if (isTransformError(ctx)) return ctx;
 
+    // Live source (PG/Mongo): materialize each derived column via the connector (native expression
+    // → shadow view / $set), visible to later queries, base data untouched. No SQLite handle.
+    if (!ctx.db) {
+      if (typeof ctx.source.applyDerivation !== 'function') {
+        return errorResponse(`This source cannot materialize a derived column (materialization: ${ctx.caps.materialization}).`);
+      }
+      const items = args.transforms ?? (args.create && args.expr ? [{ create: args.create, expr: args.expr }] : []);
+      if (!items.length) return errorResponse('Provide `create` + `expr`, or a `transforms` array.');
+      try {
+        for (const t of items) await ctx.source.applyDerivation(args.table, t.create, t.expr);
+        ctx.source.invalidateSchema?.();
+        return jsonResponse({
+          created: items.map((t) => ({ column: t.create, expr: t.expr, layer: 'derived', materialization: ctx.caps.materialization })),
+          note: `Derived on the live ${ctx.source.type} source (${ctx.caps.materialization}); session-local, base data untouched.`,
+        });
+      } catch (err: any) {
+        return errorResponse(err.message);
+      }
+    }
+
     const metadata = new TransformMetadata(ctx.db);
     metadata.init();
 

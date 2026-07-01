@@ -19,6 +19,14 @@ export const OPTIONAL_FEATURES = {
         feature: 'the MCP server (`dolex mcp`)',
         install: 'npm install @modelcontextprotocol/sdk @modelcontextprotocol/ext-apps',
     },
+    postgres: {
+        feature: 'Postgres data sources',
+        install: 'npm install pg',
+    },
+    mongodb: {
+        feature: 'MongoDB data sources',
+        install: 'npm install mongodb',
+    },
 };
 /** Build the standard, agent-and-human friendly "install this" message. */
 export function missingDependencyMessage(key) {

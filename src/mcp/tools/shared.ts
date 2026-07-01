@@ -15,6 +15,7 @@ import type {
   CompoundVisualizationSpec,
   ColorPaletteName,
 } from '../../types.js';
+import type { DerivationCapabilities } from '../../connectors/types.js';
 import { isCompoundSpec } from '../../types.js';
 import { buildChartHtml, isHtmlPatternSupported } from '../../renderers/html/index.js';
 import { buildCompoundHtml } from '../../renderers/html/builders/compound.js';
@@ -290,8 +291,12 @@ export function isErrorResponse(result: ResolvedData | McpResponse): result is M
 
 export interface TransformContext {
   source: any;
+  /** The raw SQLite handle — present only for the CSV/sqlite-alter materialization; undefined for
+   *  a live source (PG/Mongo), which materializes via `source.applyDerivation`. */
   db: any;
   table: any;
+  /** The source's declared derivation contract (materialization / rowKey / server-side-queryable). */
+  caps: DerivationCapabilities;
 }
 
 /**
@@ -309,10 +314,17 @@ export async function connectAndValidateTable(
   }
 
   const source = connResult.source!;
-  const db = source.getDatabase?.();
-  if (!db) {
-    return errorResponse('Source does not support transforms (no database handle)');
+  // Source-agnostic derivation gate: the connector DECLARES whether/how it can derive a column
+  // (no longer a getDatabase-truthiness probe). A source that doesn't implement the seam is treated
+  // as non-deriving.
+  const caps = source.derivationCapabilities?.() ?? { canDerive: false, materialization: 'none', rowKey: null, serverSideQueryable: false };
+  if (!caps.canDerive) {
+    return errorResponse('Source does not support transforms');
   }
+  // CSV/sqlite-alter exposes a raw SQLite handle for the ALTER+rowid work; a live source (PG/Mongo)
+  // has no handle and materializes via source.applyDerivation. db may be undefined — each tool guards
+  // on what it needs (transform_data handles both; promote/drop/clean require the SQLite handle).
+  const db = source.getDatabase?.();
 
   let schema;
   try {
@@ -327,7 +339,7 @@ export async function connectAndValidateTable(
     return errorResponse(`Table '${tableName}' not found. Available: [${available.join(', ')}]`);
   }
 
-  return { source, db, table };
+  return { source, db, table, caps };
 }
 
 /** Type guard: checks if a connectAndValidateTable result is an error response. */

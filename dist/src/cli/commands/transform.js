@@ -49,8 +49,12 @@ export async function transformCommand(argv) {
             return 1;
         }
         const col = tBody.created?.[0] ?? { column: create, expr, type: 'unknown' };
+        // A live source (Postgres/Mongo) derives session-locally — there is no manifest to promote to;
+        // the derived column exists for the life of the connection, non-destructive to the base data.
+        const srcType = opened.manager.get(opened.sourceId)?.config?.type;
+        const persistable = srcType === 'csv';
         let manifestPath;
-        if (!dryRun) {
+        if (!dryRun && persistable) {
             const promote = handlePromoteColumns({ sourceManager: opened.manager });
             const pRes = await promote({ sourceId: opened.sourceId, table, columns: [create] });
             const pBody = JSON.parse(pRes.content[0].text);
@@ -63,11 +67,16 @@ export async function transformCommand(argv) {
                 manifestPath = resolveManifestPath(entry.config);
         }
         if (bool(args, 'json')) {
-            o.out(JSON.stringify({ ...tBody, persisted: !dryRun, manifest: manifestPath }, null, 2));
+            o.out(JSON.stringify({ ...tBody, persisted: !dryRun && persistable, sessionLocal: !persistable, manifest: manifestPath }, null, 2));
             return 0;
         }
         o.success(`${dryRun ? 'Previewed' : 'Created'} ${o.c.bold(col.column)}  ${o.c.dim('= ' + col.expr)}`);
-        o.kv('type', col.type);
+        // CSV returns a typed working column; a live source returns { layer, materialization }
+        // instead — show whichever the connector actually reported (never "type undefined").
+        if (col.type !== undefined)
+            o.kv('type', col.type);
+        else if (col.materialization)
+            o.kv('materialization', col.materialization);
         if (col.stats && typeof col.stats === 'object') {
             const fmt = (v) => typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(3)) : String(v);
             for (const [k, v] of Object.entries(col.stats))
@@ -79,10 +88,16 @@ export async function transformCommand(argv) {
         if (dryRun) {
             o.warn('Preview only — not persisted. Re-run without --dry-run to keep it.');
         }
-        else {
+        else if (persistable) {
             if (manifestPath)
                 o.kv('persisted', manifestPath);
             o.hint(`Use it:  dolex query ${target} "SELECT ${col.column} FROM ${table} LIMIT 5"`);
+        }
+        else {
+            // Live PG/Mongo source: the derived column lives only on this connection, which a
+            // stateless CLI closes on exit — so a separate `dolex query` cannot see it, and for
+            // Mongo a SELECT hint would be invalid anyway. Be honest instead of promising a query.
+            o.warn(`Session-local — derived on the live ${srcType} connection only. The CLI is stateless, so this column is not persisted and a separate command cannot see it. Create it inside an MCP session, or inline the expression in your query.`);
         }
         return 0;
     }

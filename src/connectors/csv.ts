@@ -9,6 +9,7 @@
 
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import Papa from 'papaparse';
 import type {
@@ -20,9 +21,10 @@ import type {
   DataColumn,
   ForeignKey,
 } from '../types.js';
-import type { DataConnector, ConnectedSource, QueryExecutionResult } from './types.js';
+import type { DataConnector, ConnectedSource, QueryExecutionResult, DerivationCapabilities } from './types.js';
 import { resolveManifestPath, readManifest, replayManifest } from '../transforms/manifest.js';
 import { TransformMetadata } from '../transforms/metadata.js';
+import { applyManifest as applyCleanfix, readCleanfixManifest } from '../cleaning/replay.js';
 
 const SAMPLE_LIMIT = 30;
 const SAMPLE_DISPLAY_LIMIT = 20;
@@ -635,6 +637,14 @@ class CsvConnectedSource implements ConnectedSource {
     return this.db;
   }
 
+  /**
+   * CSV derives columns the way it always has: ALTER TABLE + rowid-keyed UPDATE on the
+   * in-memory SQLite db (getDatabase still drives the actual work). Byte-identical behavior.
+   */
+  derivationCapabilities(): DerivationCapabilities {
+    return { canDerive: true, materialization: 'sqlite-alter', rowKey: 'rowid', serverSideQueryable: true };
+  }
+
   async close(): Promise<void> {
     try {
       this.db.close();
@@ -697,6 +707,25 @@ export const csvConnector: DataConnector = {
         },
       ];
     }
+
+    // If a `<base>.cleanfix.json` sits next to a CSV, load the manifest-cleaned columns
+    // instead of the raw ones — so recon/query never re-hit a footgun the offline autoclean
+    // already solved. Replaying over the CURRENT raw file gives newly-arrived rows the same
+    // treatment; the original CSV is never written. Best-effort: any error → raw load.
+    csvPaths = csvPaths.map((cp) => {
+      const manifest = readCleanfixManifest(cp.filePath);
+      if (!manifest) return cp;
+      try {
+        const { rows } = applyCleanfix(cp.filePath, manifest, false); // cleaned columns, no _raw noise
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dolex-cleanfix-'));
+        const cleanedPath = path.join(dir, path.basename(cp.filePath));
+        fs.writeFileSync(cleanedPath, Papa.unparse(rows));
+        return { ...cp, filePath: cleanedPath }; // tableName stays derived from the original file
+      } catch (err: any) {
+        console.warn(`[csv-connector] cleanfix replay failed for ${cp.filePath}, loading raw: ${err?.message}`);
+        return cp;
+      }
+    });
 
     const { db, tables, foreignKeys, warnings } = loadCsvs(csvPaths);
 

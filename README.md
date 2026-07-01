@@ -11,11 +11,11 @@
 
 A B2B data-analysis product that gives your AI assistant a rigorous analyst's discipline, working on your own files and handing back artifacts you keep.
 
-Dolex connects to your data, audits it, runs the analysis, and returns real results you own. It runs locally on your CSV files and loads a folder of them as one joinable database. It profiles every column, classifies what each one is, and builds a prioritized analysis plan with ready-to-run queries. Every answer traces back to an inspectable query, and the findings come back as artifacts you keep. Dolex ships as a published npm package with two front ends over one core: an MCP server any AI assistant can call, and a command-line tool your terminals, scripts, and pipelines run directly.
+Dolex connects to your data — a folder of CSV files, or a live PostgreSQL or MongoDB database — audits it, runs the analysis, and returns real results you own. It runs locally: point it at a folder of CSVs and they load as one joinable database, or connect a Postgres/MongoDB source and query it in place. It profiles every column, classifies what each one is, and builds a prioritized analysis plan with ready-to-run queries. Every answer traces back to an inspectable query, and the findings come back as artifacts you keep. Dolex ships as a published npm package with two front ends over one core: an MCP server any AI assistant can call, and a command-line tool your terminals, scripts, and pipelines run directly.
 
 ## What you get
 
-- **Analysis on your own data.** Dolex runs locally on your CSV files, and a folder of them becomes one database your assistant can join across.
+- **Analysis on your own data.** Point Dolex at a folder of CSV files — they become one database your assistant can join across — or connect a live PostgreSQL or MongoDB database and query it in place. Same tools, same analysis, whatever the source.
 - **Data you can stand behind.** A built-in audit surfaces type traps, sentinel values, leaked and duplicate columns, and outliers before they reach a conclusion.
 - **Rigor on every result.** Full column profiling and statistics back the analysis, and each finding traces to a query you can inspect.
 - **A real analysis plan.** Dolex classifies your columns and produces a prioritized analysis plan with ready-to-run queries; derived columns persist across sessions.
@@ -108,15 +108,36 @@ dolex columns   diamonds.csv      # list source / derived / working columns
 | `columns` | List columns by layer (source / derived / working) |
 | `drop` | Remove derived/working columns |
 | `patterns` | List the 43 chart patterns, or show one in detail |
-| `sources` | Manage a persistent CSV registry (shared with the MCP server) |
+| `sources` | Register & manage data sources — CSV, Postgres, MongoDB (shared with the MCP server) |
+| `deps` | Report which data sources & optional features are available in this environment |
 | `mcp` | Run the MCP stdio server |
 
 Charts default to `~/.dolex/charts/`; pipe-friendly via `--stdout` / `--json`.
 Full reference: [`docs/CLI.md`](https://github.com/outsidedata/dolex/blob/master/docs/CLI.md).
 
+## Data Sources
+
+Dolex works the same whether your data is files or a live database. Point it at:
+
+- **CSV** — a single file or a whole folder, loaded as one joinable in-memory database (SQLite under the hood).
+- **PostgreSQL** — a live database queried in place with real SQL; declared foreign keys are read straight from the schema.
+- **MongoDB** — collections profiled as tables and queried with aggregation pipelines.
+
+The Postgres and MongoDB drivers are **optional** — the base install stays lean and requires neither. Run `dolex deps` (or ask the assistant for `capabilities`) to see which sources are ready here and the exact one-line command to enable anything missing, so you get an install hint instead of a crash. Credentials stay out of the registry file: a Postgres password is read from an env var at connect time, and a source can be registered even while its database is down, then health-checked with `dolex sources test` / the `test_source` tool once it is up.
+
+```bash
+# CSV stays the zero-config default
+dolex sources add sales ./data/sales.csv
+
+# Live databases — driver installed on demand, secret via env var
+dolex sources add warehouse --type postgres --host db.internal --database analytics --user reader --password-env PGPASSWORD
+dolex sources add events    --type mongodb  --host localhost --port 27017 --database app
+dolex sources test warehouse       # confirm it's reachable with its saved credentials
+```
+
 ## The Query Engine
 
-Point your assistant at a folder of CSV files and start asking questions. Dolex loads every file and profiles your data — column types, distributions, cardinality, sample values — giving your assistant everything it needs to answer.
+Point your assistant at a folder of CSV files — or a live Postgres/MongoDB database — and start asking questions. Dolex profiles your data — column types, distributions, cardinality, sample values — giving your assistant everything it needs to answer.
 
 The built-in query language covers the analysis your assistant runs:
 
@@ -148,13 +169,15 @@ Every query is validated before execution — field names are checked against th
 
 | Tool | What it does |
 |------|-------------|
-| `load_csv` | Load a CSV file or directory |
+| `load_source` | Load a data source — CSV file/directory, PostgreSQL, or MongoDB |
 | `list_data` | List loaded datasets |
 | `remove_data` | Remove a loaded dataset |
+| `capabilities` | Report which source types & optional drivers are available in this environment |
+| `test_source` | Health-check a registered Postgres/Mongo source (reachable? credentials valid?) |
 | `describe_data` | Profile columns, stats, sample rows |
 | `analyze_data` | Auto-generate an analysis plan |
-| `query_data` | Run SQL queries (JOINs, GROUP BY, window functions, CTEs) |
-| `visualize` | Data → ranked chart recommendations (inline, cached, or CSV+SQL) |
+| `query_data` | Run queries (SQL for CSV/Postgres; aggregation pipelines for MongoDB) |
+| `visualize` | Data → ranked chart recommendations (inline, cached, or source + query) |
 | `refine_visualization` | Iterate on a chart |
 | `transform_data` | Create derived columns with expressions |
 | `promote_columns` | Persist working columns to disk |

@@ -22,7 +22,8 @@ ${o.c.bold('COMMANDS')}
   ${o.c.cyan('columns')}    <csv|source>     List columns by layer (source / derived / working)
   ${o.c.cyan('drop')}       <csv|source>     Remove derived/working columns
   ${o.c.cyan('patterns')}   [id]             List the 43 chart patterns, or show one
-  ${o.c.cyan('sources')}    <list|add|rm>    Manage the persistent CSV registry
+  ${o.c.cyan('sources')}    <list|add|rm>    Register & manage data sources (CSV / Postgres / MongoDB)
+  ${o.c.cyan('deps')}                        Report which data sources & optional features are available here
   ${o.c.cyan('mcp')}                         Run the MCP stdio server (Claude Desktop / agents)
   ${o.c.cyan('help')}       [command]        Show help; \`--version\` for version
 

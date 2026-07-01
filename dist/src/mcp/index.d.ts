@@ -9,7 +9,7 @@
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
- *   load_csv               — Load a CSV file or directory
+ *   load_source            — Load a CSV / Postgres / MongoDB source
  *   list_data              — List loaded datasets
  *   remove_data            — Remove a loaded dataset
  *   describe_data          — Re-examine column profiles and sample rows for a dataset

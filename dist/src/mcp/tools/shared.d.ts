@@ -7,6 +7,7 @@
  * - Color preference application to visualization specs
  */
 import type { DataColumn, VisualizationSpec, CompoundVisualizationSpec } from '../../types.js';
+import type { DerivationCapabilities } from '../../connectors/types.js';
 type McpTextContent = {
     type: 'text';
     text: string;
@@ -80,8 +81,12 @@ export declare function resolveData(args: {
 export declare function isErrorResponse(result: ResolvedData | McpResponse): result is McpResponse;
 export interface TransformContext {
     source: any;
+    /** The raw SQLite handle — present only for the CSV/sqlite-alter materialization; undefined for
+     *  a live source (PG/Mongo), which materializes via `source.applyDerivation`. */
     db: any;
     table: any;
+    /** The source's declared derivation contract (materialization / rowKey / server-side-queryable). */
+    caps: DerivationCapabilities;
 }
 /**
  * Shared setup for all transform tools: connect to source, get database handle,

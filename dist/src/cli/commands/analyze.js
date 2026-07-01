@@ -6,6 +6,7 @@ import { parseArgs, str, num, bool } from '../args.js';
 import * as o from '../output.js';
 import { openTarget } from '../data-source.js';
 import { buildAnalysisPlan } from '../../analysis/planner.js';
+import { plannerDialectForSource, PlannerUnsupportedSourceError } from '../../analysis/rules.js';
 import { classifyColumns } from '../../analysis/classify.js';
 const BOOLEANS = ['json', 'help'];
 const ALIASES = { h: 'help', table: 'from' };
@@ -47,7 +48,18 @@ export async function analyzeCommand(argv) {
         const tableObj = autoPicked
             ? pickRichestTable(opened.tables)
             : opened.tables.find((t) => t.name === opened.defaultTable);
-        const plan = buildAnalysisPlan(tableObj.columns, tableObj.name, opened.displayName, num(args, 'max-steps') ?? 6);
+        let dialect;
+        try {
+            dialect = plannerDialectForSource(opened.schema.source?.type);
+        }
+        catch (err) {
+            if (err instanceof PlannerUnsupportedSourceError) {
+                o.fail(err.message);
+                return 1;
+            }
+            throw err;
+        }
+        const plan = buildAnalysisPlan(tableObj.columns, tableObj.name, opened.displayName, num(args, 'max-steps') ?? 6, dialect);
         // No steps = nothing to analyze (only ids/text/empty columns). Fail loud
         // rather than print a success-looking empty plan.
         const noSteps = plan.steps.length === 0;

@@ -48,6 +48,19 @@ const COERCED_SENTINEL_MIN = 10;
 const THOUSANDS_NUM = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/; // 1,200 / 12,500.50 / -3,000
 const CURRENCY_NUM = /^[-+]?[$€£¥]\s?\d[\d,]*(\.\d+)?$/; // $1,200 / €980 / £12,500.50
 const PERCENT_NUM = /^[-+]?\d[\d,]*(\.\d+)?\s*%$/; // 45% / 12.5% / 1,200%
+const ACCOUNTING_NUM = /^\(\s?[$€£¥]?\s?\d[\d,]*(\.\d+)?\s?\)$/; // (1,234) / ($1,234.50) — parens = negative
+
+// Boolean columns written inconsistently (Yes/Y/1/true vs No/N/0/false).
+const BOOL_TRUE = new Set(['true', 't', 'yes', 'y', '1']);
+const BOOL_FALSE = new Set(['false', 'f', 'no', 'n', '0']);
+const canonBool = (v: string): 'true' | 'false' | null => {
+  const k = v.trim().toLowerCase();
+  return BOOL_TRUE.has(k) ? 'true' : BOOL_FALSE.has(k) ? 'false' : null;
+};
+
+// Invisible dirt: leading/trailing whitespace, non-breaking/zero-width spaces,
+// smart quotes, BOM — splits otherwise-identical values.
+const DIRTY_WS = /^\s|\s$|[\u00A0\u200B\u2018\u2019\u201C\u201D\uFEFF]/; // NBSP, ZWSP, smart quotes, BOM
 
 function isNumericStr(s: string): boolean {
   const t = s.trim();
@@ -66,6 +79,26 @@ function looksLikeYear(col: DataColumn): boolean {
 
 function isDatePartName(name: string): boolean {
   return /(^|_)(month|months|hour|hours|minute|minutes|second|seconds|day|days|week|weeks|time|date)(_|$)/i.test(name);
+}
+
+type DateFmt = 'iso' | 'us' | 'eu' | 'text';
+function classifyDateFmt(v: string): DateFmt | null {
+  const s = v.trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return 'iso';
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return 'us';
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(s)) return 'eu';
+  if (/^\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}$/.test(s)) return 'text';
+  if (/^[A-Za-z]{3,}\s+\d{1,2},?\s+\d{4}$/.test(s)) return 'text';
+  return null;
+}
+
+function detectDateFormats(values: string[]): Set<DateFmt> {
+  const found = new Set<DateFmt>();
+  for (const v of values) {
+    const f = classifyDateFmt(v);
+    if (f) found.add(f);
+  }
+  return found;
 }
 
 /** Profile-based data-quality checks for one table's columns. */
@@ -169,6 +202,7 @@ export function auditColumns(table: string, columns: DataColumn[], rowCount: num
     const lenPool = samples.length ? samples : catPool;
     const avgValLen = lenPool.length ? lenPool.reduce((s, v) => s + v.length, 0) / lenPool.length : 0;
     const looksFreeText = avgValLen > 45;
+    let dirtyCatFired = false;
     if ((col.type === 'categorical' || col.type === 'text') && (col.topValues?.length ?? 0) >= 2 && !looksFreeText) {
       const seen = new Map<string, string>();
       let collision: [string, string] | undefined;
@@ -180,6 +214,7 @@ export function auditColumns(table: string, columns: DataColumn[], rowCount: num
         if (prev === undefined) seen.set(key, raw);
       }
       if (collision) {
+        dirtyCatFired = true;
         // Keep the TRIM(LOWER) remedy (correct for case/whitespace dirt), but when the
         // column is high-cardinality, ADD a caveat that it won't canonicalize
         // model-specific fragments (body: 87 distinct, "granturismo convertible") —
@@ -191,6 +226,36 @@ export function auditColumns(table: string, columns: DataColumn[], rowCount: num
         add('medium', col.name, 'dirty-categories',
           `Values differ only by case/whitespace and are counted as separate categories (e.g. "${collision[0]}" vs "${collision[1]}").`,
           `They split one logical category across rows, distorting counts and the top category. Normalize: GROUP BY TRIM(LOWER(${esc(col.name)})).${frag}`);
+      }
+    }
+
+    // ── Boolean column written inconsistently (Yes/Y/1 vs No/N/0/true/false) ──
+    // Same true/false data in mixed encodings splits filters and groupings. Gate
+    // on an ALPHABETIC form present so a pure numeric 1/0 column isn't swept in.
+    if ((col.type === 'categorical' || col.type === 'text')) {
+      const boolForms = [...new Set(catPool.map((v) => v.trim()).filter((v) => v !== ''))];
+      if (boolForms.length >= 2 && boolForms.length <= 8) {
+        const canon = boolForms.map(canonBool);
+        const allBool = canon.every((c) => c !== null);
+        const hasAlpha = boolForms.some((v) => /[a-z]/i.test(v));
+        const distinctCanon = new Set(canon).size;
+        if (allBool && hasAlpha && boolForms.length > distinctCanon) {
+          add('low', col.name, 'boolean-variants',
+            `Boolean column with inconsistent encodings (e.g. ${boolForms.slice(0, 3).map((v) => `"${v}"`).join(', ')}).`,
+            'These are the same true/false values written differently — they split filters and GROUP BY. Canonicalize to one form.');
+        }
+      }
+    }
+
+    // ── Invisible dirt: whitespace / non-standard unicode in string values ──
+    // Skipped when dirty-categories already fired (its TRIM(LOWER) remedy covers
+    // the same column, and the two fixes would otherwise conflict).
+    if ((col.type === 'categorical' || col.type === 'text') && !dirtyCatFired) {
+      const dirty = catPool.find((v) => v !== '' && DIRTY_WS.test(v));
+      if (dirty !== undefined) {
+        add('low', col.name, 'dirty-whitespace',
+          `Values carry leading/trailing whitespace or non-standard characters (e.g. ${JSON.stringify(dirty)}).`,
+          'Invisible differences split otherwise-identical values; TRIM and normalize unicode (NBSP, zero-width, smart quotes).');
       }
     }
 
@@ -262,14 +327,35 @@ export function auditColumns(table: string, columns: DataColumn[], rowCount: num
         'Group by it directly — do not apply month/day date math (strftime) to it.');
     }
 
-    // ── Non-ISO date columns (time-series footgun) ──
+    // ── Non-ISO / mixed date formats (time-series footgun) ──
+    // Use topValues (frequency-ranked) NOT sampleValues — the first N rows of a CSV
+    // are often format-homogeneous (e.g. all ISO), so sampleValues misses the tail.
     if (col.type === 'date' && !looksLikeYear(col)) {
-      const dvals = samples;
-      const nonIso = dvals.filter((v) => !/^\d{4}-\d{2}-\d{2}/.test(v));
-      if (dvals.length >= 3 && nonIso.length > 0) {
-        add('medium', col.name, 'non-iso-date',
-          `Looks like dates but not ISO YYYY-MM-DD (e.g. ${nonIso.slice(0, 2).join(', ')}).`,
-          'Time bucketing (strftime) only parses ISO — non-ISO dates collapse to NULL, so analyze skips the trend. Reformat to YYYY-MM-DD for time-series analysis.');
+      const topVals = (col.topValues ?? []).map((t) => String(t.value)).filter(Boolean);
+      const dateProbe = [...new Set([...samples, ...topVals])].filter(Boolean);
+      if (dateProbe.length >= 3) {
+        const formats = detectDateFormats(dateProbe);
+        if (formats.size >= 2) {
+          // Multiple incompatible formats in the same column — HIGH, and prompt-worthy.
+          // strftime + BETWEEN silently discard non-ISO rows; the model must normalize first.
+          const examples: string[] = [];
+          for (const fmt of formats) {
+            const ex = dateProbe.find((v) => classifyDateFmt(v) === fmt);
+            if (ex) examples.push(`"${ex}" (${fmt})`);
+          }
+          add('high', col.name, 'mixed-date-format',
+            `Column has ${formats.size} incompatible date formats: ${examples.join(', ')}.`,
+            `strftime/BETWEEN silently ignore non-ISO rows — ISO rows only are counted. Normalize to YYYY-MM-DD with a clean() function before filtering or aggregating by date.`);
+        } else {
+          // Single non-ISO format — keep existing MEDIUM advisory (not prompt-worthy,
+          // but surfaced in `dolex check` for awareness).
+          const nonIso = dateProbe.filter((v) => !/^\d{4}-\d{2}-\d{2}/.test(v));
+          if (nonIso.length > 0) {
+            add('medium', col.name, 'non-iso-date',
+              `Looks like dates but not ISO YYYY-MM-DD (e.g. ${nonIso.slice(0, 2).join(', ')}).`,
+              'Time bucketing (strftime) only parses ISO — non-ISO dates collapse to NULL, so analyze skips the trend. Reformat to YYYY-MM-DD for time-series analysis.');
+          }
+        }
       }
     }
   }
@@ -306,6 +392,17 @@ function classifyNumericText(probe: string[]): NumericTextKind | null {
   const vals = probe.map((v) => v.trim()).filter((v) => v !== '');
   if (vals.length < 2) return null;
   const frac = (xs: string[]) => xs.length / vals.length;
+
+  // Accounting negatives first — "(1,234)" matches neither currency nor sep, but
+  // it IS a number (a negative one), and missing it loses the sign silently.
+  const accounting = vals.filter((v) => ACCOUNTING_NUM.test(v));
+  if (frac(accounting) >= 0.6)
+    return {
+      issue: 'numeric-text-parens', label: 'accounting-style negatives', examples: accounting.slice(0, 2),
+      harm: 'SQLite reads "(1,234)" as 0 and loses the negative sign — SUM/AVG/ORDER BY are silently wrong.',
+      fix: (c) =>
+        `CASE WHEN ${c} LIKE '(%' THEN -CAST(REPLACE(REPLACE(REPLACE(${c}, '(', ''), ')', ''), ',', '') AS REAL) ELSE CAST(REPLACE(${c}, ',', '') AS REAL) END`,
+    };
 
   const currency = vals.filter((v) => CURRENCY_NUM.test(v));
   if (frac(currency) >= 0.6) {
@@ -448,6 +545,7 @@ const SEV_RANK: Record<QualitySeverity, number> = { high: 0, medium: 1, low: 2 }
 // list tight — every line added is a line that competes with the user's question.
 const PROMPT_WORTHY_ISSUES = new Set([
   'numeric-text-symbol', 'numeric-text-separators', 'mixed-type', // type traps
+  'mixed-date-format',     // ≥2 incompatible date formats — strftime silently drops non-ISO rows
   'sentinel-value',        // missing-value markers that poison aggregates
   'dirty-categories',      // case/space splits that change the GROUP BY winner
   'duplicate-rows',        // inflate counts

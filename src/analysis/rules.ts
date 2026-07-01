@@ -51,13 +51,59 @@ export function isIsoDateColumn(col: ClassifiedColumn): boolean {
  * date column — we'd rather skip the trend than ship strftime SQL that silently
  * produces a single NULL bucket summing the whole table.
  */
-export function timeBucketing(col: ClassifiedColumn): { label: string; expr: string } | null {
+/** SQL flavor for planner-generated date/time SQL. */
+export type PlannerDialect = 'sqlite' | 'postgres';
+
+/**
+ * Raised when analysis-plan generation is asked to run against a source whose
+ * query paradigm the planner can't emit. The planner produces SELECT SQL, so a
+ * document store (mongodb → aggregation pipeline) is REFUSED here rather than
+ * silently handed SQLite SQL — the caller surfaces `message` as a clean error.
+ */
+export class PlannerUnsupportedSourceError extends Error {
+  constructor(public readonly sourceType: string, message: string) {
+    super(message);
+    this.name = 'PlannerUnsupportedSourceError';
+  }
+}
+
+/**
+ * Resolve a registered source's `type` to the SQL flavor the planner emits.
+ * The ONE place source-type → planner-dialect is decided, so no call site
+ * re-derives it with a `type === 'postgres' ? …` ternary that silently maps an
+ * unrecognized (e.g. mongodb) source to SQLite. csv/undefined → sqlite,
+ * postgres → postgres; a pipeline source (mongodb) or unknown type THROWS.
+ */
+export function plannerDialectForSource(type: string | undefined): PlannerDialect {
+  switch (type) {
+    case undefined:
+    case 'csv':
+      return 'sqlite';
+    case 'postgres':
+      return 'postgres';
+    case 'mongodb':
+      throw new PlannerUnsupportedSourceError(
+        'mongodb',
+        'analyze builds SQL analysis plans and cannot plan a MongoDB source ' +
+          '(aggregation-pipeline paradigm, not SQL). Query it directly, or drive it through the orchestrator/recon path.',
+      );
+    default:
+      throw new PlannerUnsupportedSourceError(
+        type,
+        `analyze: unknown source type "${type}" — no analysis-plan dialect mapping (expected csv | postgres).`,
+      );
+  }
+}
+
+export function timeBucketing(col: ClassifiedColumn, dialect: PlannerDialect = 'sqlite'): { label: string; expr: string } | null {
   if (isYearColumn(col)) {
     const c = q(col.name);
-    return {
-      label: 'year',
-      expr: `CASE WHEN CAST(${c} AS REAL) BETWEEN 1000 AND 2200 THEN CAST(CAST(${c} AS INTEGER) AS TEXT) END`,
-    };
+    // A year stored as a number → its integer year as text, guarded to a plausible range.
+    // Postgres is type-strict (can't CAST('1980.0' AS INTEGER)), so it numeric-guards first.
+    const expr = dialect === 'postgres'
+      ? `CASE WHEN (${c})::text ~ '^ *-?[0-9]+([.][0-9]+)? *$' AND (${c})::double precision BETWEEN 1000 AND 2200 THEN floor((${c})::double precision)::int::text END`
+      : `CASE WHEN CAST(${c} AS REAL) BETWEEN 1000 AND 2200 THEN CAST(CAST(${c} AS INTEGER) AS TEXT) END`;
+    return { label: 'year', expr };
   }
   // Skip only on POSITIVE evidence the dates are non-ISO (top values present and
   // not ISO). Absent top values, assume ISO and bucket as before — a real date
@@ -65,7 +111,7 @@ export function timeBucketing(col: ClassifiedColumn): { label: string; expr: str
   const vals = (col.topValues ?? []).map((t) => String(t.value));
   if (vals.length > 0 && !isIsoDateColumn(col)) return null;
   const bucket = pickTimeBucket(col);
-  return { label: bucket, expr: sqlTimeBucket(col.name, bucket) };
+  return { label: bucket, expr: sqlTimeBucket(col.name, bucket, dialect) };
 }
 
 function findByRole(columns: ClassifiedColumn[], role: ClassifiedColumn['role']): ClassifiedColumn[] {
@@ -80,8 +126,18 @@ function sumAlias(measureName: string): string {
   return `total_${measureName}`;
 }
 
-function sqlTimeBucket(col: string, bucket: 'day' | 'week' | 'month' | 'quarter' | 'year'): string {
+function sqlTimeBucket(col: string, bucket: 'day' | 'week' | 'month' | 'quarter' | 'year', dialect: PlannerDialect = 'sqlite'): string {
   const c = q(col);
+  if (dialect === 'postgres') {
+    const ts = `(${c})::timestamp`;
+    switch (bucket) {
+      case 'year': return `EXTRACT(YEAR FROM ${ts})::int::text`;
+      case 'quarter': return `to_char(${ts}, 'YYYY') || '-Q' || EXTRACT(QUARTER FROM ${ts})::int::text`;
+      case 'month': return `to_char(${ts}, 'YYYY-MM')`;
+      case 'week': return `to_char(${ts}, 'IYYY-"W"IW')`;
+      case 'day': return `to_char(${ts}, 'YYYY-MM-DD')`;
+    }
+  }
   switch (bucket) {
     case 'year':
       return `CASE WHEN typeof(${c}) = 'integer' AND ${c} BETWEEN 1000 AND 2200 THEN CAST(${c} AS TEXT) ELSE strftime('%Y', ${c}) END`;
@@ -111,14 +167,14 @@ function makeStep(
 
 // --- Rules ------------------------------------------------------------------
 
-type AnalysisRule = (columns: ClassifiedColumn[], table: string) => AnalysisStep | null;
+type AnalysisRule = (columns: ClassifiedColumn[], table: string, dialect: PlannerDialect) => AnalysisStep | null;
 
-const timeTrend: AnalysisRule = (columns, table) => {
+const timeTrend: AnalysisRule = (columns, table, dialect) => {
   const timeCol = first(columns, 'time');
   const measureCol = first(columns, 'measure');
   if (!timeCol || !measureCol) return null;
 
-  const tb = timeBucketing(timeCol);
+  const tb = timeBucketing(timeCol, dialect);
   if (!tb) return null; // date column isn't ISO/year-bucketable — skip rather than ship garbage SQL
   const { label: bucket, expr: bucketExpr } = tb;
   const asName = sumAlias(measureCol.name);
@@ -135,13 +191,13 @@ const timeTrend: AnalysisRule = (columns, table) => {
   );
 };
 
-const trendByGroup: AnalysisRule = (columns, table) => {
+const trendByGroup: AnalysisRule = (columns, table, dialect) => {
   const timeCol = first(columns, 'time');
   const measureCol = first(columns, 'measure');
   const dimCol = findByRole(columns, 'dimension').find(d => d.uniqueCount <= 8);
   if (!timeCol || !measureCol || !dimCol) return null;
 
-  const tb = timeBucketing(timeCol);
+  const tb = timeBucketing(timeCol, dialect);
   if (!tb) return null; // non-ISO/non-year date — skip rather than ship garbage SQL
   const { label: bucket, expr: bucketExpr } = tb;
   const asName = sumAlias(measureCol.name);
@@ -287,11 +343,11 @@ const composition: AnalysisRule = (columns, table) => {
 // time bucket (WoW/MoM/YoY depending on the bucket). Uses LAG; the % change is
 // guarded with NULLIF (div-by-zero) and 100.0 (real division) — the SQL-safety
 // traps this engine warns about, avoided at the source.
-const periodOverPeriod: AnalysisRule = (columns, table) => {
+const periodOverPeriod: AnalysisRule = (columns, table, dialect) => {
   const timeCol = first(columns, 'time');
   const measureCol = first(columns, 'measure');
   if (!timeCol || !measureCol) return null;
-  const tb = timeBucketing(timeCol);
+  const tb = timeBucketing(timeCol, dialect);
   if (!tb) return null;
   const { label: bucket, expr: bucketExpr } = tb;
   const period = q(`${timeCol.name}_${bucket}`);
@@ -316,7 +372,7 @@ const periodOverPeriod: AnalysisRule = (columns, table) => {
 // Seasonality: average a measure by month-of-year ACROSS years, isolating the
 // recurring seasonal shape from the long-run trend. Only meaningful with sub-year
 // (ISO date) resolution — skipped for year-only columns.
-const seasonality: AnalysisRule = (columns, table) => {
+const seasonality: AnalysisRule = (columns, table, dialect) => {
   const timeCol = first(columns, 'time');
   const measureCol = first(columns, 'measure');
   if (!timeCol || !measureCol) return null;
@@ -324,9 +380,10 @@ const seasonality: AnalysisRule = (columns, table) => {
   const vals = (timeCol.topValues ?? []).map((t) => String(t.value));
   if (vals.length > 0 && !isIsoDateColumn(timeCol)) return null; // non-ISO date → strftime would NULL
   const c = q(timeCol.name);
+  const monthExpr = dialect === 'postgres' ? `to_char((${c})::timestamp, 'MM')` : `strftime('%m', ${c})`;
   const sql =
-    `SELECT strftime('%m', ${c}) AS month, AVG(${q(measureCol.name)}) AS ${q(`avg_${measureCol.name}`)} ` +
-    `FROM ${q(table)} WHERE strftime('%m', ${c}) IS NOT NULL GROUP BY 1 ORDER BY 1 ASC`;
+    `SELECT ${monthExpr} AS month, AVG(${q(measureCol.name)}) AS ${q(`avg_${measureCol.name}`)} ` +
+    `FROM ${q(table)} WHERE ${monthExpr} IS NOT NULL GROUP BY 1 ORDER BY 1 ASC`;
   return makeStep(
     'trend',
     `${capitalize(measureCol.name)} Seasonality (by month)`,
@@ -355,9 +412,9 @@ const ALL_RULES: AnalysisRule[] = [
 
 // --- Main Export -------------------------------------------------------------
 
-export function generateCandidates(columns: ClassifiedColumn[], table: string): AnalysisStep[] {
+export function generateCandidates(columns: ClassifiedColumn[], table: string, dialect: PlannerDialect = 'sqlite'): AnalysisStep[] {
   return ALL_RULES.flatMap(rule => {
-    const result = rule(columns, table);
+    const result = rule(columns, table, dialect);
     return result ? [result] : [];
   });
 }

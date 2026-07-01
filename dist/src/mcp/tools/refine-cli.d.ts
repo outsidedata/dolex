@@ -90,7 +90,7 @@ export declare const refineCliInputSchema: z.ZodObject<{
         direction: "asc" | "desc";
         field?: string | undefined;
     } | null | undefined;
-    format?: "compact" | "integer" | "percent" | "dollar" | "decimal" | undefined;
+    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     filter?: {
@@ -98,9 +98,9 @@ export declare const refineCliInputSchema: z.ZodObject<{
         values: (string | number)[];
         op: "in" | "not_in" | "gt" | "gte" | "lt" | "lte";
     }[] | undefined;
+    limit?: number | undefined;
     layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
-    limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
     yLabel?: string | undefined;
@@ -122,7 +122,7 @@ export declare const refineCliInputSchema: z.ZodObject<{
         direction: "asc" | "desc";
         field?: string | undefined;
     } | null | undefined;
-    format?: "compact" | "integer" | "percent" | "dollar" | "decimal" | undefined;
+    format?: "compact" | "integer" | "decimal" | "percent" | "dollar" | undefined;
     colorField?: string | undefined;
     palette?: "categorical" | "blue" | "green" | "purple" | "warm" | "blueRed" | "greenPurple" | "tealOrange" | "redGreen" | "traffic-light" | "profit-loss" | "temperature" | undefined;
     filter?: {
@@ -130,9 +130,9 @@ export declare const refineCliInputSchema: z.ZodObject<{
         values: (string | number)[];
         op?: "=" | "!=" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | undefined;
     }[] | undefined;
+    limit?: number | undefined;
     layout?: "rows" | "columns" | undefined;
     subtitle?: string | undefined;
-    limit?: number | undefined;
     flip?: boolean | undefined;
     xLabel?: string | undefined;
     yLabel?: string | undefined;

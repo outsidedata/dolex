@@ -21,8 +21,28 @@ export declare function isIsoDateColumn(col: ClassifiedColumn): boolean;
  * date column — we'd rather skip the trend than ship strftime SQL that silently
  * produces a single NULL bucket summing the whole table.
  */
-export declare function timeBucketing(col: ClassifiedColumn): {
+/** SQL flavor for planner-generated date/time SQL. */
+export type PlannerDialect = 'sqlite' | 'postgres';
+/**
+ * Raised when analysis-plan generation is asked to run against a source whose
+ * query paradigm the planner can't emit. The planner produces SELECT SQL, so a
+ * document store (mongodb → aggregation pipeline) is REFUSED here rather than
+ * silently handed SQLite SQL — the caller surfaces `message` as a clean error.
+ */
+export declare class PlannerUnsupportedSourceError extends Error {
+    readonly sourceType: string;
+    constructor(sourceType: string, message: string);
+}
+/**
+ * Resolve a registered source's `type` to the SQL flavor the planner emits.
+ * The ONE place source-type → planner-dialect is decided, so no call site
+ * re-derives it with a `type === 'postgres' ? …` ternary that silently maps an
+ * unrecognized (e.g. mongodb) source to SQLite. csv/undefined → sqlite,
+ * postgres → postgres; a pipeline source (mongodb) or unknown type THROWS.
+ */
+export declare function plannerDialectForSource(type: string | undefined): PlannerDialect;
+export declare function timeBucketing(col: ClassifiedColumn, dialect?: PlannerDialect): {
     label: string;
     expr: string;
 } | null;
-export declare function generateCandidates(columns: ClassifiedColumn[], table: string): AnalysisStep[];
+export declare function generateCandidates(columns: ClassifiedColumn[], table: string, dialect?: PlannerDialect): AnalysisStep[];

@@ -240,10 +240,17 @@ export async function connectAndValidateTable(deps, sourceId, tableName) {
         return errorResponse(`Source not found: ${sourceId}`);
     }
     const source = connResult.source;
-    const db = source.getDatabase?.();
-    if (!db) {
-        return errorResponse('Source does not support transforms (no database handle)');
+    // Source-agnostic derivation gate: the connector DECLARES whether/how it can derive a column
+    // (no longer a getDatabase-truthiness probe). A source that doesn't implement the seam is treated
+    // as non-deriving.
+    const caps = source.derivationCapabilities?.() ?? { canDerive: false, materialization: 'none', rowKey: null, serverSideQueryable: false };
+    if (!caps.canDerive) {
+        return errorResponse('Source does not support transforms');
     }
+    // CSV/sqlite-alter exposes a raw SQLite handle for the ALTER+rowid work; a live source (PG/Mongo)
+    // has no handle and materializes via source.applyDerivation. db may be undefined — each tool guards
+    // on what it needs (transform_data handles both; promote/drop/clean require the SQLite handle).
+    const db = source.getDatabase?.();
     let schema;
     try {
         schema = await source.getSchema();
@@ -256,7 +263,7 @@ export async function connectAndValidateTable(deps, sourceId, tableName) {
         const available = schema.tables.map((t) => t.name);
         return errorResponse(`Table '${tableName}' not found. Available: [${available.join(', ')}]`);
     }
-    return { source, db, table };
+    return { source, db, table, caps };
 }
 /** Type guard: checks if a connectAndValidateTable result is an error response. */
 export function isTransformError(result) {

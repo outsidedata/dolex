@@ -62,7 +62,7 @@ export interface DataSchema {
 
 // ─── DATA SOURCE TYPES ────────────────────────────────────────────────────────
 
-export type DataSourceType = 'csv';
+export type DataSourceType = 'csv' | 'postgres' | 'mongodb';
 
 export interface DataSourceInfo {
   id: string;
@@ -71,12 +71,41 @@ export interface DataSourceInfo {
   config: DataSourceConfig;
 }
 
-export type DataSourceConfig = CsvSourceConfig;
+export type DataSourceConfig = CsvSourceConfig | PostgresSourceConfig | MongoSourceConfig;
 
 export interface CsvSourceConfig {
   type: 'csv';
   /** Directory containing CSV files, or path to a single CSV */
   path: string;
+}
+
+export interface PostgresSourceConfig {
+  type: 'postgres';
+  /** libpq connection string, OR provide discrete fields below. */
+  connectionString?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  user?: string;
+  /** Literal password. Stored in the registry — prefer `passwordEnv` to keep the secret out of the file. */
+  password?: string;
+  /** Name of an environment variable holding the password (e.g. "PGPASSWORD"). The registry stores
+   *  only this reference, not the secret; the password is read from the environment at connect time. */
+  passwordEnv?: string;
+  /** Postgres schema to introspect (default: public). */
+  schema?: string;
+}
+
+export interface MongoSourceConfig {
+  type: 'mongodb';
+  /** Mongo connection URI, OR provide discrete host/port below. */
+  uri?: string;
+  host?: string;
+  port?: number;
+  /** Database to introspect (required — a Mongo connection has no single default db). */
+  database: string;
+  /** Restrict to these collections; omitted ⇒ all collections in the database. */
+  collections?: string[];
 }
 
 // ─── ROW FILTER TYPES ────────────────────────────────────────────────────────

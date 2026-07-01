@@ -9,7 +9,7 @@
  *   visualize              — Data (inline, cached, or CSV+SQL) + intent → ranked visualization recommendations
  *   list_patterns          — Browse all available visualization patterns
  *   refine_visualization   — Tweak a visualization spec
- *   load_csv               — Load a CSV file or directory
+ *   load_source            — Load a CSV / Postgres / MongoDB source
  *   list_data              — List loaded datasets
  *   remove_data            — Remove a loaded dataset
  *   describe_data          — Re-examine column profiles and sample rows for a dataset
@@ -42,10 +42,12 @@ import {
   addSourceInputSchema,
   removeSourceInputSchema,
   describeSourceInputSchema,
+  testSourceInputSchema,
   handleListSources,
   handleAddSource,
   handleRemoveSource,
   handleDescribeSource,
+  handleTestSource,
 } from './tools/sources.js';
 import { analyzeSourceInputSchema, handleAnalyzeSource } from './tools/analyze.js';
 import { querySourceInputSchema, handleQuerySource } from './tools/query-source.js';
@@ -55,6 +57,7 @@ import {
   handleClearCache,
 } from './tools/server-privacy.js';
 import { exportHtmlInputSchema, handleExportHtml } from './tools/export-html.js';
+import { handleCapabilities } from './tools/capabilities.js';
 import { screenshotInputSchema, handleScreenshot, closeBrowser } from './tools/screenshot.js';
 import { visualizeCliInputSchema, handleVisualizeCli } from './tools/visualize-cli.js';
 import { refineCliInputSchema, handleRefineCli } from './tools/refine-cli.js';
@@ -114,9 +117,10 @@ const server = new McpServer(
       "You are a data analyst working on the user's own CSV files: rigorous column profiling, data-quality auditing, a prioritized analysis plan, and findings rendered across 43 chart types as artifacts they keep.",
       '',
       'WORKFLOW:',
-      '• Got a CSV file? → load_csv(name, path) — returns smart summary (column names, types, ranges, categorical values)',
+      '• Got a CSV file, Postgres, or MongoDB? → load_source(name, type, path|uri|host+database) — returns smart summary (column names, types, ranges, categorical values)',
+      '• For a Postgres/MongoDB source, call capabilities first to confirm its driver is installed here; if not, it tells the user the exact command (e.g. `npm install pg`). Loading a source whose driver is missing returns that same install message, never a crash.',
       '• Got inline data? → visualize(data, intent) directly',
-      '• Need to explore? → load_csv → analyze_data → visualize(sourceId, sql, intent) per step',
+      '• Need to explore? → load_source → analyze_data → visualize(sourceId, sql, intent) per step',
       '',
       'CONTINUATION (dataset already loaded):',
       '• Chart from data → visualize(sourceId, sql, intent)',
@@ -127,7 +131,7 @@ const server = new McpServer(
       '• specId expired? → re-run the original visualize call, then continue refining from the new specId',
       '',
       'TOOL GUIDE:',
-      '• load_csv: Load CSV. Returns sourceId + smart summary (columns, types, ranges, categorical values) — enough to write SQL.',
+      '• load_source: Load a CSV / Postgres / MongoDB source. Returns sourceId + smart summary (columns, types, ranges, categorical values) — enough to query.',
       '• describe_data: Full column stats, top values, sample rows. Call only when you need deep exploration.',
       '• analyze_data: Auto-generate analysis plan with ready SQL queries. Execute each step with visualize; present results one at a time.',
       '• query_data: Run SQL query, get rows. Returns resultId for visualize().',
@@ -201,10 +205,10 @@ registerAppTool(
 
 // CSV data management tools
 server.registerTool(
-  'load_csv',
+  'load_source',
   {
-    title: 'Load CSV Data',
-    description: 'Load a CSV file or directory. Datasets persist across restarts.\nReturns sourceId + smart summary: column names, types, numeric ranges, categorical values.\nThis gives you enough to write SQL. Call describe_data only if you need full stats.',
+    title: 'Load a data source',
+    description: 'Load a data source: a CSV file/directory (type "csv" + path), a live Postgres database (type "postgres" + uri or host/database/user), or a MongoDB database (type "mongodb" + uri/host + database). Type defaults to "csv". Datasets persist across restarts.\nReturns sourceId + smart summary: column names, types, numeric ranges, categorical values.\nThis gives you enough to query. Call describe_data only if you need full stats.',
     inputSchema: addSourceInputSchema,
   },
   handleAddSource({ sourceManager }),
@@ -233,7 +237,7 @@ server.registerTool(
   'describe_data',
   {
     title: 'Describe Data',
-    description: 'Full column profiles: stats (min/max/mean/median), top values with counts, sample rows.\nUse only when you need deep exploration — load_csv already gives you enough to write SQL.',
+    description: 'Full column profiles: stats (min/max/mean/median), top values with counts, sample rows.\nUse only when you need deep exploration — load_source already gives you enough to query.',
     inputSchema: describeSourceInputSchema,
   },
   handleDescribeSource({ sourceManager }),
@@ -320,6 +324,25 @@ server.registerTool(
     description: 'Inspect cached specs, query results, connected sources, and uptime.',
   },
   handleServerStatus(privacyDeps),
+);
+
+server.registerTool(
+  'capabilities',
+  {
+    title: 'Environment Capabilities',
+    description: 'What this Dolex install can do here: which source types are ready (CSV always; Postgres/MongoDB only if their optional driver is installed), whether python3 is present (for clean_column), and the exact command to enable anything missing. Call this before loading a Postgres/Mongo source so you can tell the user how to install a missing driver instead of hitting an error.',
+  },
+  handleCapabilities(),
+);
+
+server.registerTool(
+  'test_source',
+  {
+    title: 'Test a Source',
+    description: 'Health-check a registered Postgres/Mongo source: is its saved database reachable with its credentials? Returns a classified reason (unreachable / auth-failed / db-not-found / driver-missing) so you can tell the user exactly what to fix. A source can be registered even while its DB is down — use this to confirm it once it is up.',
+    inputSchema: testSourceInputSchema,
+  },
+  handleTestSource({ sourceManager }),
 );
 
 server.registerTool(

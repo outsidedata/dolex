@@ -9,6 +9,8 @@ export function handleDropColumns(deps) {
         const ctx = await connectAndValidateTable(deps, args.sourceId, args.table);
         if (isTransformError(ctx))
             return ctx;
+        if (!ctx.db)
+            return errorResponse(`drop_columns manages CSV-side derived columns. On a live ${ctx.source.type} source, derived columns are session-local — end the session (or overwrite via transform_data) to discard them.`);
         const metadata = new TransformMetadata(ctx.db);
         metadata.init();
         const mgr = new ColumnManager(ctx.db);

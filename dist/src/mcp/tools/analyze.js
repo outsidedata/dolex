@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { buildAnalysisPlan } from '../../analysis/planner.js';
+import { plannerDialectForSource, PlannerUnsupportedSourceError } from '../../analysis/rules.js';
 import { errorResponse, jsonResponse } from './shared.js';
 export const analyzeSourceInputSchema = z.object({
     sourceId: z.string().describe('Dataset ID returned by load_csv'),
@@ -27,7 +28,16 @@ export function handleAnalyzeSource(deps) {
                 : 'No tables found in source';
             return errorResponse(message);
         }
-        const plan = buildAnalysisPlan(targetTable.columns, targetTable.name, schemaResult.schema.source?.name ?? args.sourceId, args.maxSteps ?? 6);
+        let dialect;
+        try {
+            dialect = plannerDialectForSource(schemaResult.schema.source?.type);
+        }
+        catch (err) {
+            if (err instanceof PlannerUnsupportedSourceError)
+                return errorResponse(err.message);
+            throw err;
+        }
+        const plan = buildAnalysisPlan(targetTable.columns, targetTable.name, schemaResult.schema.source?.name ?? args.sourceId, args.maxSteps ?? 6, dialect);
         return jsonResponse(plan);
     };
 }

@@ -27,6 +27,14 @@ export const OPTIONAL_FEATURES = {
     feature: 'the MCP server (`dolex mcp`)',
     install: 'npm install @modelcontextprotocol/sdk @modelcontextprotocol/ext-apps',
   },
+  postgres: {
+    feature: 'Postgres data sources',
+    install: 'npm install pg',
+  },
+  mongodb: {
+    feature: 'MongoDB data sources',
+    install: 'npm install mongodb',
+  },
 } as const satisfies Record<string, OptionalFeature>;
 
 export type OptionalFeatureKey = keyof typeof OPTIONAL_FEATURES;
